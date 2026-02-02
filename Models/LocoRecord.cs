@@ -1,13 +1,44 @@
 ﻿using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace TrackFlow.Models;
 
-public sealed class LocoRecord
+public sealed class LocoRecord : ObservableObject
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
-    public string Name { get; set; } = string.Empty;
-    public int Address { get; set; } = 3; // 1..10239
-    public string Description { get; set; } = string.Empty;
+    private string _id = Guid.NewGuid().ToString("N");
+    private string _name = string.Empty;
+    private int _address = 3; // 1..10239
+    private string _description = string.Empty;
+    private string _iconName = string.Empty;
+
+    public string Id
+    {
+        get => _id;
+        set => SetProperty(ref _id, value);
+    }
+
+    public string Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
+
+    public int Address
+    {
+        get => _address;
+        set => SetProperty(ref _address, value);
+    }
+
+    public string Description
+    {
+        get => _description;
+        set => SetProperty(ref _description, value);
+    }
+
     // Icon file name (e.g. '754.png')
-    public string IconName { get; set; } = string.Empty;
+    public string IconName
+    {
+        get => _iconName;
+        set => SetProperty(ref _iconName, value);
+    }
 }

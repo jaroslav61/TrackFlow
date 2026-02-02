@@ -45,7 +45,7 @@ public partial class SmartStripsView : UserControl
         if (sender is not Control c)
             return;
 
-        if (c.DataContext is not Locomotive loco)
+        if (c.DataContext is not LocoRecord loco)
             return;
 
         if (!e.Data.Contains(WagonDataFormat))
@@ -54,7 +54,7 @@ public partial class SmartStripsView : UserControl
         if (e.Data.Get(WagonDataFormat) is not Wagon wagon)
             return;
 
-        vm.AttachWagon(loco, wagon);
+        vm.AttachWagonToLocoRecord(loco, wagon);
         e.Handled = true;
     }
 }

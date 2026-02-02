@@ -148,7 +148,7 @@ public partial class MainWindowViewModel : ObservableObject
         Tabs = new MainTabsViewModel(SettingsManager);
         StatusBar = new StatusBarViewModel();
         Settings = new SettingsViewModel(SettingsManager);
-        SmartStrips = new SmartStripsViewModel();
+        SmartStrips = new SmartStripsViewModel(SettingsManager);
         FileBackstage = new FileBackstageViewModel(this);
 
         Dcc = new DccConnectionService(SettingsManager);

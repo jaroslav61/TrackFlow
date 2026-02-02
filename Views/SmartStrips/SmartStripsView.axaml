@@ -16,47 +16,46 @@
   <Grid RowDefinitions="Auto,Auto" Background="#F2F2F2">
 
     <!-- Horný pás: Koľajisko -->
-    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6" MaxHeight="120">
+    <Border Grid.Row="0" Background="#4A5664" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6" MaxHeight="90">
       <StackPanel>
-        <TextBlock Text="Koľajisko" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <StackPanel Margin="0,0,0,4" Spacing="4">
+          <TextBlock Text="Koľajisko"
+                     Foreground="White"
+                     FontSize="12"
+                     FontWeight="SemiBold"/>
+          <Border Height="1"
+                  HorizontalAlignment="Stretch"
+                  Background="#8099A3AE" />
+        </StackPanel>
 
-        <ItemsControl ItemsSource="{Binding TopVehiclesView}">
+        <ItemsControl ItemsSource="{Binding ProjectLocomotives}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" ItemWidth="120" ItemHeight="84" />
+              <WrapPanel Orientation="Horizontal" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
 
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="m:Locomotive">
-              <Border Margin="0,0,6,6"
-                      Padding="6"
-                      Background="#F8F8F8"
-                      BorderBrush="#C8C8C8"
-                      BorderThickness="1"
-                      CornerRadius="4"
-                      MinWidth="100"
-                      Width="120"
-                      Height="84"
+            <DataTemplate x:DataType="m:LocoRecord">
+              <Border Margin="0,0,10,0"
+                      Padding="0"
+                      Background="Transparent"
+                      BorderThickness="0"
                       DragDrop.AllowDrop="True"
-                      DragDrop.Drop="OnLocoDrop">
-                <Border.ContextMenu>
-                  <ContextMenu>
-                    <MenuItem Header="Odpojiť posledný vozeň"
-                              Command="{Binding $parent[UserControl].DataContext.DetachLastWagonFromCommand}"
-                              CommandParameter="{Binding}" />
-                    <MenuItem Header="Odpojiť všetky vozne"
-                              Command="{Binding $parent[UserControl].DataContext.DetachAllWagonsFromCommand}"
-                              CommandParameter="{Binding}" />
-                  </ContextMenu>
-                </Border.ContextMenu>
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <Image Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}" Height="40" Stretch="Uniform" Margin="0,0,0,4" />
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
-                  <TextBlock Text="{Binding Code}" FontSize="11" Foreground="#666" HorizontalAlignment="Center" />
-                  <Border Background="#1E88E5" CornerRadius="10" Padding="4,1" Margin="0,6,0,0" IsVisible="{Binding HasWagons}" HorizontalAlignment="Center">
-                    <TextBlock Foreground="White" FontSize="11" Text="{Binding Wagons.Count, StringFormat='[{0}]'}"/>
-                  </Border>
+                      DragDrop.Drop="OnLocoDrop"
+                      ToolTip.Tip="{Binding Name}">
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Spacing="1">
+                  <Image Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}"
+                         Height="20"
+                         Stretch="Uniform"
+                         HorizontalAlignment="Center"/>
+                  <TextBlock Text="{Binding Name}"
+                             Foreground="White"
+                             FontSize="11"
+                             TextAlignment="Center"
+                             TextWrapping="NoWrap"
+                             TextTrimming="CharacterEllipsis"
+                             MaxWidth="90"/>
                 </StackPanel>
               </Border>
             </DataTemplate>
@@ -66,9 +65,9 @@
     </Border>
 
     <!-- Spodný pás: Sklad/Depo -->
-    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1,0,1,1" Padding="6">
+    <Border Grid.Row="1" Background="#4A5664" BorderBrush="#B5B5B5" BorderThickness="1,0,1,1" Padding="6">
       <StackPanel>
-        <TextBlock Text="Sklad / Depo" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Sklad / Depo" Foreground="White"  FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
 
         <ItemsControl ItemsSource="{Binding DepotWagons}">
           <ItemsControl.ItemsPanel>

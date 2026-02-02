@@ -89,9 +89,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     public LocomotivesWindowViewModel(SettingsManager settings)
     {
         _settings = settings;
-        var project = _settings.EnsureProjectSettings();
+        // Ensure project exists
+        _settings.EnsureProjectSettings();
+        var list = _settings.CurrentProject?.Locomotives ?? new List<LocoRecord>();
 
-        Locomotives = new ObservableCollection<LocoRecord>(project.Locomotives);
+        Locomotives = new ObservableCollection<LocoRecord>(list);
         Selected = Locomotives.FirstOrDefault();
 
         // Load available icon file names from Assets/LocoIcons (search several likely locations)
@@ -427,8 +429,9 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     private void PersistAndSave()
     {
-        var project = _settings.EnsureProjectSettings();
-        project.Locomotives = Locomotives.ToList();
+        // Persist to project settings (this is what is serialized by ProjectStore)
+        var ps = _settings.EnsureProjectSettings();
+        ps.Locomotives = Locomotives.ToList();
 
         if (!_settings.SaveProject())
             ValidationMessage = "Projekt nie je uložený na disk. Použi Súbor → Uložiť ako…";

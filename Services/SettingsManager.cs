@@ -8,6 +8,8 @@ namespace TrackFlow.Services;
 
 public sealed class SettingsManager
 {
+    public event System.Action? ProjectChanged;
+
     private readonly AppSettingsStore _appStore;
     private readonly ProjectStore _projectStore;
     private readonly ProjectMigrationService _migration;
@@ -71,12 +73,15 @@ public sealed class SettingsManager
 
         App.LastProjectPath = projectFilePath;
         _appStore.Save(App);
+
+        ProjectChanged?.Invoke();
     }
 
     public void CloseProject()
     {
         CurrentProjectPath = null;
         CurrentProject = null;
+        ProjectChanged?.Invoke();
     }
 
     public bool SaveProject()
@@ -84,7 +89,10 @@ public sealed class SettingsManager
         if (CurrentProjectPath == null || CurrentProject == null)
             return false;
 
-        return _projectStore.Save(CurrentProjectPath, CurrentProject);
+        var ok = _projectStore.Save(CurrentProjectPath, CurrentProject);
+        if (ok)
+            ProjectChanged?.Invoke();
+        return ok;
     }
 
     /// <summary>
@@ -108,6 +116,8 @@ public sealed class SettingsManager
         CurrentProjectPath = projectFilePath;
         App.LastProjectPath = projectFilePath;
         _appStore.Save(App);
+
+        ProjectChanged?.Invoke();
 
         return true;
     }

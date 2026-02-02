@@ -4,11 +4,14 @@ using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
 using TrackFlow.Models;
+using TrackFlow.Services;
+using TrackFlow.Services;
 
 namespace TrackFlow.ViewModels.SmartStrips;
 
 public partial class SmartStripsViewModel : ObservableObject
 {
+    public ObservableCollection<LocoRecord> ProjectLocomotives { get; } = new();
     public ObservableCollection<Locomotive> Locomotives { get; } = new();
     public ObservableCollection<Wagon> DepotWagons { get; } = new();
 
@@ -16,26 +19,34 @@ public partial class SmartStripsViewModel : ObservableObject
         .OrderByDescending(l => l.HasWagons)
         .ThenBy(l => l.Name);
 
-    public SmartStripsViewModel()
+    private readonly SettingsManager _settings;
+
+    // Design-time constructor (Avalonia designer instantiates VM from XAML).
+    // Keep it lightweight and side-effect free.
+    public SmartStripsViewModel() : this(new SettingsManager())
     {
-        // seed demo data (can be deleted once wired to project data)
-        // Use actual icon files present in Assets/LocoIcons
-        var l1 = new Locomotive("L001", "Brejlovec") { IconName = "zsr_350.png" };
-        var l2 = new Locomotive("L002", "Okuliarnik") { IconName = "zsr_750z.png" };
-        var l3 = new Locomotive("L003", "Zamraèená") { IconName = "zsr_751zc.png" };
-        l1.Wagons.Add(new Wagon("W101", "Eaos"));
-        l1.Wagons.Add(new Wagon("W102", "Raj"));
+    }
 
-        Locomotives.Add(l1);
-        Locomotives.Add(l2);
-        Locomotives.Add(l3);
-
-        DepotWagons.Add(new Wagon("W201", "Uacs"));
-        DepotWagons.Add(new Wagon("W202", "Falls"));
-        DepotWagons.Add(new Wagon("W203", "Zas"));
-
+    public SmartStripsViewModel(SettingsManager settings)
+    {
+        _settings = settings;
         Locomotives.CollectionChanged += (_, _) => OnPropertyChanged(nameof(TopVehiclesView));
         DepotWagons.CollectionChanged += (_, _) => { };
+
+        _settings.ProjectChanged += RefreshFromProject;
+        RefreshFromProject();
+    }
+
+    private void RefreshFromProject()
+    {
+        ProjectLocomotives.Clear();
+
+        var list = _settings.Project?.Locomotives;
+        if (list == null || list.Count == 0)
+            return;
+
+        foreach (var loco in list)
+            ProjectLocomotives.Add(loco);
     }
 
     public void AttachWagon(Locomotive loco, Wagon wagon)
@@ -50,6 +61,28 @@ public partial class SmartStripsViewModel : ObservableObject
             loco.Wagons.Add(wagon);
 
         OnPropertyChanged(nameof(TopVehiclesView));
+    }
+
+    public void AttachWagonToLocoRecord(LocoRecord record, Wagon wagon)
+    {
+        if (record == null || wagon == null)
+            return;
+
+        // Wagon attachments live on runtime Locomotive instances. Bridge LocoRecord -> Locomotive by stable key.
+        var key = !string.IsNullOrWhiteSpace(record.Id) ? record.Id : record.Address.ToString();
+        var loco = Locomotives.FirstOrDefault(l =>
+            string.Equals(l.Code, key, System.StringComparison.OrdinalIgnoreCase));
+
+        if (loco == null)
+        {
+            loco = new Locomotive(key, record.Name) { IconName = record.IconName ?? string.Empty };
+            Locomotives.Add(loco);
+        }
+
+        if (loco == null)
+            return;
+
+        AttachWagon(loco, wagon);
     }
 
     public void DetachLastWagon(Locomotive loco)
