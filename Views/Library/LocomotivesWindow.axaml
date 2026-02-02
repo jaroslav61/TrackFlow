@@ -3,6 +3,7 @@
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
+		xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
 		x:Class="TrackFlow.Views.Library.LocomotivesWindow"
 		x:DataType="vm:LocomotivesWindowViewModel"
 		x:Name="Root"
@@ -16,6 +17,10 @@
 			<Setter Property="Opacity" Value="0.65"/>
 		</Style>
 	</Window.Styles>
+
+	<Window.Resources>
+		<conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
+	</Window.Resources>
 
 	<Grid RowDefinitions="*,Auto" Margin="10">
 		<Grid Grid.Row="0" ColumnDefinitions="360,5,*" RowDefinitions="*">
@@ -62,16 +67,18 @@
 								   Text="{Binding AddressKindText}"/>
 					</Grid>
 
-					<Border Grid.Row="0" Grid.Column="3" Grid.RowSpan="3"
-							Width="200" Height="120"
-							BorderBrush="#B0B0B0" BorderThickness="1" CornerRadius="4" Padding="4">
-						<Image Stretch="Uniform" Source="{Binding ImageBitmap}" />
-					</Border>
-
-					<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
-						<Button Content="Vybrať…" Command="{Binding ChooseImageCommand}" Width="90"/>
-						<Button Content="Vymazať" Command="{Binding ClearImageCommand}" Width="90"/>
-					</StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="3" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center">
+                        <!-- Use AvailableIcons (IconItem) as ItemsSource and bind SelectedItem to SelectedIcon -->
+                        <ComboBox Width="200" Height="50"
+                                  ItemsSource="{Binding AvailableIcons}"
+                                  SelectedItem="{Binding SelectedIcon, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Image Source="{Binding FullPath, Converter={StaticResource IconNameToPathConverter}}" Height="40" Stretch="Uniform" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
 
 					<Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4"
 							Background="#FFF6D6" BorderBrush="#E0C070" BorderThickness="1"

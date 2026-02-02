@@ -1,8 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Platform.Storage;
 using System.Text;
-using System.Threading.Tasks;
 using TrackFlow.ViewModels.Library;
 using Avalonia.Threading;
 using System.ComponentModel;
@@ -123,7 +121,6 @@ public partial class LocomotivesWindow : Window
         {
             _vm.PropertyChanged -= VmOnPropertyChanged;
             _vm.RequestClose = null;
-            _vm.PickImagePathAsync = null;
         }
 
         _vm = vm;
@@ -132,35 +129,7 @@ public partial class LocomotivesWindow : Window
 
         _vm.PropertyChanged += VmOnPropertyChanged;
         _vm.RequestClose = Close;
-        _vm.PickImagePathAsync = PickImagePathAsync;
     }
 
-    private async Task<string?> PickImagePathAsync()
-    {
-        var sp = StorageProvider;
-        if (sp == null)
-            return null;
-
-        var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Vyberte obrázok lokomotívy",
-            AllowMultiple = false,
-            FileTypeFilter =
-         [
-                        new FilePickerFileType("Obrázky")
-                {
-Patterns = ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp"],
-MimeTypes = ["image/png", "image/jpeg", "image/webp", "image/bmp"]
-                },
-FilePickerFileTypes.All
-                    ]
-        });
-
-        var file = files.Count > 0 ? files[0] : null;
-        if (file == null)
-            return null;
-
-        try { return file.TryGetLocalPath(); }
-        catch { return null; }
-    }
+    // Image picker removed
 }

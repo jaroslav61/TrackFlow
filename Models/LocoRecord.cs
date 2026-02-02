@@ -8,5 +8,6 @@ public sealed class LocoRecord
     public string Name { get; set; } = string.Empty;
     public int Address { get; set; } = 3; // 1..10239
     public string Description { get; set; } = string.Empty;
-    public string? ImagePath { get; set; }
+    // Icon file name (e.g. '754.png')
+    public string IconName { get; set; } = string.Empty;
 }

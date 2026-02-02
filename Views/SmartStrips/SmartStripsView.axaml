@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.SmartStrips"
+             xmlns:m="clr-namespace:TrackFlow.Models"
+             mc:Ignorable="d"
+             x:DataType="vm:SmartStripsViewModel"
+             x:Class="TrackFlow.Views.SmartStrips.SmartStripsView">
+
+  <Design.DataContext>
+    <vm:SmartStripsViewModel />
+  </Design.DataContext>
+
+  <Grid RowDefinitions="Auto,Auto" Background="#F2F2F2">
+
+    <!-- Horný pás: Koľajisko -->
+    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6">
+      <StackPanel>
+        <TextBlock Text="Koľajisko" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+        <ItemsControl ItemsSource="{Binding TopVehiclesView}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="m:Locomotive">
+              <Border Margin="0,0,6,6"
+                      Padding="8,6"
+                      Background="#F8F8F8"
+                      BorderBrush="#C8C8C8"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      MinWidth="160"
+                      DragDrop.AllowDrop="True"
+                      DragDrop.Drop="OnLocoDrop">
+                <Border.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Odpojiť posledný vozeň"
+                              Command="{Binding $parent[UserControl].DataContext.DetachLastWagonFromCommand}"
+                              CommandParameter="{Binding}" />
+                    <MenuItem Header="Odpojiť všetky vozne"
+                              Command="{Binding $parent[UserControl].DataContext.DetachAllWagonsFromCommand}"
+                              CommandParameter="{Binding}" />
+                  </ContextMenu>
+                </Border.ContextMenu>
+                <DockPanel>
+                  <TextBlock Text="[L]" Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Code}" FontSize="11" Foreground="#666"/>
+                  </StackPanel>
+
+                  <Border DockPanel.Dock="Right"
+                          Background="#1E88E5"
+                          CornerRadius="10"
+                          Padding="6,1"
+                          Margin="8,0,0,0"
+                          VerticalAlignment="Center"
+                          IsVisible="{Binding HasWagons}">
+                    <TextBlock Foreground="White" FontSize="11" Text="{Binding Wagons.Count, StringFormat='[{0}]'}"/>
+                  </Border>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <!-- Spodný pás: Sklad/Depo -->
+    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1,0,1,1" Padding="6">
+      <StackPanel>
+        <TextBlock Text="Sklad / Depo" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+        <ItemsControl ItemsSource="{Binding DepotWagons}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="m:Wagon">
+              <Border Margin="0,0,6,6"
+                      Padding="8,6"
+                      Background="#FFFFFF"
+                      BorderBrush="#C8C8C8"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      MinWidth="160"
+                      PointerPressed="OnWagonPointerPressed">
+                <DockPanel>
+                  <TextBlock Text="[W]" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}"/>
+                    <TextBlock Text="{Binding Code}" FontSize="11" Foreground="#666"/>
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+  </Grid>
+</UserControl>

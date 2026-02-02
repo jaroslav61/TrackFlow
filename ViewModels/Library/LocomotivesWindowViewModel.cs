@@ -1,13 +1,13 @@
-﻿using Avalonia.Media.Imaging;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using TrackFlow.Models;
 using TrackFlow.Services;
+using System.IO;
+using System.Diagnostics;
 
 namespace TrackFlow.ViewModels.Library;
 
@@ -24,8 +24,44 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     public ObservableCollection<LocoRecord> Locomotives { get; }
 
+    public ObservableCollection<IconItem> AvailableIcons { get; } = new();
+    public ObservableCollection<string> AvailableIconNames { get; } = new();
+
+    private IconItem? _selectedIcon;
+    public IconItem? SelectedIcon
+    {
+        get => _selectedIcon;
+        set
+        {
+            if (_selectedIcon == value)
+                return;
+            _selectedIcon = value;
+            OnPropertyChanged(nameof(SelectedIcon));
+            // keep EditorIconName in sync for persistence/backwards compatibility
+            EditorIconName = _selectedIcon?.Name ?? string.Empty;
+            if (Selected != null)
+                Selected.IconName = _selectedIcon?.Name ?? string.Empty;
+            MarkDirtyAndRevalidate();
+        }
+    }
+
     [ObservableProperty]
     private LocoRecord? selected;
+
+    private string _editorIconName = "";
+
+    public string EditorIconName
+    {
+        get => _editorIconName;
+        set
+        {
+            if (_editorIconName == (value ?? string.Empty))
+                return;
+            _editorIconName = value ?? string.Empty;
+            OnPropertyChanged(nameof(EditorIconName));
+            MarkDirtyAndRevalidate();
+        }
+    }
 
     [ObservableProperty]
     private EditorMode mode = EditorMode.Viewing;
@@ -42,13 +78,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     [ObservableProperty] private string description = "";
     [ObservableProperty] private string addressText = "3";
 
-    [ObservableProperty] private string? imagePath;
-    [ObservableProperty] private Bitmap? imageBitmap;
+    // Image path/bitmap removed in refactor
 
     [ObservableProperty] private string validationMessage = "";
 
     public Action? RequestClose { get; set; }
-    public Func<Task<string?>>? PickImagePathAsync { get; set; }
 
     private LocoRecord? _selectionBeforeAdd;
 
@@ -60,7 +94,80 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         Locomotives = new ObservableCollection<LocoRecord>(project.Locomotives);
         Selected = Locomotives.FirstOrDefault();
 
+        // Load available icon file names from Assets/LocoIcons (search several likely locations)
+        try
+        {
+            Debug.WriteLine("LocomotivesWindowViewModel: Searching for Assets/LocoIcons starting from base directory and moving up...");
+            var start = AppDomain.CurrentDomain.BaseDirectory ?? AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
+            var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".webp", ".bmp" };
+
+            var dir = start;
+            var maxUp = 6; // climb up to 6 levels
+            var foundDir = (string?)null;
+
+            for (var i = 0; i <= maxUp; i++)
+            {
+                var candidate = Path.Combine(dir, "Assets", "LocoIcons");
+                Debug.WriteLine($"  Checking: {candidate}");
+                if (Directory.Exists(candidate))
+                {
+                    foundDir = Path.GetFullPath(candidate);
+                    Debug.WriteLine($"    Found folder: {foundDir}");
+                    break;
+                }
+
+                var parent = Path.GetDirectoryName(dir);
+                if (string.IsNullOrEmpty(parent) || parent == dir)
+                    break;
+                dir = parent;
+            }
+
+            if (!string.IsNullOrEmpty(foundDir))
+            {
+                var files = Directory.EnumerateFiles(foundDir, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(f => allowedExt.Contains(Path.GetExtension(f)));
+
+                var count = 0;
+                foreach (var f in files)
+                {
+                    var name = Path.GetFileName(f);
+                    if (!AvailableIcons.Any(i => i.Name == name))
+                    {
+                        var full = Path.GetFullPath(f);
+                        AvailableIcons.Add(new IconItem(name, full));
+                        // Register in global registry for converter lookup by name
+                        TrackFlow.Services.IconRegistry.Register(name, full);
+                        Debug.WriteLine($"    Found icon: {name} (full: {full})");
+                        count++;
+                    }
+                }
+
+                Debug.WriteLine($"    Found {count} icon(s) in {foundDir}");
+            }
+            else
+            {
+                Debug.WriteLine("    No Assets/LocoIcons folder found while searching upwards from base directory.");
+            }
+
+            Debug.WriteLine($"LocomotivesWindowViewModel: Total available icons = {AvailableIcons.Count}");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"LocomotivesWindowViewModel: Exception while loading icons: {ex}");
+        }
+
+        // If we have icons, select the first by default so the ComboBox shows content
+        if (AvailableIcons.Count > 0)
+            SelectedIcon = AvailableIcons.First();
+
         LoadSelectedToEditor();
+        OnPropertyChanged(nameof(SelectedLocomotive));
+    }
+
+    public LocoRecord? SelectedLocomotive
+    {
+        get => Selected;
+        set => Selected = value;
     }
 
     partial void OnSelectedChanged(LocoRecord? value)
@@ -80,11 +187,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(AddressKindText));
     }
 
-    partial void OnImagePathChanged(string? value)
-    {
-        UpdateImageBitmap(value);
-        MarkDirtyAndRevalidate();
-    }
+    // ImagePath and related change handler removed
 
     public string AddressKindText
     {
@@ -109,16 +212,21 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             Name = "";
             Description = "";
             AddressText = "3";
-            ImagePath = null; // spustí OnImagePathChanged -> ImageBitmap=null
+        // ImagePath removed
             ValidationMessage = "";
+            EditorIconName = "";
+            SelectedIcon = null;
         }
         else
         {
             Name = Selected.Name ?? "";
             Description = Selected.Description ?? "";
             AddressText = Selected.Address.ToString();
-            ImagePath = Selected.ImagePath; // spustí OnImagePathChanged
+            // ImagePath removed
             ValidationMessage = "";
+            EditorIconName = Selected.IconName ?? string.Empty;
+            // set SelectedIcon to match the loaded icon name
+            SelectedIcon = AvailableIcons.FirstOrDefault(i => i.Name == EditorIconName);
         }
 
         IsDirty = false;
@@ -141,8 +249,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         SaveChangesCommand.NotifyCanExecuteChanged();
         DeleteCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
-        ChooseImageCommand.NotifyCanExecuteChanged();
-        ClearImageCommand.NotifyCanExecuteChanged();
+        // image commands removed
     }
 
     private void MarkDirtyAndRevalidate()
@@ -200,10 +307,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     private bool CanCancel() => Mode == EditorMode.Adding || Mode == EditorMode.Editing;
 
-    // Obrázok chceš vedieť vybrať aj v Adding (draft), aj v Editing.
-    private bool CanChooseImage() => Mode == EditorMode.Adding || Mode == EditorMode.Editing;
-
-    private bool CanClearImage() => (Mode == EditorMode.Adding || Mode == EditorMode.Editing) && !string.IsNullOrWhiteSpace(ImagePath);
+    // image commands removed
 
     [RelayCommand(CanExecute = nameof(CanBeginAdd))]
     private void Add()
@@ -218,7 +322,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         Name = "";
         Description = "";
         AddressText = NextFreeAddress().ToString();
-        ImagePath = null;
+            // ImagePath removed
         ValidationMessage = "";
         IsDirty = false;
 
@@ -237,13 +341,13 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
         if (Mode == EditorMode.Adding)
         {
-            var rec = new LocoRecord
+                var rec = new LocoRecord
             {
                 Id = Guid.NewGuid().ToString("N"),
                 Name = Name.Trim(),
                 Address = addr,
                 Description = Description ?? "",
-                ImagePath = ImagePath
+                IconName = EditorIconName ?? string.Empty
             };
 
             Locomotives.Add(rec);
@@ -264,7 +368,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         Selected.Name = Name.Trim();
         Selected.Description = Description ?? "";
         Selected.Address = addr;
-        Selected.ImagePath = ImagePath;
+        Selected.IconName = EditorIconName ?? string.Empty;
 
         PersistAndSave();
 
@@ -310,19 +414,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     [RelayCommand]
     private void Close() => RequestClose?.Invoke();
 
-    [RelayCommand(CanExecute = nameof(CanChooseImage))]
-    private async Task ChooseImage()
-    {
-        if (PickImagePathAsync == null)
-            return;
-
-        var path = await PickImagePathAsync();
-        if (!string.IsNullOrWhiteSpace(path))
-            ImagePath = path;
-    }
-
-    [RelayCommand(CanExecute = nameof(CanClearImage))]
-    private void ClearImage() => ImagePath = null;
+    // image commands removed
 
     private int NextFreeAddress()
     {
@@ -342,24 +434,5 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             ValidationMessage = "Projekt nie je uložený na disk. Použi Súbor → Uložiť ako…";
     }
 
-    private void UpdateImageBitmap(string? path)
-    {
-        ImageBitmap?.Dispose();
-        ImageBitmap = null;
-
-        if (string.IsNullOrWhiteSpace(path))
-            return;
-
-        try
-        {
-            if (!File.Exists(path))
-                return;
-
-            ImageBitmap = new Bitmap(path);
-        }
-        catch
-        {
-            ImageBitmap = null;
-        }
-    }
+    // Image bitmap handling removed
 }

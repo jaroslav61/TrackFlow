@@ -12,7 +12,7 @@ using TrackFlow.Services;
 using TrackFlow.Services.Dcc;
 using TrackFlow.ViewModels.Backstage;
 using TrackFlow.ViewModels.Cab;
-using TrackFlow.ViewModels.Docking;
+using TrackFlow.ViewModels.SmartStrips;
 using TrackFlow.ViewModels.Settings;
 
 namespace TrackFlow.ViewModels;
@@ -131,9 +131,9 @@ public partial class MainWindowViewModel : ObservableObject
     public StatusBarViewModel StatusBar { get; }
     public SettingsViewModel Settings { get; }
 
-    public FileBackstageViewModel FileBackstage { get; }
+    public SmartStripsViewModel SmartStrips { get; }
 
-    public TrackFlowDockLayoutViewModel DockLayout { get; }
+    public FileBackstageViewModel FileBackstage { get; }
 
     [ObservableProperty]
     private bool isFileBackstageOpen;
@@ -148,9 +148,8 @@ public partial class MainWindowViewModel : ObservableObject
         Tabs = new MainTabsViewModel(SettingsManager);
         StatusBar = new StatusBarViewModel();
         Settings = new SettingsViewModel(SettingsManager);
+        SmartStrips = new SmartStripsViewModel();
         FileBackstage = new FileBackstageViewModel(this);
-
-        DockLayout = new TrackFlowDockLayoutViewModel(Tabs, CabHost);
 
         Dcc = new DccConnectionService(SettingsManager);
         Dcc.ConnectionStateChanged += OnDccConnectionStateChanged;
