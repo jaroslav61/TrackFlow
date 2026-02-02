@@ -1,0 +1,21 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+             xmlns:op="clr-namespace:TrackFlow.Views.Operation"
+             xmlns:ed="clr-namespace:TrackFlow.Views.Editor"
+             x:Class="TrackFlow.Views.MainTabsView"
+             x:DataType="vm:MainTabsViewModel">
+
+  <TabControl Classes="tc-tabs">
+
+    <TabItem Header="Prevádzka">
+      <op:OperationView DataContext="{Binding Operation}"/>
+    </TabItem>
+
+    <TabItem Header="Editor rozloženia">
+      <ed:LayoutEditorView DataContext="{Binding LayoutEditor}"/>
+    </TabItem>
+
+  </TabControl>
+
+</UserControl>

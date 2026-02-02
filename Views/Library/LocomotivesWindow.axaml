@@ -1,0 +1,110 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
+		x:Class="TrackFlow.Views.Library.LocomotivesWindow"
+		x:DataType="vm:LocomotivesWindowViewModel"
+		x:Name="Root"
+		Title="Editor lokomotív"
+		Width="1200" Height="720"
+		WindowStartupLocation="CenterOwner"
+		CanResize="True">
+
+	<Window.Styles>
+		<Style Selector="DataGrid.locoGrid:disabled">
+			<Setter Property="Opacity" Value="0.65"/>
+		</Style>
+	</Window.Styles>
+
+	<Grid RowDefinitions="*,Auto" Margin="10">
+		<Grid Grid.Row="0" ColumnDefinitions="360,5,*" RowDefinitions="*">
+
+			<Border Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1">
+				<DataGrid Classes="locoGrid"
+						  ItemsSource="{Binding Locomotives}"
+						  SelectedItem="{Binding Selected, Mode=TwoWay}"
+						  IsEnabled="{Binding IsGridEnabled}"
+						  AutoGenerateColumns="False"
+						  GridLinesVisibility="All"
+						  HeadersVisibility="Column"
+						  CanUserReorderColumns="False"
+						  CanUserResizeColumns="True"
+						  CanUserSortColumns="True">
+					<DataGrid.Columns>
+						<DataGridTextColumn Header="Názov" Binding="{Binding Name}" Width="2*"/>
+						<DataGridTextColumn Header="Adresa" Binding="{Binding Address}" Width="*"/>
+					</DataGrid.Columns>
+				</DataGrid>
+			</Border>
+
+			<GridSplitter Grid.Column="1" Width="5" Background="#E0E0E0"/>
+
+			<Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1" Padding="12">
+				<Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto"
+					  ColumnDefinitions="Auto,*,Auto,220"
+					  ColumnSpacing="10" RowSpacing="8">
+
+					<TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Názov:"/>
+					<TextBox x:Name="NameBox" Grid.Row="0" Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+					<TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Popis:"/>
+					<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+
+					<TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Adresa dekodéra:"/>
+					<Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,Auto" ColumnSpacing="10">
+						<TextBox x:Name="AddressBox"
+								 Width="70"
+								 HorizontalAlignment="Left"
+								 Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}" />
+						<TextBlock Grid.Column="1"
+								   VerticalAlignment="Center"
+								   Text="{Binding AddressKindText}"/>
+					</Grid>
+
+					<Border Grid.Row="0" Grid.Column="3" Grid.RowSpan="3"
+							Width="200" Height="120"
+							BorderBrush="#B0B0B0" BorderThickness="1" CornerRadius="4" Padding="4">
+						<Image Stretch="Uniform" Source="{Binding ImageBitmap}" />
+					</Border>
+
+					<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+						<Button Content="Vybrať…" Command="{Binding ChooseImageCommand}" Width="90"/>
+						<Button Content="Vymazať" Command="{Binding ClearImageCommand}" Width="90"/>
+					</StackPanel>
+
+					<Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4"
+							Background="#FFF6D6" BorderBrush="#E0C070" BorderThickness="1"
+							CornerRadius="2" Padding="6" MinHeight="34">
+						<StackPanel>
+							<TextBlock Text="{Binding ValidationMessage}" />
+						</StackPanel>
+					</Border>
+
+					<TabControl Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="4">
+						<TabItem Header="Rýchlosť">
+							<TextBlock Margin="10" Text="Pripravuje sa (cieľ: krivka / tabuľka rýchlosti)." />
+						</TabItem>
+						<TabItem Header="Funkcie">
+							<TextBlock Margin="10" Text="Pripravuje sa (cieľ: F0…F28, názvy, ikony)." />
+						</TabItem>
+					</TabControl>
+
+				</Grid>
+			</Border>
+
+		</Grid>
+
+		<DockPanel Grid.Row="1" Margin="0,10,0,0" LastChildFill="False">
+			<StackPanel Orientation="Horizontal" Spacing="10" DockPanel.Dock="Left">
+				<Button Content="Pridať" Command="{Binding AddCommand}" Width="120"/>
+				<Button Content="{Binding SaveButtonText}" Command="{Binding SaveChangesCommand}" Width="140"/>
+				<Button Content="Zmazať" Command="{Binding DeleteCommand}" Width="120"/>
+				<Button Content="Zrušiť" Command="{Binding CancelCommand}" Width="120"/>
+			</StackPanel>
+
+			<Button Content="Zavrieť" Command="{Binding CloseCommand}" Width="120" DockPanel.Dock="Right"/>
+		</DockPanel>
+
+	</Grid>
+</Window>

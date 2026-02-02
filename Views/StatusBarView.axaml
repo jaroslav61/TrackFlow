@@ -1,0 +1,46 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+             x:Class="TrackFlow.Views.StatusBarView"
+             x:DataType="vm:StatusBarViewModel">
+
+  <Border Height="24" Background="#1E88E5">
+    <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
+
+      <!-- LED indikátor: červená/ zelená podľa IsDccConnected -->
+      <Grid Width="15"
+            Height="15 "
+            VerticalAlignment="Center"
+            Margin="0,0,8,0">
+        <!-- Odpojené -->
+        <Border Width="15"
+                Height="15"
+                Background="#D50000"
+                BorderBrush="Black" 
+                BorderThickness="1"
+                IsVisible="{Binding !IsDccConnected}" />
+        <!-- Pripojené -->
+        <Border Width="15"
+                Height="15"
+                BorderBrush="Black" 
+                BorderThickness="1"
+                Background="#00C853"
+                IsVisible="{Binding IsDccConnected}" />
+      </Grid>
+
+      <TextBlock Grid.Column="1"
+                 VerticalAlignment="Center"
+                 Foreground="White"
+                 Text="{Binding Message}" />
+
+      <TextBlock Grid.Column="2"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Right"
+                 Foreground="White"
+                 Opacity="0.85"
+                 Text="{Binding RightHint}" />
+
+    </Grid>
+  </Border>
+
+</UserControl>

@@ -1,0 +1,49 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Backstage"
+             x:Class="TrackFlow.Views.Backstage.FileBackstageView"
+             x:DataType="vm:FileBackstageViewModel"
+             x:CompileBindings="False">
+
+  <Grid ColumnDefinitions="260,*" RowDefinitions="Auto,*" Margin="12" ColumnSpacing="12" RowSpacing="10">
+    <Grid Grid.ColumnSpan="2">
+      <TextBlock FontSize="16" FontWeight="SemiBold" Text="Súbor"/>
+    
+    </Grid>
+
+    <!-- Ľavé menu -->
+    <Border Grid.Row="1" Grid.Column="0" Background="#FFFFFF" CornerRadius="6"
+            BorderBrush="#D0D0D0" BorderThickness="1" Padding="10">
+      <StackPanel Spacing="8">
+        <Button Content="Nový" Command="{Binding NewCommand}" HorizontalAlignment="Stretch"/>
+        <Button Content="Otvoriť" Command="{Binding OpenCommand}" HorizontalAlignment="Stretch"/>
+        <Button Content="Uložiť" Command="{Binding SaveCommand}" HorizontalAlignment="Stretch"/>
+        <Button Content="Uložiť ako…" Command="{Binding SaveAsCommand}" HorizontalAlignment="Stretch"/>
+        <Separator/>
+        <Button Content="Tlačiť" Command="{Binding PrintCommand}" HorizontalAlignment="Stretch"/>
+        <Separator/>
+        <Button Content="Nastavenia" Command="{Binding SettingsCommand}" HorizontalAlignment="Stretch"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Pravý panel: posledné súbory -->
+    <Border Grid.Row="1" Grid.Column="1" Background="#FFFFFF" CornerRadius="6"
+            BorderBrush="#D0D0D0" BorderThickness="1" Padding="10">
+      <StackPanel Spacing="8">
+        <TextBlock FontWeight="SemiBold" Text="Posledné súbory"/>
+        <ListBox ItemsSource="{Binding RecentFiles}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Button Content="{Binding .}"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Left"
+                      Command="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                      CommandParameter="{Binding .}"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+    </Border>
+
+  </Grid>
+</UserControl>
