@@ -1,0 +1,153 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels;assembly=TrackFlow"
+             x:Class="TrackFlow.Ribbon.MainRibbonView"
+             x:DataType="vm:MainWindowViewModel">
+
+<UserControl.Styles>
+    <Style Selector="Button.blueBtn">
+      <Setter Property="Background" Value="#e8f3ff"/>
+      <Setter Property="BorderBrush" Value="Blue"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="3"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style Selector="Button.blueBtn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#d1e8ff" /> <Setter Property="BorderBrush" Value="Blue" />     <Setter Property="Foreground" Value="Black" />    </Style>
+
+    <Style Selector="Button.blueBtn:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="#a1c4fd" />
+      <Setter Property="BorderBrush" Value="DarkBlue" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Background="#F2F2F2"
+          BorderBrush="#D0D0D0"
+          BorderThickness="0,0,0,1"
+          ClipToBounds="True">
+
+    <TabControl x:Name="RibbonTabs"
+                Classes="tc-tabs"
+                Margin="6,6,6,0"
+                SelectedIndex="1">
+
+      <!-- =========================================================
+           Tabs: Súbor / Upraviť / Železnica / Koľaje / Doplnky
+           ========================================================= -->
+
+      <TabItem Header="Súbor">
+        <!-- Obsah sa tu už nezobrazuje – klik otvorí backstage okno -->
+        <Border Margin="10">
+          <TextBlock Foreground="#666" Text=""/>
+        </Border>
+      </TabItem>
+
+      <TabItem Header="Upraviť">
+        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
+
+          <!-- Skupina: Nastavenia -->
+          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,14,0">
+            <StackPanel>
+              <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="Nastavenia" Margin="0,0,0,6"/>
+              <Button Content="Nastavenia" Command="{Binding OpenSettingsCommand}" Width="120" Height="34"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Skupina: Undo/Redo -->
+          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,14,0">
+            <StackPanel>
+              <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="Undo/Redo" Margin="0,0,0,6"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Undo" Command="{Binding UndoCommand}" Width="80" Height="34"/>
+                <Button Content="Redo" Command="{Binding RedoCommand}" Width="80" Height="34"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Skupina: Lokomotívy a vlaky (tvoje tlačidlá nechávam bez zmeny) -->
+          <StackPanel>
+            <StackPanel Orientation="Vertical" Spacing="8">
+              <Button Content="Lokomotívy"
+                      Classes="blueBtn"
+                      Command="{Binding OpenLocomotivesCommand}"
+                      FontFamily="Segoe UI"
+                      FontSize="14"
+                      BorderBrush="Blue"
+                      Background="#e8f3ff"
+                      Padding="10,0,0,0"
+                      Width="110"
+                      Height="22"
+                      VerticalContentAlignment="Center"/>
+
+              <Button Content="Vozidlá"
+                      Classes="blueBtn"
+                      Command="{Binding OpenVehiclesCommand}"
+                      FontFamily="Segoe UI"
+                      Padding="10,0,0,0"
+                      FontSize="14"
+                      BorderBrush="Blue"
+                      Background="#e8f3ff"
+                      Width="110"
+                      Height="22"
+                      VerticalContentAlignment="Center"/>
+
+              <Button Content="Vlaky"
+                      Classes="blueBtn"
+                      Command="{Binding OpenTrainsCommand}"
+                      FontFamily="Segoe UI"
+                      Padding="10,0,0,0"
+                      FontSize="14"
+                      BorderBrush="Blue"
+                      Background="#e8f3ff"
+                      Width="110"
+                      Height="22"
+                      VerticalContentAlignment="Center"/>
+
+              <TextBlock FontWeight="SemiBold"
+                         FontSize="11"
+                         Foreground="#666"
+                         Text="Lokomotívy a vlaky"
+                         Margin="6,10,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Železnica">
+        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
+          <StackPanel>
+            <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="DCC" Margin="0,0,0,6"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="{Binding Ribbon.ConnectButtonText}"
+                      Command="{Binding ToggleConnectCommand}"
+                      Width="90"
+                      Height="34"/>
+              <Button Content="STOP"
+                      Command="{Binding StopCommand}"
+                      Width="70"
+                      Height="34"
+                      Background="#E53935"
+                      Foreground="White"
+                      FontWeight="Bold"/>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Koľaje">
+        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
+          <TextBlock Foreground="#666" Text="(pripravené pre editor koľají)"/>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Príslušenstvo">
+        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
+          <TextBlock Foreground="#666" Text="(pripravené pre príslušenstvo)"/>
+        </StackPanel>
+      </TabItem>
+
+    </TabControl>
+  </Border>
+</UserControl>

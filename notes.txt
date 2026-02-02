@@ -1,0 +1,404 @@
+View = ako to vyzerá. ViewModel = čo to robí. Model = dáta a doména.
+
+Nižšie je prehľad podľa projektu zo ZIP (TrackFlow.zip) a potom návrh ďalšieho postupu. Beriem ako hotové to, čo píšeš (Z21/z21, status hlášky), aj keď v ZIP-e sú ešte staršie stavy v niektorých súboroch.
+
+Čo už v projekte reálne je (zo ZIP)
+
+Shell aplikácie: MainWindow s Ribbonom, Tabmi, Cab stripom a Status barom.
+
+DCC vrstva:
+
+DccConnectionService so stavmi pripojenia, auto-reconnect, keep-alive.
+
+Klient Z21Client + jednoduchý GenericIpUdpClient.
+
+Event ConnectionStateChanged a logovanie cez DccLog.
+
+Nastavenia + projekt:
+
+SettingsManager (App settings + Project settings, last project path, Save/SaveAs).
+
+SettingsViewModel + dialog (v ZIP-e ešte v “starom” stave, ale koncept je jasný).
+
+Cab strip:
+
+CabStripHostViewModel + CabStripViewModel (dnes skôr skeleton – zatiaľ bez reálneho ovládania lokomotív).
+
+Editor/Operation:
+
+LayoutEditorViewModel a OperationViewModel sú zatiaľ prázdne/placeholder.
+
+Najväčšie medzery (čo brzdí posun podľa plánu)
+
+Chýba “doménový projekt” – projekt zatiaľ drží hlavne nastavenia. Neexistuje model pre:
+
+zoznam lokomotív (adresy, názvy, max rýchlosti, kroky, funkcie…),
+
+layout (koľaje, výhybky, bloky, detektory…),
+
+prevádzkové dáta (priradenie lokomotív ku kabínam, posledné vybrané, atď.).
+
+Cab strip nie je napojený na DCC príkazy – UI existuje, ale nevidno “throttle pipeline”.
+
+Editor a Operation tab nemajú implementovanú logiku – zatiaľ nie je čo reálne používať, len rám.
+
+Plán ďalšieho vývoja (prakticky a bez návratu dozadu)
+Milník 1: Stabilný “Core” – projektový model + persistencia
+
+Cieľ: aby TrackFlow vedel uložiť a načítať reálne dáta, nielen nastavenia.
+
+1.1 ProjectData rozšírenie
+
+Rozšíriť ProjectSettingsData (alebo zaviesť nový ProjectData) o:
+
+Locomotives[] (id, name, dccAddress, steps, maxKmh, functions map, poznámky),
+
+Layout (zatiaľ minimalisticky: prázdny objekt + verzia formátu),
+
+CabAssignments (ktorá loco je v ktorej kabíne, posledná aktívna).
+
+Verzionovanie formátu (napr. schemaVersion).
+
+1.2 IO vrstva
+
+Udržať JSON formát, doplniť migrácie (aspoň “best effort” pri starých projektoch).
+
+Doplniť “dirty flag” (zmena projektu) + UX: hviezdička v titulku, výzva pri zatváraní.
+
+Výstup: projekt už nie je len “settings”, ale nosič celej práce.
+
+Milník 2: Cab ovládanie lokomotívy (end-to-end)
+
+Cieľ: aby sa dalo reálne jazdiť (minimálne 1 lokomotíva).
+
+2.1 Throttle pipeline
+
+Zaviesť jednotné rozhranie v DCC vrstve: napr. IDccThrottle/IDccCommands:
+
+set speed (steps), direction, e-stop/stop,
+
+function F0–F28 (aspoň základ),
+
+“acquire/release” lokomotívy (ak protokol vyžaduje).
+
+Z21Client implementovať príkazy, ktoré už máš rozpracované (podľa toho, čo používaš dnes).
+
+2.2 Prepojenie CabStripViewModel → DccConnectionService
+
+CabStrip bude mať vybranú lokomotívu (z ProjectData).
+
+Slider/Direction/Funkcie budú posielať príkazy do DCC.
+
+Ošetriť stav nepripojené/reconnecting: UI disable + status info.
+
+2.3 E-STOP
+
+Reálny STOP príkaz (v MainWindowVM už je TODO).
+
+Rozhodnúť: STOP pre aktuálnu kabínu vs globálny STOP.
+
+Výstup: minimálne jedna kabína ovláda jednu lokomotívu na reálnej centrále.
+
+Milník 3: Operation tab – prevádzka (viac kabín, výber loco, monitoring)
+
+Cieľ: aby sa to dalo používať ako “ovládací pult”.
+
+Zoznam lokomotív (z projektu), rýchle vyhľadávanie, priradenie ku kabíne.
+
+Zobrazenie stavu DCC (pripojené/reconnecting, S/N, ping/latencia ak existuje).
+
+Log panel (filtrovanie: DCC / UI / project IO).
+
+Jednoduché “power” ak to protokol podporuje (ON/OFF).
+
+Milník 4: Layout editor – len to, čo treba na ďalší krok
+
+Cieľ: nezačať megarefaktor, ale položiť základ.
+
+Najrozumnejší “prvý rez”:
+
+Canvas s gridom, zoom/pan.
+
+Uložiť do projektu minimálnu reprezentáciu: uzly/segmenty (aj keby len “polyline”).
+
+Nástroje: select + place segment + delete.
+
+Až potom výhybky/bloky/detektory.
+
+Výstup: reálny editor, ktorý niečo ukladá a načíta.
+
+Čo z toho je “ďalší krok” hneď teraz
+
+Keďže Z21/z21 a statusy považuješ za uzavreté, ďalší krok je Milník 1.1 – projektový model (Locomotives + Layout stub) + IO. Bez toho sa budeme stále motať okolo UI bez dát.
+
+Ak chceš, nadviažem priamo prakticky: zoberiem tvoj aktuálny JSON formát projektu (zo súborov v ZIP-e) a navrhnem rozšírenie tak, aby:
+
+nič existujúce sa nerozbilo,
+
+nové polia boli voliteľné,
+
+migrácia bola triviálna.
+
+Stačí, aby si mi povedal: lokomotívy chceš ukladať do toho istého .trackflow.json projektu, alebo zvlášť súbor? (odporúčam do toho istého projektu).
+
+*******************************************************************************************************
+
+Prehľad modulov a tokov: Settings → DccConnectionService → MainWindowViewModel → UI
+Settings (uloženie + efektívne hodnoty)
+
+Ukladanie app nastavení: Services/AppSettingsStore.cs → Models/AppSettingsData.cs
+
+Ukladanie project nastavení: Services/ProjectSettingsStore.cs → Models/ProjectSettingsData.cs
+
+Orchestrácia + merge: Services/SettingsManager.cs → Models/EffectiveSettings.cs
+
+EffectiveSettings.Merge(app, project) skladá výsledok (DCC typ/host/port/autoconnect, jazyk, scale, farba).
+
+DccConnectionService (runtime pripojenie)
+
+Services/Dcc/DccConnectionService.cs
+
+drží Client (cez DccClientFactory)
+
+rieši ConnectAsync(), Disconnect(), EnsureClientFromEffective()
+
+posiela event ConnectionStateChanged
+
+má auto-reconnect slučku (časové okno/pokusy) podľa EffectiveSettings.AutoConnect
+
+MainWindowViewModel (orchestrácia aplikácie)
+
+ViewModels/MainWindowViewModel.cs
+
+vlastní SettingsManager, DccConnectionService, Ribbon, Tabs, StatusBar, Settings
+
+poskytuje “bridge” callbacky pre dialógy (ShowSettingsDialogAsync, ShowOpenProjectPickerAsync, ShowSaveProjectPickerAsync)
+
+reaguje na ConnectionStateChanged a aktualizuje StatusBar + Ribbon.IsConnected
+
+UI (Avalonia)
+
+Shell: Views/MainWindow.axaml + Views/MainWindow.axaml.cs
+
+view pripojí dialógy a aktualizuje pravý hint v status bare (projekt path + DCC zdroj/host/port).
+
+Tabs: Views/MainTabsView.axaml → ViewModels/MainTabsViewModel.cs
+
+Operation (Views/Operation/OperationView.axaml, ViewModels/Operation/OperationViewModel.cs) = placeholder
+
+Layout editor (Views/Editor/LayoutEditorView.axaml, ViewModels/Editor/LayoutEditorViewModel.cs) = placeholder
+
+Cab strip (Multi-cab UI základ): Cab/* + ViewModels/Cab/* (zatiaľ bez reálneho DCC ovládania).
+
+Čo je už hotové (stručne, podľa kódu)
+
+Settings infra: SettingsManager + AppSettingsStore + ProjectSettingsStore, merge do EffectiveSettings.
+
+Settings UI: SettingsWindow + SettingsViewModel (vrátane DCC údajov, test connect).
+
+DCC pripojenie: DccConnectionService + DccClientFactory + Z21Client + status/eventy + auto-reconnect.
+
+Shell UI: MainWindow + ribbon + status bar + tabs skeleton.
+
+Cab strip skeleton: docking/undocking, multi-cab container, zatváranie kariet (bez throttle logiky).
+
+(Z21/z21 neriešim – beriem ako hotové, a v pláne na to nesiaham.)
+
+Čo chýba k ďalšiemu míľniku
+
+Najbližší míľnik podľa toho, čo v projekte reálne vidno ako „ďalší logický krok“, je:
+
+Míľnik: Projektový model + persistencia (JSON) + príprava na Operation/Cab end-to-end.
+
+Konkrétne dnes chýba:
+
+Skutočný projektový model (lokomotívy, layout stub, cab assignments, schemaVersion, dirty flag).
+
+Ukladanie/načítanie celého projektu (teraz sa ukladá iba ProjectSettingsData).
+
+Minimálny DCC príkazový interface (speed/direction/estop/power) – teraz je IDccCentralClient len connect/disconnect.
+
+Operation tab a Cab zatiaľ nemajú žiadnu funkčnú logiku.
+
+Presný poradovník krokov (max 10), vždy: súbory/triedy + čo implementovať
+1) Zaviesť projektový model (doménové dáta)
+
+Pridať/rozšíriť:
+
+Models/TrackFlowProject.cs (nové)
+
+Models/LocoRecord.cs (nové)
+
+Models/LayoutStub.cs (nové, zatiaľ len placeholder štruktúra)
+
+Models/CabAssignment.cs (nové)
+
+Implementovať:
+
+schemaVersion (int), isDirty (bool)
+
+ProjectSettingsData Settings (alebo ekvivalent v projekte)
+
+List<LocoRecord> Locomotives
+
+LayoutStub Layout
+
+List<CabAssignment> CabAssignments
+
+2) Nahradiť ProjectSettingsStore plnohodnotným ProjectStore (JSON projektu)
+
+Meniť / pridať:
+
+Services/ProjectSettingsStore.cs → buď premenovať na ProjectStore.cs, alebo pridať nový ProjectStore.cs
+
+Models/ProjectSettingsData.cs ponechať, ale ako súčasť projektu
+
+Implementovať:
+
+Load(projectPath) / Save(projectPath, TrackFlowProject)
+
+bezpečný zápis cez tmp + replace (už máš osvedčený pattern)
+
+JSON options + pripravený priestor pre migrácie
+
+3) Migrácie projektu (schemaVersion + kompatibilita)
+
+Pridať:
+
+Services/ProjectMigrationService.cs (nové)
+
+Implementovať:
+
+MigrateIfNeeded(TrackFlowProject p):
+
+ak schemaVersion starší → upraviť štruktúru a zvýšiť verziu
+
+Minimálne: „v1 → v2“ pripravený mechanizmus (aj keď zatiaľ bez reálnych zmien)
+
+4) Upraviť SettingsManager, aby pracoval s TrackFlowProject (nie iba ProjectSettingsData)
+
+Meniť:
+
+Services/SettingsManager.cs
+
+Models/EffectiveSettings.cs
+
+Implementovať:
+
+public TrackFlowProject? CurrentProject { get; private set; }
+
+LoadProject(path) načíta projekt, uloží CurrentProjectPath, nastaví Project/CurrentProject
+
+GetEffective() bude mergeovať AppSettingsData + CurrentProject.Settings
+
+5) Upraviť MainWindowViewModel: Open/Save/New/Close už pre celý projekt + dirty
+
+Meniť:
+
+ViewModels/MainWindowViewModel.cs
+
+(podľa potreby) ViewModels/StatusBarViewModel.cs, Ribbon/MainRibbonViewModel.cs
+
+Implementovať:
+
+držať CurrentProject v VM (proxy zo SettingsManager)
+
+New/Open/Save/Close reálne pracujú s TrackFlowProject
+
+Dirty zmeny → status bar hint (napr. “*” pri názve) + blokovanie zatvorenia bez uloženia (minimálne pripraviť hook)
+
+6) Zaviesť DCC príkazové rozhranie (minimálny set pre Cab)
+
+Meniť / pridať:
+
+Services/Dcc/IDccCentralClient.cs (rozšíriť alebo pridať paralelné):
+
+odporúčanie: pridať IDccCommands
+
+Services/Dcc/Z21Client.cs
+
+Services/Dcc/DccClientFactory.cs (ak treba expose rozhraní)
+
+Implementovať (minimum):
+
+EmergencyStop()
+
+SetSpeed(locoAddr, speedStep/percent)
+
+SetDirection(locoAddr, forward)
+
+SetPower(on/off) (ak chceš mať Operation tab power)
+
+7) Prepojiť Cab VM → DccConnectionService (end-to-end ovládanie)
+
+Meniť:
+
+Cab/CabStripViewModel.cs
+
+Cab/CabStripHostViewModel.cs
+
+Services/Dcc/DccConnectionService.cs (expose commands / guard when disconnected)
+
+Implementovať:
+
+v Cab VM: SelectedLocoAddress, Speed, Direction, EStopCommand
+
+Cab host: vytváranie cabov podľa CabAssignments z projektu
+
+volania idú cez service (nie priamo Z21 client)
+
+8) Operation tab: minimálna funkcionalita (výber loco + monitoring + log + power)
+
+Meniť:
+
+ViewModels/Operation/OperationViewModel.cs
+
+Views/Operation/OperationView.axaml
+
+Implementovať:
+
+výber lokomotívy z Project.Locomotives
+
+zobraziť stav pripojenia + posledná hláška
+
+log panel (aspoň ObservableCollection<string>)
+
+tlačidlo power on/off (ak urobíš krok 6)
+
+9) Layout editor: základný canvas stub + persist do projektu
+
+Meniť:
+
+ViewModels/Editor/LayoutEditorViewModel.cs
+
+Views/Editor/LayoutEditorView.axaml
+
+Models/LayoutStub.cs
+
+Implementovať:
+
+“canvas placeholder” nahradiť kontrolom, ktorý aspoň:
+
+drží zoznam elementov (stub)
+
+umožní select/delete (aj keby len cez list)
+
+zmeny značia projekt dirty
+
+10) Jednotné “Dirty” policy + UI aktualizácie hintov
+
+Meniť:
+
+ViewModels/MainWindowViewModel.cs
+
+Views/MainWindow.axaml.cs (hint vpravo)
+
+Services/SettingsManager.cs (ak bude rozhodovať o dirty)
+
+Implementovať:
+
+keď sa zmení projekt (loco, assignment, layout, settings) → IsDirty=true
+
+status bar right hint doplniť o * a/alebo “Neuložené zmeny”
+
+základná ochrana pred stratou práce (aspoň signalizácia, prompt môže prísť neskôr)

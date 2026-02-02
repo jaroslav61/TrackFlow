@@ -1,0 +1,180 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:TrackFlow.Models"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Settings"
+        x:Class="TrackFlow.Views.Settings.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Nastavenia"
+        WindowStartupLocation="CenterOwner"
+        Width="700"
+        Height="520"
+        MinWidth="620"
+        MinHeight="460">
+
+  <Grid RowDefinitions="*,Auto" Margin="12">
+
+    <TabControl Grid.Row="0">
+
+       <TabItem Header="DCC centrála">
+       <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
+              ColumnDefinitions="180,*"
+              ColumnSpacing="10"
+              RowSpacing="10"
+              Margin="0,10,0,0">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Použiť pre tento projekt"/>
+          <CheckBox Grid.Row="0" Grid.Column="1"
+                    IsEnabled="{Binding HasProject}"
+                    IsChecked="{Binding UseProjectForDcc}"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Typ"/>
+          <ComboBox Grid.Row="1" Grid.Column="1"
+                    ItemsSource="{Binding DccCentralItems}"
+                    SelectedItem="{Binding SelectedDccCentralItem}">
+           
+              <ComboBox.ItemTemplate>
+               <DataTemplate x:DataType="vm:DccCentralListItem">
+                <TextBlock Text="{Binding Name}"
+                           FontWeight="{Binding FontWeight}"
+                           Opacity="{Binding Opacity}"
+                           Margin="{Binding IndentThickness}"/>
+              </DataTemplate> 
+           </ComboBox.ItemTemplate>
+              <!-- Kontajner (ComboBoxItem) štýlujeme tu – toto je správna cesta -->
+            <ComboBox.ItemContainerTheme>
+              <ControlTheme TargetType="ComboBoxItem"
+                            x:DataType="vm:DccCentralListItem">
+                <!-- Header + neimplementované: disabled -->
+                <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+                <!-- Tooltip len pre neimplementované (inak null) -->
+                <Setter Property="ToolTip.Tip" Value="{Binding ToolTipText}" />
+              </ControlTheme>
+            </ComboBox.ItemContainerTheme>
+          </ComboBox>
+
+          <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Host"/>
+          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DccCentralHost}"/>
+
+          <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Port"/>
+          <NumericUpDown Grid.Row="3" Grid.Column="1"
+                         Minimum="1"
+                         Maximum="65535"
+                         Value="{Binding DccCentralPort}"/>
+
+          <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Automatické pripojenie"/>
+          <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding AutoConnect}"/>
+
+          <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="Test pripojenia"/>
+          <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+            <Button Content="Test"
+                    Command="{Binding TestConnectionCommand}"
+                    MinWidth="90"/>
+            <TextBlock VerticalAlignment="Center"
+                       Foreground="#444"
+                       Text="{Binding ConnectionTestResult}"/>
+          </StackPanel>
+
+          <Border Grid.Row="7" Grid.ColumnSpan="2"
+                  Background="#F5F5F5"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10">
+            <TextBlock Foreground="#666"
+                       Text="Ak je otvorený projekt a je zapnuté „Použiť pre tento projekt“, uloží sa host/port do projektu. Inak sa uloží ako globálny default. Test pripojenia je orientačný (TCP); pri UDP-only zariadeniach môže zlyhať aj keď je centrala dostupná."/>
+          </Border>
+
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Jazyk">
+        <Grid RowDefinitions="Auto,*"
+              ColumnDefinitions="180,*"
+              ColumnSpacing="10"
+              RowSpacing="10"
+              Margin="0,10,0,0">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Jazyk"/>
+          <ComboBox Grid.Row="0" Grid.Column="1" SelectedItem="{Binding Language}">
+            <ComboBoxItem Content="sk-SK"/>
+            <ComboBoxItem Content="cs-CZ"/>
+            <ComboBoxItem Content="en-US"/>
+          </ComboBox>
+
+          <Border Grid.Row="1" Grid.ColumnSpan="2"
+                  Background="#F5F5F5"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10">
+            <TextBlock Foreground="#666" Text="Jazyk je globálne nastavenie (pre aplikáciu)."/>
+          </Border>
+
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Mierka">
+        <Grid RowDefinitions="Auto,Auto,*"
+              ColumnDefinitions="180,*"
+              ColumnSpacing="10"
+              RowSpacing="10"
+              Margin="0,10,0,0">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Použiť pre tento projekt"/>
+          <CheckBox Grid.Row="0" Grid.Column="1"
+                    IsEnabled="{Binding HasProject}"
+                    IsChecked="{Binding UseProjectForScale}"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Mierka"/>
+          <ComboBox Grid.Row="1" Grid.Column="1" SelectedItem="{Binding Scale}">
+            <ComboBoxItem Content="H0"/>
+            <ComboBoxItem Content="TT"/>
+            <ComboBoxItem Content="N"/>
+          </ComboBox>
+
+          <Border Grid.Row="2" Grid.ColumnSpan="2"
+                  Background="#F5F5F5"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10">
+            <TextBlock Foreground="#666"
+                       Text="Mierka sa typicky viaže na projekt. Ak nie je otvorený projekt, ukladá sa ako globálny default."/>
+          </Border>
+
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Farby">
+        <Grid RowDefinitions="Auto,*"
+              ColumnDefinitions="180,*"
+              ColumnSpacing="10"
+              RowSpacing="10"
+              Margin="0,10,0,0">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Accent"/>
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AccentColor}"/>
+
+          <Border Grid.Row="1" Grid.ColumnSpan="2"
+                  Background="#F5F5F5"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="10">
+            <TextBlock Foreground="#666" Text="Farby (téma) sú globálne nastavenie (pre aplikáciu)."/>
+          </Border>
+
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+
+    <DockPanel Grid.Row="1" Margin="0,12,0,0" LastChildFill="False">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="8">
+        <Button Content="Zrušiť" Command="{Binding CancelCommand}" MinWidth="110"/>
+        <Button Content="Uložiť" Command="{Binding SaveCommand}" MinWidth="110"/>
+      </StackPanel>
+    </DockPanel>
+
+  </Grid>
+</Window>

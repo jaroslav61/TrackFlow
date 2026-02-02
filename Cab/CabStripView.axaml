@@ -1,0 +1,38 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Cab"
+             x:Class="TrackFlow.Cab.CabStripView"
+             x:DataType="vm:CabStripHostViewModel">
+
+  <Grid RowDefinitions="Auto,*" Margin="0">
+     <DockPanel Grid.Row="0" Margin="10,8,10,6" LastChildFill="False">
+      <TextBlock DockPanel.Dock="Left"
+                 VerticalAlignment="Center"
+                 Foreground="#444"
+                 FontWeight="SemiBold"
+                 Text="Multi-Cab"/>
+      <ItemsControl DockPanel.Dock="Right"
+                    ItemsSource="{Binding Dashboards}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="10"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+
+    </DockPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="420,*" Margin="10,0,10,10" ColumnSpacing="10">
+      <Border Background="#D6D9DF" CornerRadius="8" BorderBrush="#B0B0B0" BorderThickness="1">
+        <TextBlock Margin="12" Foreground="#555" Text="Aktívna lokomotíva (dashboard)"/>
+      </Border>
+
+      <Border Grid.Column="1" Background="#D6D9DF" CornerRadius="8" BorderBrush="#B0B0B0" BorderThickness="1">
+        <TextBlock Margin="12" Foreground="#555" Text="Tabuľka vlakov"/>
+      </Border>
+
+    </Grid>
+
+  </Grid>
+
+</UserControl>

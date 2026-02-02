@@ -1,0 +1,38 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+             x:Class="TrackFlow.Views.Editor.LayoutEditorView"
+             x:DataType="vm:LayoutEditorViewModel">
+
+  <Grid RowDefinitions="Auto,*" Margin="10">
+
+    <TextBlock Grid.Row="0"
+               FontWeight="SemiBold"
+               Foreground="#444"
+               Text="Editor rozloženia"/>
+
+    <Grid Grid.Row="1" Margin="0,8,0,0" ColumnDefinitions="280,*" ColumnSpacing="10">
+
+      <Border Grid.Column="0"
+              Background="#F5F5F5"
+              BorderBrush="#D0D0D0"
+              BorderThickness="1"
+              CornerRadius="8">
+        <TextBlock Margin="12" Foreground="#666"
+                   Text="Panel nástrojov / knižnica prvkov"/>
+      </Border>
+
+      <Border Grid.Column="1"
+              Background="#F5F5F5"
+              BorderBrush="#D0D0D0"
+              BorderThickness="1"
+              CornerRadius="8">
+        <TextBlock Margin="12" Foreground="#666"
+                   Text="Plátno rozloženia (track canvas)"/>
+      </Border>
+
+    </Grid>
+
+  </Grid>
+
+</UserControl>

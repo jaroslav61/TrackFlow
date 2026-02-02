@@ -1,0 +1,75 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+		xmlns:dock="clr-namespace:Dock.Avalonia.Controls;assembly=Dock.Avalonia"
+		xmlns:ribbon="clr-namespace:TrackFlow.Ribbon"
+		xmlns:cab="clr-namespace:TrackFlow.Cab"
+		xmlns:views="clr-namespace:TrackFlow.Views"
+		x:Class="TrackFlow.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Title="TrackFlow"
+		WindowStartupLocation="CenterScreen"
+		Width="1600"
+		Height="1000"
+		MinWidth="1200"
+		MinHeight="800">
+
+
+	<Window.Styles>
+		<Style Selector="TabControl.tc-tabs">
+			<Setter Property="FontSize" Value="11"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs /template/ TabStrip">
+			<Setter Property="Margin" Value="0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem">
+			<Setter Property="Padding" Value="8,2"/>
+			<Setter Property="Margin" Value="0,0,4,0"/>
+			<Setter Property="MinHeight" Value="22"/>
+			<Setter Property="Background" Value="#E9E9E9"/>
+			<Setter Property="BorderBrush" Value="#B5B5B5"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="2,2,0,0"/>
+			<Setter Property="FontSize" Value="11"/>
+
+			<Setter Property="FontWeight" Value="Normal"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem TextBlock">
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="FontWeight" Value="Normal"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem:selected">
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="BorderThickness" Value="1,1,1,0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem:not(:selected)">
+			<Setter Property="Margin" Value="0,2,4,0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs /template/ ContentPresenter">
+			<Setter Property="Margin" Value="6,0,6,6"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="BorderBrush" Value="#B5B5B5"/>
+			<Setter Property="BorderThickness" Value="1"/>
+		</Style>
+	</Window.Styles>
+
+	<Grid RowDefinitions="Auto,*,Auto">
+
+		<ribbon:MainRibbonView Grid.Row="0"/>
+
+		<dock:DockControl
+			Grid.Row="1"
+			DataContext="{Binding DockLayout}"
+			Factory="{Binding Factory}"
+			Layout="{Binding Layout}"/>
+
+		<views:StatusBarView Grid.Row="2" DataContext="{Binding StatusBar}"/>
+
+	</Grid>
+</Window>
