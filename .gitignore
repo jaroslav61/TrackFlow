@@ -1,6 +1,11 @@
-# Ignoruj cache Visual Studia a Copilota
+# Ignoruj kompletne cele priecinky (lomka na konci je dolezita)
 .vs/
-[Bb]in/
-[Obj]/
-*.user
-CopilotSnapshots/
+bin/
+obj/
+
+# Ignoruj specificke subory, ktore vidim na tvojom obrazku
+*.pdb
+*.dll
+*.cache
+*.json
+apphost.exe

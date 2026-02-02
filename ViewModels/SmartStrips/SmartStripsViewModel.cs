@@ -19,9 +19,10 @@ public partial class SmartStripsViewModel : ObservableObject
     public SmartStripsViewModel()
     {
         // seed demo data (can be deleted once wired to project data)
-        var l1 = new Locomotive("L001", "Brejlovec");
-        var l2 = new Locomotive("L002", "Okuliarnik");
-        var l3 = new Locomotive("L003", "Zamraèená");
+        // Use actual icon files present in Assets/LocoIcons
+        var l1 = new Locomotive("L001", "Brejlovec") { IconName = "zsr_350.png" };
+        var l2 = new Locomotive("L002", "Okuliarnik") { IconName = "zsr_750z.png" };
+        var l3 = new Locomotive("L003", "Zamraèená") { IconName = "zsr_751zc.png" };
         l1.Wagons.Add(new Wagon("W101", "Eaos"));
         l1.Wagons.Add(new Wagon("W102", "Raj"));
 

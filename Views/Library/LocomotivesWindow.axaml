@@ -68,7 +68,7 @@
 					</Grid>
 
                     <StackPanel Grid.Row="0" Grid.Column="3" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center">
-                        <!-- Use AvailableIcons (IconItem) as ItemsSource and bind SelectedItem to SelectedIcon -->
+                        <!-- Use AvailableIcons (IconItem) as ItemsSource and bind Selec tedItem to SelectedIcon -->
                         <ComboBox Width="200" Height="50"
                                   ItemsSource="{Binding AvailableIcons}"
                                   SelectedItem="{Binding SelectedIcon, Mode=TwoWay}">

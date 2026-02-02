@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:TrackFlow.ViewModels.SmartStrips"
              xmlns:m="clr-namespace:TrackFlow.Models"
+             xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
              mc:Ignorable="d"
              x:DataType="vm:SmartStripsViewModel"
              x:Class="TrackFlow.Views.SmartStrips.SmartStripsView">
@@ -15,26 +16,28 @@
   <Grid RowDefinitions="Auto,Auto" Background="#F2F2F2">
 
     <!-- Horný pás: Koľajisko -->
-    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6">
+    <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6" MaxHeight="120">
       <StackPanel>
         <TextBlock Text="Koľajisko" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
 
         <ItemsControl ItemsSource="{Binding TopVehiclesView}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" />
+              <WrapPanel Orientation="Horizontal" ItemWidth="120" ItemHeight="84" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
 
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="m:Locomotive">
               <Border Margin="0,0,6,6"
-                      Padding="8,6"
+                      Padding="6"
                       Background="#F8F8F8"
                       BorderBrush="#C8C8C8"
                       BorderThickness="1"
                       CornerRadius="4"
-                      MinWidth="160"
+                      MinWidth="100"
+                      Width="120"
+                      Height="84"
                       DragDrop.AllowDrop="True"
                       DragDrop.Drop="OnLocoDrop">
                 <Border.ContextMenu>
@@ -47,24 +50,14 @@
                               CommandParameter="{Binding}" />
                   </ContextMenu>
                 </Border.ContextMenu>
-                <DockPanel>
-                  <TextBlock Text="[L]" Margin="0,0,8,0" VerticalAlignment="Center"/>
-
-                  <StackPanel>
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding Code}" FontSize="11" Foreground="#666"/>
-                  </StackPanel>
-
-                  <Border DockPanel.Dock="Right"
-                          Background="#1E88E5"
-                          CornerRadius="10"
-                          Padding="6,1"
-                          Margin="8,0,0,0"
-                          VerticalAlignment="Center"
-                          IsVisible="{Binding HasWagons}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <Image Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}" Height="40" Stretch="Uniform" Margin="0,0,0,4" />
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
+                  <TextBlock Text="{Binding Code}" FontSize="11" Foreground="#666" HorizontalAlignment="Center" />
+                  <Border Background="#1E88E5" CornerRadius="10" Padding="4,1" Margin="0,6,0,0" IsVisible="{Binding HasWagons}" HorizontalAlignment="Center">
                     <TextBlock Foreground="White" FontSize="11" Text="{Binding Wagons.Count, StringFormat='[{0}]'}"/>
                   </Border>
-                </DockPanel>
+                </StackPanel>
               </Border>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
