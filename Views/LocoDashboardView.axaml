@@ -9,24 +9,111 @@
 			 x:DataType="m:Locomotive"
 			 mc:Ignorable="d"
 			 d:DesignWidth="270" d:DesignHeight="320"
-			 ClipToBounds="False">
+			 ClipToBounds="False" VerticalAlignment="Top">
 
-	<!-- Converters available in project -->
-	<UserControl.Resources>
-		<conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
-		<conv:BoolToEffectOpacityConverter x:Key="BoolToEffectOpacity" />
-		<conv:BoolToBrushConverter x:Key="DirGlowBrush" TrueBrush="#00BFFF" FalseBrush="#32CD32" />
-		<conv:DirectionStateToColorConverter x:Key="DirColor" />
+    <!-- Styles -->
+    <UserControl.Styles>
+        <!-- Expander style: make fully transparent and remove default borders/backgrounds -->
+        <Style Selector="Expander">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <!-- Ensure ToggleButton used by Expander has transparent background -->
+        <Style Selector="Expander /template/ ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <!-- Ensure content presenter inside ToggleButton is transparent (common part name PART_ContentPresenter) -->
+        <Style Selector="Expander /template/ ToggleButton /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
 
-		<!-- Note: slider converters retained in project; keep available if needed -->
-		<conv:ValueToLengthConverter x:Key="ValueToLength" />
-		<conv:ValueToThumbTopConverter x:Key="ValueToThumbTop" />
+        <!-- Pointer/interaction overrides: remove any hover/pressed/checked backgrounds or borders -->
+        <Style Selector="Expander:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
 
-	</UserControl.Resources>
+        <!-- No hover effects: keep header arrow visible always -->
+
+        <!-- Target the template toggle specifically by name to ensure no hover bg appears -->
+        <Style Selector="ToggleButton#PART_Toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- Ensure the content presenter inside the toggle has no background on states -->
+        <Style Selector="ToggleButton#PART_Toggle /template/ ContentPresenter#PART_ContentPresenter:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle /template/ ContentPresenter#PART_ContentPresenter:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Converters available in project -->
+    <UserControl.Resources>
+        <conv:BoolToAngleConverter x:Key="BoolToAngle" />
+        <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        <conv:BoolToEffectOpacityConverter x:Key="BoolToEffectOpacity" />
+        <conv:BoolToBrushConverter x:Key="DirGlowBrush" TrueBrush="#00BFFF" FalseBrush="#32CD32" />
+        <conv:DirectionStateToColorConverter x:Key="DirColor" />
+
+        <!-- Note: slider converters retained in project; keep available if needed -->
+        <conv:ValueToLengthConverter x:Key="ValueToLength" />
+        <conv:ValueToThumbTopConverter x:Key="ValueToThumbTop" />
+
+    </UserControl.Resources>
 	<!-- Slider style removed: custom template will be provided inline on the Slider control -->
 
 	<!-- Root border / dashboard -->
-	<Border Background="#151515" Padding="8" CornerRadius="8" ClipToBounds="False" HorizontalAlignment="Stretch">
+    <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top" Width="163">
+    <Border Background="#151515" Padding="8" CornerRadius="8" ClipToBounds="False" HorizontalAlignment="Stretch">
 		<Grid RowDefinitions="Auto, *, Auto" ClipToBounds="False" >
 
 			<!-- TOP: name -->
@@ -159,39 +246,39 @@
 								<!-- Layer 5: Dial (slightly smaller than neon) -->
 								<Ellipse Width="106" Height="106" ClipToBounds="False" Fill="#050505" VerticalAlignment="Center" HorizontalAlignment="Center" />
 
-                                <!-- Layer 6: Text (top) with layered glow fallback -->
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
-                                    <!-- Back glow layer: blurred colored text using DirGlowBrush (IBrush) -->
-                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
-                                        <TextBlock Text="{Binding TargetSpeed}"
-                                                   FontSize="52" FontWeight="Bold" Margin="0,5,0,0"
-                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
-                                                   HorizontalAlignment="Center"
-                                                   Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}"
-                                                   Opacity="0.95"
-                                                   Padding="10,0,10,0"
-                                                   ClipToBounds="False">
-                                            <TextBlock.Effect>
-                                                <BlurEffect Radius="12" />
-                                            </TextBlock.Effect>
-                                        </TextBlock>
+								<!-- Layer 6: Text (top) with layered glow fallback -->
+								<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
+									<!-- Back glow layer: blurred colored text using DirGlowBrush (IBrush) -->
+									<Grid HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
+										<TextBlock Text="{Binding TargetSpeed}"
+												   FontSize="52" FontWeight="Bold" Margin="0,5,0,0"
+												   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+												   HorizontalAlignment="Center"
+												   Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}"
+												   Opacity="0.95"
+												   Padding="10,0,10,0"
+												   ClipToBounds="False">
+											<TextBlock.Effect>
+												<BlurEffect Radius="12" />
+											</TextBlock.Effect>
+										</TextBlock>
 
-                                        <!-- Foreground text: white and crisp, with DropShadowEffect for neon rim -->
-                                        <TextBlock Text="{Binding TargetSpeed}"
-                                                   FontSize="52" Foreground="#FFFFFF" FontStyle="Italic"  Margin="0,5,0,0"
-                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
-                                                   HorizontalAlignment="Center"
-                                                   Padding="10,0,10,0"
-                                                   ClipToBounds="False">
-                                            <TextBlock.Effect>
-                                                <DropShadowEffect Color="{Binding IsReverse, Converter={StaticResource DirColor}}" BlurRadius="20" OffsetX="0" OffsetY="0" Opacity="0.9" />
-                                            </TextBlock.Effect>
-                                        </TextBlock>
-                                    </Grid>
+										<!-- Foreground text: white and crisp, with DropShadowEffect for neon rim -->
+										<TextBlock Text="{Binding TargetSpeed}"
+												   FontSize="52" Foreground="#FFFFFF" FontStyle="Italic"  Margin="0,5,0,0"
+												   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+												   HorizontalAlignment="Center"
+												   Padding="10,0,10,0"
+												   ClipToBounds="False">
+											<TextBlock.Effect>
+												<DropShadowEffect Color="{Binding IsReverse, Converter={StaticResource DirColor}}" BlurRadius="20" OffsetX="0" OffsetY="0" Opacity="0.9" />
+											</TextBlock.Effect>
+										</TextBlock>
+									</Grid>
 
-                                    <TextBlock Text="km/h" FontStyle="Italic" FontSize="12" Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" FontWeight="Bold"
-                                               HorizontalAlignment="Center" Margin="0,3,0,0" />
-                                </StackPanel>
+									<TextBlock Text="km/h" FontStyle="Italic" FontSize="12" Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" FontWeight="Bold"
+											   HorizontalAlignment="Center" Margin="0,3,0,0" />
+								</StackPanel>
 
 							</Panel>
 						</Grid>
@@ -271,8 +358,7 @@
 				</StackPanel>
 			</StackPanel>
 
-
-
 		</Grid>
 	</Border>
+    </Viewbox>
 </UserControl>

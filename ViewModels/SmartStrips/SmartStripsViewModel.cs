@@ -14,6 +14,7 @@ public partial class SmartStripsViewModel : ObservableObject
 {
     public ObservableCollection<LocoRecord> ProjectLocomotives { get; } = new();
     public ObservableCollection<Locomotive> Locomotives { get; } = new();
+    public ObservableCollection<Locomotive> ActiveLocomotives { get; } = new();
     public ObservableCollection<Wagon> DepotWagons { get; } = new();
 
     public IEnumerable<Locomotive> TopVehiclesView => Locomotives
@@ -33,6 +34,8 @@ public partial class SmartStripsViewModel : ObservableObject
         _settings = settings;
         Locomotives.CollectionChanged += (_, _) => OnPropertyChanged(nameof(TopVehiclesView));
         DepotWagons.CollectionChanged += (_, _) => { };
+
+        ActiveLocomotives.CollectionChanged += (_, _) => { };
 
         _settings.ProjectChanged += RefreshFromProject;
         RefreshFromProject();
@@ -67,8 +70,38 @@ public partial class SmartStripsViewModel : ObservableObject
     private void OnItemPressed(object? parameter)
     {
         // parameter is the DataContext of the clicked item (Locomotive or Wagon)
-        if (parameter is Locomotive loco)
-            SelectedLocomotive = loco;
+        if (parameter is not Locomotive loco)
+            return;
+
+        // Toggle activation state on click
+        loco.IsActive = !loco.IsActive;
+
+        // Maintain ActiveLocomotives collection: add on activate, remove on deactivate
+        if (loco.IsActive)
+        {
+            if (!ActiveLocomotives.Contains(loco))
+                ActiveLocomotives.Add(loco); // add to end
+
+            // select for dashboard
+            _suppressSelectionSync = true;
+            try { SelectedLocomotive = loco; }
+            finally { _suppressSelectionSync = false; }
+        }
+        else
+        {
+            if (ActiveLocomotives.Contains(loco))
+                ActiveLocomotives.Remove(loco);
+
+            // if deactivated and it was the selected one, clear selection
+            if (ReferenceEquals(SelectedLocomotive, loco))
+            {
+                _suppressSelectionSync = true;
+                try { SelectedLocomotive = null; }
+                finally { _suppressSelectionSync = false; }
+            }
+        }
+
+        OnPropertyChanged(nameof(TopVehiclesView));
     }
 
     private void OnSelectedLocomotiveChanged(Locomotive? loco)
@@ -76,45 +109,8 @@ public partial class SmartStripsViewModel : ObservableObject
         if (_suppressSelectionSync)
             return;
 
+        // Selection only controls dashboard visibility. Activation is handled by OnItemPressed.
         IsLocoSelected = loco != null;
-
-        if (loco == null)
-            return;
-
-        var clicked = loco;
-
-        // Defer collection mutation because ListBox selection is raised during collection change processing.
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (clicked == null)
-                return;
-
-            // 1) deactivate everything
-            foreach (var l in Locomotives)
-                l.IsActive = false;
-
-            // 2) move clicked loco to index 0
-            var currentIndex = Locomotives.IndexOf(clicked);
-            if (currentIndex > 0)
-                Locomotives.Move(currentIndex, 0);
-
-            // 3) activate clicked loco (same instance)
-            clicked.IsActive = true;
-
-            // 4) ensure SelectedLocomotive still points to clicked
-            _suppressSelectionSync = true;
-            try
-            {
-                _selectedLocomotive = clicked;
-                OnPropertyChanged(nameof(SelectedLocomotive));
-            }
-            finally
-            {
-                _suppressSelectionSync = false;
-            }
-
-            OnPropertyChanged(nameof(TopVehiclesView));
-        }, DispatcherPriority.Background);
     }
 
     private void OnItemDrop(object? parameter)

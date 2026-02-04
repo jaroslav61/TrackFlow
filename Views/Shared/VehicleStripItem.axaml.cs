@@ -5,6 +5,9 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using TrackFlow.Models;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
+using Avalonia.Media;
+using System.Threading.Tasks;
 
 namespace TrackFlow.Views.Shared;
 
@@ -51,11 +54,32 @@ public partial class VehicleStripItem : UserControl
     public VehicleStripItem()
     {
         InitializeComponent();
+        // Track DataContext property-changed so we can update opacity when Locomotive.IsActive changes
+        System.ComponentModel.INotifyPropertyChanged? notifier = null;
+        this.DataContextChanged += (_, _) =>
+        {
+            // unsubscribe previous
+            if (notifier != null)
+                notifier.PropertyChanged -= Locomotive_PropertyChanged;
+
+            notifier = DataContext as System.ComponentModel.INotifyPropertyChanged;
+
+            if (notifier != null)
+                notifier.PropertyChanged += Locomotive_PropertyChanged;
+
+            UpdateOpacityFromDataContext();
+        };
     }
 
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+
+    private void Locomotive_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TrackFlow.Models.Locomotive.IsActive))
+            UpdateOpacityFromDataContext();
     }
 
     private async void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -65,11 +89,27 @@ public partial class VehicleStripItem : UserControl
         if (cmd != null && cmd.CanExecute(DataContext))
         {
             cmd.Execute(DataContext);
+            // Prevent parent controls (ListBox) from changing selection and overriding activation
+            e.Handled = true;
+            return;
         }
         else
         {
-            // Fallback: walk visual parents to find a VM exposing ItemPressedCommand
-            // No-op: prefer explicit binding via PointerPressedCommand property. Fallback removed to simplify template resolution.
+            // Fallback: walk visual parents to find a SmartStripsViewModel and invoke its ItemPressedCommand
+            foreach (var anc in this.GetVisualAncestors())
+            {
+                if (anc is Control c && c.DataContext is TrackFlow.ViewModels.SmartStrips.SmartStripsViewModel svm)
+                {
+                    var vmCmd = svm.ItemPressedCommand;
+                    if (vmCmd != null && vmCmd.CanExecute(DataContext))
+                    {
+                        vmCmd.Execute(DataContext);
+                        e.Handled = true;
+                        UpdateOpacityFromDataContext();
+                        return;
+                    }
+                }
+            }
         }
 
         // If data context is a Wagon, start drag in the view (UI concern)
@@ -80,6 +120,100 @@ public partial class VehicleStripItem : UserControl
             await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
             e.Handled = true;
             return;
+        }
+
+        }
+
+    private void UpdateOpacityFromDataContext()
+    {
+        var border = this.FindControl<Border>("BorderRoot");
+        if (border == null)
+            return;
+        var loco = DataContext as TrackFlow.Models.Locomotive;
+        var icon = this.FindControl<Image>("IconImage");
+
+        if (loco != null)
+        {
+            var converter = (TrackFlow.Converters.BoolToOpacityConverter?)this.FindResource("BoolToOpacity");
+            double opacity = loco.IsActive ? 1.0 : 0.4;
+
+            if (converter != null)
+            {
+                var val = converter.Convert(loco.IsActive, typeof(double), null, System.Globalization.CultureInfo.InvariantCulture);
+                if (val is double d)
+                    opacity = d;
+            }
+
+            border.Opacity = opacity; // border follows loco active state
+            if (icon != null) icon.Opacity = opacity; // icon follows loco active state
+
+            // Trigger simple activation animation (scale) when becoming active
+            if (loco.IsActive)
+                _ = AnimateActivateAsync(border);
+            else
+                _ = AnimateDeactivateAsync(border);
+        }
+        else
+        {
+            // Not a locomotive (e.g., Wagon) — wagons should always be fully opaque
+            border.Opacity = 1.0;
+            if (icon != null) icon.Opacity = 1.0;
+        }
+        }
+
+    private async Task AnimateActivateAsync(Border border)
+    {
+        if (border == null) return;
+        // ensure ScaleTransform
+        if (border.RenderTransform is not ScaleTransform st)
+        {
+            st = new ScaleTransform(1, 1);
+            border.RenderTransform = st;
+            border.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+        }
+
+        // quick pulse: 0.96 -> 1.06 -> 1.0
+        var seq = new double[] { 0.96, 1.06, 1.0 };
+        foreach (var s in seq)
+        {
+            // animate in small steps
+            var startX = st.ScaleX;
+            var startY = st.ScaleY;
+            var steps = 6;
+            for (int i = 1; i <= steps; i++)
+            {
+                var t = (double)i / steps;
+                st.ScaleX = startX + (s - startX) * t;
+                st.ScaleY = startY + (s - startY) * t;
+                await Task.Delay(16);
+            }
+        }
+    }
+
+    private async Task AnimateDeactivateAsync(Border border)
+    {
+        if (border == null) return;
+        if (border.RenderTransform is not ScaleTransform st)
+        {
+            st = new ScaleTransform(1, 1);
+            border.RenderTransform = st;
+            border.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+        }
+
+        // slight shrink to 0.98 -> 1.0
+        var seq = new double[] { 0.98, 1.0 };
+        foreach (var s in seq)
+        {
+            var startX = st.ScaleX;
+            var startY = st.ScaleY;
+            var steps = 6;
+            for (int i = 1; i <= steps; i++)
+            {
+                var t = (double)i / steps;
+                st.ScaleX = startX + (s - startX) * t;
+                st.ScaleY = startY + (s - startY) * t;
+                await Task.Delay(16);
+            }
         }
     }
 

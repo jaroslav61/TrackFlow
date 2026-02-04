@@ -1,10 +1,11 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
-		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-		xmlns:vm="clr-namespace:TrackFlow.ViewModels"
-		xmlns:ribbon="clr-namespace:TrackFlow.Ribbon"
-		xmlns:cab="clr-namespace:TrackFlow.Cab"
-		xmlns:smart="clr-namespace:TrackFlow.Views.SmartStrips"
-		xmlns:views="clr-namespace:TrackFlow.Views"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+        xmlns:ribbon="clr-namespace:TrackFlow.Ribbon"
+        xmlns:cab="clr-namespace:TrackFlow.Cab"
+        xmlns:smart="clr-namespace:TrackFlow.Views.SmartStrips"
+        xmlns:views="clr-namespace:TrackFlow.Views"
+        xmlns:m="clr-namespace:TrackFlow.Models"
 	x:Class="TrackFlow.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
 		x:Name="RootWindow"
@@ -67,11 +68,25 @@
             <ribbon:MainRibbonView />
         </Grid>
 
-        <!-- main area: tabs + optional right dashboard column -->
+        <!-- main area: tabs + dynamic right dashboard column -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
             <views:MainTabsView Grid.Column="0" DataContext="{Binding Tabs}" />
 
-            <views:LocoDashboardView x:Name="Dashboard" Grid.Column="1" Width="270" Height="320" Margin="0,10,10,0" HorizontalAlignment="Right" VerticalAlignment="Top" />
+            <!-- Dashboard column: ItemsControl with vertical WrapPanel to host multiple dashboards (only active locos) -->
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding SmartStrips.ActiveLocomotives}" Margin="10,0,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <!-- Orientation vertical; MaxHeight ensures wrap after approx. 3 dashboards -->
+                        <WrapPanel Orientation="Vertical" MaxHeight="960" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="m:Locomotive">
+                        <views:LocoDashboardView DataContext="{Binding}" Margin="0,10,10,0" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
 
         <smart:SmartStripsView Grid.Row="2" Height="170" DataContext="{Binding SmartStrips}"/>

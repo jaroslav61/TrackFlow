@@ -4,13 +4,12 @@ using System.Globalization;
 
 namespace TrackFlow.Converters
 {
-    public class BoolToOpacityConverter : IValueConverter
+    public class BoolToZeroOneConverter : IValueConverter
     {
-        // Returns 1.0 when true, 0.4 when false
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             var b = value as bool? ?? false;
-            return b ? 1.0 : 0.5;
+            return b ? 1.0 : 0.0;
         }
 
         public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();

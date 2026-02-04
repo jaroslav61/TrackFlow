@@ -3,16 +3,27 @@
              xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
              xmlns:local="clr-namespace:TrackFlow.Views.Shared;assembly=TrackFlow"
              x:Class="TrackFlow.Views.Shared.VehicleStripItem">
-  <Border Margin="0,0,10,0"
+  <UserControl.Resources>
+    <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+    <conv:BoolToZeroOneConverter x:Key="BoolToZeroOne" />
+  </UserControl.Resources>
+  <Border x:Name="BorderRoot" Margin="0,0,10,0"
           Padding="0"
           Background="Transparent"
           BorderThickness="0"
+          PointerPressed="OnPointerPressed"
           ToolTip.Tip="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}">
     <StackPanel Background="Transparent" Orientation="Vertical" HorizontalAlignment="Center" Spacing="1">
-      <Image Source="{Binding IconName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}, Converter={StaticResource IconNameToPathConverter}}"
+      <Image x:Name="IconImage" Source="{Binding IconName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}, Converter={StaticResource IconNameToPathConverter}}"
              Height="20"
              Stretch="Uniform"
-             HorizontalAlignment="Center"/>
+             HorizontalAlignment="Center" />
+      <!-- Glow effect for active loco -->
+      <Border IsHitTestVisible="False" Background="#00FFFFFF" CornerRadius="6" Margin="-6" Opacity="{ReflectionBinding IsActive, Converter={StaticResource BoolToZeroOne}}">
+        <Border.Effect>
+          <DropShadowEffect Color="#80FFFF00" BlurRadius="12" />
+        </Border.Effect>
+      </Border>
       <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}"
                  Foreground="White"
                  FontSize="11"
