@@ -5,8 +5,9 @@
 		xmlns:cab="clr-namespace:TrackFlow.Cab"
 		xmlns:smart="clr-namespace:TrackFlow.Views.SmartStrips"
 		xmlns:views="clr-namespace:TrackFlow.Views"
-		x:Class="TrackFlow.Views.MainWindow"
+	x:Class="TrackFlow.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
+		x:Name="RootWindow"
 		Title="TrackFlow"
 		WindowStartupLocation="CenterScreen"
 		Width="1600"
@@ -59,15 +60,23 @@
 		</Style>
 	</Window.Styles>
 
-	<Grid RowDefinitions="Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
 
-		<ribbon:MainRibbonView Grid.Row="0"/>
+        <!-- ribbon row -->
+        <Grid Grid.Row="0">
+            <ribbon:MainRibbonView />
+        </Grid>
 
-		<views:MainTabsView Grid.Row="1" DataContext="{Binding Tabs}"/>
+        <!-- main area: tabs + optional right dashboard column -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <views:MainTabsView Grid.Column="0" DataContext="{Binding Tabs}" />
 
-		<smart:SmartStripsView Grid.Row="2" Height="170" DataContext="{Binding SmartStrips}"/>
+            <views:LocoDashboardView x:Name="Dashboard" Grid.Column="1" Width="270" Height="320" Margin="0,10,10,0" HorizontalAlignment="Right" VerticalAlignment="Top" />
+        </Grid>
 
-		<views:StatusBarView Grid.Row="3" DataContext="{Binding StatusBar}"/>
+        <smart:SmartStripsView Grid.Row="2" Height="170" DataContext="{Binding SmartStrips}"/>
 
-	</Grid>
+        <views:StatusBarView Grid.Row="3" DataContext="{Binding StatusBar}"/>
+
+    </Grid>
 </Window>

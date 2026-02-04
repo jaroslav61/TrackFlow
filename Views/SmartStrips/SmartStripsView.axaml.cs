@@ -15,6 +15,12 @@ public partial class SmartStripsView : UserControl
     public SmartStripsView()
     {
         InitializeComponent();
+        this.AttachedToVisualTree += OnAttached;
+    }
+
+    private void OnAttached(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        // DragDropBehavior now auto-attaches via attached property change subscribers.
     }
 
     private void InitializeComponent()
@@ -22,20 +28,7 @@ public partial class SmartStripsView : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
-    private async void OnWagonPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is not Control c)
-            return;
-
-        if (c.DataContext is not Wagon wagon)
-            return;
-
-        var data = new DataObject();
-        data.Set(WagonDataFormat, wagon);
-
-        await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
-        e.Handled = true;
-    }
+    // Wagon pointer pressed is now handled by VehicleStripItem control itself.
 
     private void OnLocoDrop(object? sender, DragEventArgs e)
     {

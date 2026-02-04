@@ -1,4 +1,4 @@
-Ôªøusing CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace TrackFlow.ViewModels.Library;
 
-public partial class LocomotivesWindowViewModel : ObservableObject
+public partial class VagonsWindowViewModel : ObservableObject
 {
     public enum EditorMode
     {
@@ -22,11 +22,13 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     private readonly SettingsManager _settings;
 
-    public ObservableCollection<LocoRecord> Locomotives { get; }
+    public ObservableCollection<Wagon> Vagons { get; }
 
     public ObservableCollection<IconItem> AvailableIcons { get; } = new();
     public ObservableCollection<IconItem> IconComboItems { get; } = new();
     public ObservableCollection<string> AvailableIconNames { get; } = new();
+    public ObservableCollection<string> VagonCategories { get; } = new();
+    public ObservableCollection<string> VagonTypes { get; } = new();
 
     private IconItem? _selectedIcon;
     public IconItem? SelectedIcon
@@ -47,7 +49,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     }
 
     [ObservableProperty]
-    private LocoRecord? selected;
+    private Wagon? selected;
 
     private string _editorIconName = "";
 
@@ -68,39 +70,42 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     private EditorMode mode = EditorMode.Viewing;
 
     [ObservableProperty]
-    private string saveButtonText = "Ulo≈æi≈• zmeny";
+    private string saveButtonText = "Uloûiù zmeny";
 
     public bool IsGridEnabled => Mode == EditorMode.Viewing;
 
     [ObservableProperty]
     private bool isDirty;
 
+    [ObservableProperty] private string code = "";
     [ObservableProperty] private string name = "";
     [ObservableProperty] private string description = "";
-    [ObservableProperty] private string addressText = "3";
-
-    // Image path/bitmap removed in refactor
+    [ObservableProperty] private double weight;
+    [ObservableProperty] private double lengthOverBuffers;
+    [ObservableProperty] private string vagonType = "";
+    [ObservableProperty] private string vagonCategory = "";
 
     [ObservableProperty] private string validationMessage = "";
 
     public Action? RequestClose { get; set; }
 
-    private LocoRecord? _selectionBeforeAdd;
+    private Wagon? _selectionBeforeAdd;
 
-    public LocomotivesWindowViewModel(SettingsManager settings)
+    public VagonsWindowViewModel(SettingsManager settings)
     {
         _settings = settings;
         // Ensure project exists
         var ps = _settings.EnsureProjectSettings();
-        var list = ps.Locomotives ?? new List<LocoRecord>();
+        // Try to load existing wagons from current project (new format) or legacy settings (old format)
+        var sourceList = (_settings.CurrentProject?.Wagons ?? _settings.Project?.Wagons) ?? new List<Wagon>();
+        // Clone into observable collection (keep same instances)
+        Vagons = new ObservableCollection<Wagon>(sourceList);
+        Selected = Vagons.FirstOrDefault();
 
-        Locomotives = new ObservableCollection<LocoRecord>(list);
-        Selected = Locomotives.FirstOrDefault();
-
-        // Load available icon file names from Assets/LocoIcons (search several likely locations)
+        // Load available icon file names from Assets/VagonIcons (search several likely locations)
         try
         {
-            Debug.WriteLine("LocomotivesWindowViewModel: Searching for Assets/LocoIcons starting from base directory and moving up...");
+            Debug.WriteLine("VagonsWindowViewModel: Searching for Assets/VagonIcons starting from base directory and moving up...");
             var start = AppDomain.CurrentDomain.BaseDirectory ?? AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
             var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".webp", ".bmp" };
 
@@ -110,7 +115,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
             for (var i = 0; i <= maxUp; i++)
             {
-                var candidate = Path.Combine(dir, "Assets", "LocoIcons");
+                var candidate = Path.Combine(dir, "Assets", "VagonIcons");
                 Debug.WriteLine($"  Checking: {candidate}");
                 if (Directory.Exists(candidate))
                 {
@@ -149,35 +154,50 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             }
             else
             {
-                Debug.WriteLine("    No Assets/LocoIcons folder found while searching upwards from base directory.");
+                Debug.WriteLine("    No Assets/VagonIcons folder found while searching upwards from base directory.");
             }
 
-            Debug.WriteLine($"LocomotivesWindowViewModel: Total available icons = {AvailableIcons.Count}");
+            Debug.WriteLine($"VagonsWindowViewModel: Total available icons = {AvailableIcons.Count}");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"LocomotivesWindowViewModel: Exception while loading icons: {ex}");
+            Debug.WriteLine($"VagonsWindowViewModel: Exception while loading icons: {ex}");
         }
 
         // Build ComboBox items: placeholder first, then actual icons
         IconComboItems.Clear();
-        IconComboItems.Add(new IconItem("-- Vyberte lokomot√≠vu --", string.Empty));
+        IconComboItems.Add(new IconItem("-- Vyberte vagÛn --", string.Empty));
         foreach (var it in AvailableIcons)
             IconComboItems.Add(it);
 
+        // Populate categories
+        VagonCategories.Clear();
+        VagonCategories.Add("kryt˝");
+        VagonCategories.Add("ploöinov˝");
+        VagonCategories.Add("cisternov˝");
+
+        // Populate types
+        VagonTypes.Clear();
+        VagonTypes.Add("osobn˝");
+        VagonTypes.Add("n·kladn˝");
+        VagonTypes.Add("lÙûkov˝");
+        VagonTypes.Add("leûadlov˝");
+        VagonTypes.Add("reötauraËn˝");
+        VagonTypes.Add("sluûobn˝");
+
         LoadSelectedToEditor();
-        OnPropertyChanged(nameof(SelectedLocomotive));
+        OnPropertyChanged(nameof(Selected));
     }
 
-    public LocoRecord? SelectedLocomotive
+    public Wagon? SelectedVagon
     {
         get => Selected;
         set => Selected = value;
     }
 
-    partial void OnSelectedChanged(LocoRecord? value)
+    partial void OnSelectedChanged(Wagon? value)
     {
-        // V re≈æime Adding nechceme, aby klik do zoznamu prepisoval rozpracovan√© polia.
+        // V reûime Adding nechceme, aby klik do zoznamu prepisoval rozpracovanÈ polia.
         if (Mode == EditorMode.Adding)
             return;
 
@@ -185,56 +205,35 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     }
 
     partial void OnNameChanged(string value) => MarkDirtyAndRevalidate();
-    partial void OnDescriptionChanged(string value) => MarkDirtyAndRevalidate();
-    partial void OnAddressTextChanged(string value)
-    {
-        MarkDirtyAndRevalidate();
-        OnPropertyChanged(nameof(AddressKindText));
-    }
-
-    // ImagePath and related change handler removed
-
-    public string AddressKindText
-    {
-        get
-        {
-            if (!int.TryParse(AddressText, out var a))
-                return "(1‚Ä¶10239)";
-
-            if (a < 1 || a > 10239)
-                return "Neplatn√° (1‚Ä¶10239)";
-
-            return a <= 127
-                ? "Kr√°tka (1‚Ä¶127)"
-                : "Dlh√° (128‚Ä¶10239)";
-        }
-    }
 
     private void LoadSelectedToEditor()
     {
         if (Selected == null)
         {
-            Name = "";
-            Description = "";
-            AddressText = "3";
-        // ImagePath removed
+            Code = string.Empty;
+            Name = string.Empty;
+            Description = string.Empty;
+            Weight = 0;
+            LengthOverBuffers = 0;
+            VagonType = string.Empty;
             ValidationMessage = "";
             EditorIconName = "";
             SelectedIcon = IconComboItems.FirstOrDefault();
         }
         else
         {
-            Name = Selected.Name ?? "";
-            Description = Selected.Description ?? "";
-            AddressText = Selected.Address.ToString();
-            // ImagePath removed
+            Code = Selected.Code;
+            Name = Selected.Name ?? string.Empty;
+            Description = Selected.Description ?? string.Empty;
+            Weight = Selected is { } ? Selected.Weight : 0;
+            LengthOverBuffers = Selected is { } ? Selected.LengthOverBuffers : 0;
+            VagonType = Selected is { } ? Selected.VagonType : string.Empty;
             ValidationMessage = "";
             EditorIconName = Selected.IconName ?? string.Empty;
-            // set SelectedIcon to match the loaded icon name (search in combo items)
+
             var match = IconComboItems.FirstOrDefault(i => i.Name == EditorIconName);
             if (Mode == EditorMode.Adding)
             {
-                // placeholder when adding
                 SelectedIcon = IconComboItems.FirstOrDefault();
             }
             else if (match != null)
@@ -243,7 +242,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             }
             else
             {
-                // no explicit icon chosen for this loco - default to first real icon if available
                 SelectedIcon = IconComboItems.Skip(1).FirstOrDefault() ?? IconComboItems.FirstOrDefault();
             }
         }
@@ -257,14 +255,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     private void SetMode(EditorMode newMode)
     {
         Mode = newMode;
-        SaveButtonText = (Mode == EditorMode.Adding) ? "Ulo≈æi≈•" : "Ulo≈æi≈• zmeny";
+        SaveButtonText = (Mode == EditorMode.Adding) ? "Uloûiù" : "Uloûiù zmeny";
         OnPropertyChanged(nameof(IsGridEnabled));
         NotifyAllCanExecutes();
-        // When entering Adding mode ensure ComboBox shows placeholder
         if (Mode == EditorMode.Adding)
-        {
             SelectedIcon = IconComboItems.FirstOrDefault();
-        }
     }
 
     private void NotifyAllCanExecutes()
@@ -273,7 +268,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         SaveChangesCommand.NotifyCanExecuteChanged();
         DeleteCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
-        // image commands removed
     }
 
     private void MarkDirtyAndRevalidate()
@@ -289,28 +283,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     private void Revalidate()
     {
-        ValidationMessage = Validate(out _);
+        ValidationMessage = "";
         SaveChangesCommand.NotifyCanExecuteChanged();
-    }
-
-    private string Validate(out int addr)
-    {
-        addr = 0;
-
-        // Vo Viewing niƒç nevalidujeme (nem√° sa uklada≈•).
-        if (Mode == EditorMode.Viewing)
-            return "";
-
-        if (string.IsNullOrWhiteSpace(Name))
-            return "Zadajte n√°zov.";
-
-        if (!int.TryParse(AddressText, out addr))
-            return "Adresa mus√≠ by≈• ƒç√≠slo.";
-
-        if (addr < 1 || addr > 10239)
-            return "Adresa mus√≠ by≈• v rozsahu 1‚Ä¶10239.";
-
-        return "";
     }
 
     private bool CanBeginAdd() => Mode == EditorMode.Viewing;
@@ -320,18 +294,15 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         if (Mode == EditorMode.Viewing)
             return false;
 
-        // v Editing uklada≈• len ak s√∫ zmeny
         if (Mode == EditorMode.Editing && !IsDirty)
             return false;
 
-        return string.IsNullOrWhiteSpace(Validate(out _));
+        return true;
     }
 
     private bool CanDelete() => Mode == EditorMode.Viewing && Selected != null;
 
     private bool CanCancel() => Mode == EditorMode.Adding || Mode == EditorMode.Editing;
-
-    // image commands removed
 
     [RelayCommand(CanExecute = nameof(CanBeginAdd))]
     private void Add()
@@ -340,66 +311,105 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
         SetMode(EditorMode.Adding);
 
-        // zru≈° selection, aby bolo jasn√©, ≈æe nevykon√°va≈° zmeny na existuj√∫com z√°zname
         Selected = null;
 
-        Name = "";
-        Description = "";
-        AddressText = NextFreeAddress().ToString();
-            // ImagePath removed
+        Code = string.Empty;
+        Name = string.Empty;
+        Description = string.Empty;
+        Weight = 0;
+        LengthOverBuffers = 0;
+        VagonType = string.Empty;
         ValidationMessage = "";
         IsDirty = false;
 
         NotifyAllCanExecutes();
-        // set combo to placeholder when adding
         SelectedIcon = IconComboItems.FirstOrDefault();
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void SaveChanges()
     {
-        var msg = Validate(out var addr);
-        if (!string.IsNullOrWhiteSpace(msg))
-        {
-            ValidationMessage = msg;
-            return;
-        }
-
+        // Basic save behavior: create new Wagon instance or update existing
         if (Mode == EditorMode.Adding)
         {
-                var rec = new LocoRecord
+            var rec = new Wagon(Code ?? Guid.NewGuid().ToString("N"), Name ?? string.Empty)
             {
-                Id = Guid.NewGuid().ToString("N"),
-                Name = Name.Trim(),
-                Address = addr,
-                Description = Description ?? "",
+                Weight = Weight,
+                LengthOverBuffers = LengthOverBuffers,
+                VagonType = VagonType ?? string.Empty,
                 IconName = EditorIconName ?? string.Empty
             };
 
-            Locomotives.Add(rec);
+            // Description if available
+            rec.Description = Description ?? string.Empty;
+
+            Vagons.Add(rec);
             Selected = rec;
-
-            PersistAndSave();
-
+            // Persist to project model
+            if (_settings.CurrentProject != null)
+            {
+                _settings.CurrentProject.Wagons.Add(rec);
+                _settings.CurrentProject.IsDirty = true;
+            }
+            if (_settings.Project != null)
+            {
+                _settings.Project.Wagons.Add(rec);
+            }
+            _settings.SaveProject();
             IsDirty = false;
-            ValidationMessage = "";
+            ValidationMessage = string.Empty;
             SetMode(EditorMode.Viewing);
             return;
         }
 
-        // Editing
         if (Selected == null)
             return;
 
-        Selected.Name = Name.Trim();
-        Selected.Description = Description ?? "";
-        Selected.Address = addr;
+        Selected.Name = Name ?? string.Empty;
+        Selected.Description = Description ?? string.Empty;
+        Selected.Weight = Weight;
+        Selected.LengthOverBuffers = LengthOverBuffers;
+        Selected.VagonType = VagonType ?? string.Empty;
         Selected.IconName = EditorIconName ?? string.Empty;
-
-        PersistAndSave();
-
+        // Persist updated wagon to project model
+        if (_settings.CurrentProject != null)
+        {
+            var existing = _settings.CurrentProject.Wagons.FirstOrDefault(w => w.Code == Selected.Code);
+            if (existing != null)
+            {
+                existing.Name = Selected.Name;
+                existing.Description = Selected.Description;
+                existing.Weight = Selected.Weight;
+                existing.LengthOverBuffers = Selected.LengthOverBuffers;
+                existing.VagonType = Selected.VagonType;
+                existing.IconName = Selected.IconName;
+            }
+            else
+            {
+                _settings.CurrentProject.Wagons.Add(Selected);
+            }
+            _settings.CurrentProject.IsDirty = true;
+        }
+        if (_settings.Project != null)
+        {
+            var existing2 = _settings.Project.Wagons.FirstOrDefault(w => w.Code == Selected.Code);
+            if (existing2 != null)
+            {
+                existing2.Name = Selected.Name;
+                existing2.Description = Selected.Description;
+                existing2.Weight = Selected.Weight;
+                existing2.LengthOverBuffers = Selected.LengthOverBuffers;
+                existing2.VagonType = Selected.VagonType;
+                existing2.IconName = Selected.IconName;
+            }
+            else
+            {
+                _settings.Project.Wagons.Add(Selected);
+            }
+        }
+        _settings.SaveProject();
         IsDirty = false;
-        ValidationMessage = "";
+        ValidationMessage = string.Empty;
         SetMode(EditorMode.Viewing);
     }
 
@@ -409,15 +419,26 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         if (Selected == null) return;
 
         var toRemove = Selected;
-        var idx = Locomotives.IndexOf(toRemove);
+        var idx = Vagons.IndexOf(toRemove);
 
-        Locomotives.Remove(toRemove);
-        Selected = Locomotives.Count == 0
+        Vagons.Remove(toRemove);
+        Selected = Vagons.Count == 0
             ? null
-            : Locomotives[Math.Min(idx, Locomotives.Count - 1)];
+            : Vagons[Math.Min(idx, Vagons.Count - 1)];
 
-        PersistAndSave();
-        // zost√°vame vo Viewing ‚Äì v√Ωber sa zmenil, polia sa obnovia cez OnSelectedChanged
+        // Remove from project model and persist
+        if (_settings.CurrentProject != null)
+        {
+            var ex = _settings.CurrentProject.Wagons.FirstOrDefault(w => w.Code == toRemove.Code);
+            if (ex != null) _settings.CurrentProject.Wagons.Remove(ex);
+            _settings.CurrentProject.IsDirty = true;
+        }
+        if (_settings.Project != null)
+        {
+            var ex2 = _settings.Project.Wagons.FirstOrDefault(w => w.Code == toRemove.Code);
+            if (ex2 != null) _settings.Project.Wagons.Remove(ex2);
+        }
+        _settings.SaveProject();
     }
 
     [RelayCommand(CanExecute = nameof(CanCancel))]
@@ -426,40 +447,16 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         if (Mode == EditorMode.Adding)
         {
             SetMode(EditorMode.Viewing);
-            Selected = _selectionBeforeAdd ?? Locomotives.FirstOrDefault();
+            Selected = _selectionBeforeAdd ?? Vagons.FirstOrDefault();
             _selectionBeforeAdd = null;
 
             LoadSelectedToEditor();
             return;
         }
 
-        // Editing
         LoadSelectedToEditor();
     }
 
     [RelayCommand]
     private void Close() => RequestClose?.Invoke();
-
-    // image commands removed
-
-    private int NextFreeAddress()
-    {
-        var used = Locomotives.Select(l => l.Address).Where(a => a > 0).ToHashSet();
-        for (var a = 3; a <= 10239; a++)
-            if (!used.Contains(a))
-                return a;
-        return 3;
-    }
-
-    private void PersistAndSave()
-    {
-        // Persist to project settings (this is what is serialized by ProjectStore)
-        var ps = _settings.EnsureProjectSettings();
-        ps.Locomotives = Locomotives.ToList();
-
-        if (!_settings.SaveProject())
-            ValidationMessage = "Projekt nie je ulo≈æen√Ω na disk. Pou≈æi S√∫bor ‚Üí Ulo≈æi≈• ako‚Ä¶";
-    }
-
-    // Image bitmap handling removed
 }

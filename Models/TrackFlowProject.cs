@@ -14,6 +14,7 @@ public sealed class TrackFlowProject
     public ProjectSettingsData Settings { get; set; } = new();
 
     public List<LocoRecord> Locomotives { get; set; } = new();
+    public List<Wagon> Wagons { get; set; } = new();
     public LayoutStub Layout { get; set; } = new();
     public List<CabAssignment> CabAssignments { get; set; } = new();
 }

@@ -20,6 +20,7 @@
 
 	<Window.Resources>
 		<conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
+		<conv:StringNotNullOrWhiteSpaceToBoolConverter x:Key="StringNotNullOrWhiteSpaceToBoolConverter" />
 	</Window.Resources>
 
 	<Grid RowDefinitions="*,Auto" Margin="10">
@@ -70,11 +71,19 @@
                     <StackPanel Grid.Row="0" Grid.Column="3" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center">
                         <!-- Use AvailableIcons (IconItem) as ItemsSource and bind Selec tedItem to SelectedIcon -->
                         <ComboBox Width="200" Height="50"
-                                  ItemsSource="{Binding AvailableIcons}"
+                                  ItemsSource="{Binding IconComboItems}"
                                   SelectedItem="{Binding SelectedIcon, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Image Source="{Binding FullPath, Converter={StaticResource IconNameToPathConverter}}" Height="40" Stretch="Uniform" />
+                                    <Grid>
+                                        <Image Source="{Binding FullPath, Converter={StaticResource IconNameToPathConverter}}"
+                                               Height="40" Stretch="Uniform"
+                                               IsVisible="{Binding FullPath, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}}"/>
+                                        <TextBlock Text="{Binding Name}"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   IsVisible="{Binding FullPath, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}, ConverterParameter=Invert}" />
+                                    </Grid>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Threading;
 using TrackFlow.Models;
 using TrackFlow.Services;
 using TrackFlow.Services;
@@ -35,18 +36,142 @@ public partial class SmartStripsViewModel : ObservableObject
 
         _settings.ProjectChanged += RefreshFromProject;
         RefreshFromProject();
+        // Initialize commands
+        ItemPressedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<object?>(OnItemPressed);
+        ItemDropCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<object?>(OnItemDrop);
+    }
+
+    public System.Windows.Input.ICommand? ItemPressedCommand { get; private set; }
+    public System.Windows.Input.ICommand? ItemDropCommand { get; private set; }
+
+    private bool _suppressSelectionSync;
+
+    private Locomotive? _selectedLocomotive;
+    public Locomotive? SelectedLocomotive
+    {
+        get => _selectedLocomotive;
+        set
+        {
+            if (_selectedLocomotive == value) return;
+            _selectedLocomotive = value;
+            OnPropertyChanged(nameof(SelectedLocomotive));
+
+            if (!_suppressSelectionSync)
+                OnSelectedLocomotiveChanged(value);
+        }
+    }
+
+    [ObservableProperty]
+    private bool isLocoSelected;
+
+    private void OnItemPressed(object? parameter)
+    {
+        // parameter is the DataContext of the clicked item (Locomotive or Wagon)
+        if (parameter is Locomotive loco)
+            SelectedLocomotive = loco;
+    }
+
+    private void OnSelectedLocomotiveChanged(Locomotive? loco)
+    {
+        if (_suppressSelectionSync)
+            return;
+
+        IsLocoSelected = loco != null;
+
+        if (loco == null)
+            return;
+
+        var clicked = loco;
+
+        // Defer collection mutation because ListBox selection is raised during collection change processing.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (clicked == null)
+                return;
+
+            // 1) deactivate everything
+            foreach (var l in Locomotives)
+                l.IsActive = false;
+
+            // 2) move clicked loco to index 0
+            var currentIndex = Locomotives.IndexOf(clicked);
+            if (currentIndex > 0)
+                Locomotives.Move(currentIndex, 0);
+
+            // 3) activate clicked loco (same instance)
+            clicked.IsActive = true;
+
+            // 4) ensure SelectedLocomotive still points to clicked
+            _suppressSelectionSync = true;
+            try
+            {
+                _selectedLocomotive = clicked;
+                OnPropertyChanged(nameof(SelectedLocomotive));
+            }
+            finally
+            {
+                _suppressSelectionSync = false;
+            }
+
+            OnPropertyChanged(nameof(TopVehiclesView));
+        }, DispatcherPriority.Background);
+    }
+
+    private void OnItemDrop(object? parameter)
+    {
+        // Expect parameter as object[] { target, wagon }
+        if (parameter is not object[] arr || arr.Length != 2)
+            return;
+
+        var target = arr[0];
+        var wagon = arr[1] as Wagon;
+        if (wagon == null)
+            return;
+
+        if (target is LocoRecord record)
+        {
+            AttachWagonToLocoRecord(record, wagon);
+            return;
+        }
+
+        if (target is Locomotive loco)
+        {
+            AttachWagon(loco, wagon);
+            return;
+        }
     }
 
     private void RefreshFromProject()
     {
         ProjectLocomotives.Clear();
+        DepotWagons.Clear();
 
         var list = _settings.Project?.Locomotives;
         if (list == null || list.Count == 0)
+        {
+            // Still try to show wagons even if locomotives are empty.
+            LoadDepotWagonsFromProject();
             return;
+        }
 
+        Locomotives.Clear();
         foreach (var loco in list)
+        {
             ProjectLocomotives.Add(loco);
+            // create runtime Locomotive object for strip if not present
+            var key = !string.IsNullOrWhiteSpace(loco.Id) ? loco.Id : loco.Address.ToString();
+            var r = new Locomotive(key, loco.Name) { IconName = loco.IconName ?? string.Empty };
+            Locomotives.Add(r);
+        }
+
+        LoadDepotWagonsFromProject();
+    }
+
+    private void LoadDepotWagonsFromProject()
+    {
+        var wagons = (_settings.CurrentProject?.Wagons ?? _settings.Project?.Wagons) ?? new List<Wagon>();
+        foreach (var w in wagons)
+            DepotWagons.Add(w);
     }
 
     public void AttachWagon(Locomotive loco, Wagon wagon)

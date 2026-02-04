@@ -32,6 +32,14 @@ public class IconNameToPathConverter : IValueConverter
                     return new Bitmap(candidate);
                 }
 
+                // Wagons: <base>/Assets/VagonIcons/<name>
+                candidate = Path.Combine(baseDir, "Assets", "VagonIcons", name);
+                if (File.Exists(candidate))
+                {
+                    Debug.WriteLine($"IconNameToPathConverter: loading bitmap from '{candidate}' for name '{name}' (wagon)");
+                    return new Bitmap(candidate);
+                }
+
                 // Development-time fallback: walk up a few levels to find repo-root Assets/LocoIcons
                 var dir = baseDir;
                 for (var i = 0; i < 6; i++)
@@ -45,6 +53,13 @@ public class IconNameToPathConverter : IValueConverter
                     if (File.Exists(candidate))
                     {
                         Debug.WriteLine($"IconNameToPathConverter: loading bitmap from '{candidate}' (upsearch) for name '{name}'");
+                        return new Bitmap(candidate);
+                    }
+
+                    candidate = Path.Combine(dir, "Assets", "VagonIcons", name);
+                    if (File.Exists(candidate))
+                    {
+                        Debug.WriteLine($"IconNameToPathConverter: loading bitmap from '{candidate}' (upsearch) for name '{name}' (wagon)");
                         return new Bitmap(candidate);
                     }
                 }

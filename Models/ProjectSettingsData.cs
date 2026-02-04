@@ -15,4 +15,5 @@ public sealed class ProjectSettingsData
 
     // CORE: lokomotívy v projekte
     public List<LocoRecord> Locomotives { get; set; } = new();
+    public List<Wagon> Wagons { get; set; } = new();
 }

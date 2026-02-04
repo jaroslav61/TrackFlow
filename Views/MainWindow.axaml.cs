@@ -45,6 +45,40 @@ public partial class MainWindow : Window
         if (_vm == null)
             return;
 
+        // Bind dashboard DataContext/visibility to SmartStrips selection
+        var dashboard = this.FindControl<UserControl>("Dashboard");
+        if (dashboard != null)
+        {
+            // initial state
+            dashboard.DataContext = _vm.SmartStrips.SelectedLocomotive;
+            dashboard.IsVisible = _vm.SmartStrips.IsLocoSelected;
+
+            // subscribe to selection changes on SmartStripsViewModel
+            _vm.SmartStrips.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(_vm.SmartStrips.SelectedLocomotive))
+                {
+                    // update DataContext and visibility when selection changes so dashboard stays visible for the selected loco
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        dashboard.DataContext = _vm.SmartStrips.SelectedLocomotive;
+                        dashboard.IsVisible = _vm.SmartStrips.SelectedLocomotive != null;
+                    });
+                }
+            };
+
+            // SmartStrips selection change handled via SettingsManager event in SmartStripsViewModel.
+            _vm.SettingsManager.ProjectChanged += () =>
+            {
+                // ensure dashboard shows current selection
+                Dispatcher.UIThread.Post(() =>
+                {
+                    dashboard.DataContext = _vm.SmartStrips.SelectedLocomotive;
+                    dashboard.IsVisible = _vm.SmartStrips.IsLocoSelected;
+                });
+            };
+        }
+
         // VM -> View: dialógy
         _vm.ShowSettingsDialogAsync = () => ShowSettingsDialogAsync(_vm);
         _vm.ShowOpenProjectPickerAsync = () => PickOpenProjectPathAsync(_vm);
@@ -92,8 +126,26 @@ public partial class MainWindow : Window
 
     private async Task ShowVehiclesDialogAsync()
     {
-        var dlg = new VehiclesWindow();
-        await dlg.ShowDialog(this);
+        try
+        {
+            // Open the real vehicles/wagons editor (VagonsWindow)
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var dlg = new TrackFlow.Views.Library.VagonsWindow
+                {
+                    DataContext = _vm == null ? null : new TrackFlow.ViewModels.Library.VagonsWindowViewModel(_vm.SettingsManager)
+                };
+
+                await dlg.ShowDialog(this);
+            });
+        }
+        catch (Exception ex)
+        {
+            if (_vm != null)
+                _vm.StatusBar.Message = "Chyba pri otvorení Vozidiel: " + ex.Message;
+            else
+                System.Diagnostics.Debug.WriteLine("Chyba pri otvorení Vozidiel: " + ex);
+        }
     }
 
     private async Task ShowTrainsDialogAsync()

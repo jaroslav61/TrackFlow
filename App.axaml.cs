@@ -43,6 +43,25 @@ public partial class App : Application
                         Debug.WriteLine($"App: registered icon {name} -> {f}");
                     }
                 }
+
+                // Register wagon icons too
+                var wagonIconsDir = Path.Combine(baseDir, "Assets", "VagonIcons");
+                Debug.WriteLine($"App: looking for wagon icons in {wagonIconsDir}");
+                if (!Directory.Exists(wagonIconsDir))
+                {
+                    wagonIconsDir = Path.Combine(baseDir, "..", "..", "Assets", "VagonIcons");
+                    Debug.WriteLine($"App: fallback wagon icons path {wagonIconsDir}");
+                }
+
+                if (Directory.Exists(wagonIconsDir))
+                {
+                    foreach (var f in Directory.GetFiles(wagonIconsDir, "*.png"))
+                    {
+                        var name = Path.GetFileName(f);
+                        IconRegistry.Register(name, Path.GetFullPath(f));
+                        Debug.WriteLine($"App: registered wagon icon {name} -> {f}");
+                    }
+                }
             }
             catch (Exception ex)
             {

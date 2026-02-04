@@ -1,0 +1,278 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:primitives="clr-namespace:Avalonia.Controls.Primitives;assembly=Avalonia.Controls"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:conv="clr-namespace:TrackFlow.Converters"
+			 xmlns:m="clr-namespace:TrackFlow.Models"
+			 x:Class="TrackFlow.Views.LocoDashboardView"
+			 x:DataType="m:Locomotive"
+			 mc:Ignorable="d"
+			 d:DesignWidth="270" d:DesignHeight="320"
+			 ClipToBounds="False">
+
+	<!-- Converters available in project -->
+	<UserControl.Resources>
+		<conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+		<conv:BoolToEffectOpacityConverter x:Key="BoolToEffectOpacity" />
+		<conv:BoolToBrushConverter x:Key="DirGlowBrush" TrueBrush="#00BFFF" FalseBrush="#32CD32" />
+		<conv:DirectionStateToColorConverter x:Key="DirColor" />
+
+		<!-- Note: slider converters retained in project; keep available if needed -->
+		<conv:ValueToLengthConverter x:Key="ValueToLength" />
+		<conv:ValueToThumbTopConverter x:Key="ValueToThumbTop" />
+
+	</UserControl.Resources>
+	<!-- Slider style removed: custom template will be provided inline on the Slider control -->
+
+	<!-- Root border / dashboard -->
+	<Border Background="#151515" Padding="8" CornerRadius="8" ClipToBounds="False" HorizontalAlignment="Stretch">
+		<Grid RowDefinitions="Auto, *, Auto" ClipToBounds="False" >
+
+			<!-- TOP: name -->
+			<StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,10" ClipToBounds="False">
+				<TextBlock Text="{Binding Name, FallbackValue='Neznáma lokomotíva'}"
+						   Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+
+			</StackPanel>
+
+			<!-- MIDDLE: compact horizontal layout -->
+			<StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="0" HorizontalAlignment="Left" ClipToBounds="False">
+
+				<!-- Slider (moved closer to tachometer) - fully custom template inline -->
+				<Grid ClipToBounds="False" Width="36" HorizontalAlignment="Left" Margin="0,0,-5,10">
+					<Slider Orientation="Vertical"
+							Minimum="0" Maximum="100"
+							Value="{Binding TargetSpeed, Mode=TwoWay}"
+							Width="36"
+							HorizontalAlignment="Left"
+							ClipToBounds="False">
+
+						<Slider.Template>
+							<ControlTemplate>
+								<Border Background="Transparent" Padding="0">
+									<Grid Width="36" Height="260">
+										<!-- Track background: thin oval stroke without fill -->
+										<Border x:Name="TrackBackground" Width="12" CornerRadius="6" Background="Transparent" BorderBrush="White" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+
+										<!-- Functional Track hosting the Thumb only -->
+
+										<!-- Track fill: neon color follows direction (green forward, blue reverse) -->
+										<Border x:Name="TrackFill" Width="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" CornerRadius="6" Background="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" Opacity="0.95"
+												Height="{Binding Path=Value, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ValueToLength}, ConverterParameter=220}">
+											<Border.Effect>
+												<BlurEffect Radius="12" />
+											</Border.Effect>
+										</Border>
+
+										<primitives:Track x:Name="PART_Track"
+														  Orientation="Vertical"
+														  HorizontalAlignment="Center"
+														  VerticalAlignment="Stretch"
+														  Minimum="{Binding Minimum, RelativeSource={RelativeSource TemplatedParent}}"
+														  Maximum="{Binding Maximum, RelativeSource={RelativeSource TemplatedParent}}"
+														  Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+											<primitives:Track.Thumb>
+												<Thumb Width="32" Height="32" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent">
+													<Thumb.Template>
+														<ControlTemplate>
+															<Grid Width="40" Height="40" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center">
+																<!-- Soft glow behind the thumb (color follows direction) -->
+																<Ellipse Width="40" Height="40" Fill="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" Opacity="0.38" HorizontalAlignment="Center" VerticalAlignment="Center">
+																	<Ellipse.Effect>
+																		<BlurEffect Radius="24" />
+																	</Ellipse.Effect>
+																</Ellipse>
+
+																<!-- Outer stroke ring (color follows direction) -->
+																<Ellipse Stroke="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" StrokeThickness="3" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="Transparent">
+																	<Ellipse.Effect>
+																		<DropShadowEffect Color="{Binding IsReverse, Converter={StaticResource DirColor}}" BlurRadius="18" OffsetX="0" OffsetY="0" Opacity="0.9" />
+																	</Ellipse.Effect>
+																</Ellipse>
+
+																<!-- Inner white circle -->
+																<Ellipse Fill="White" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+															</Grid>
+														</ControlTemplate>
+													</Thumb.Template>
+												</Thumb>
+											</primitives:Track.Thumb>
+										</primitives:Track>
+									</Grid>
+								</Border>
+							</ControlTemplate>
+						</Slider.Template>
+
+					</Slider>
+				</Grid>
+
+				<!-- RIGHT: control panel / instrument cluster -->
+				<StackPanel Spacing="14" VerticalAlignment="Center" HorizontalAlignment="Left" ClipToBounds="False">
+
+					<!-- Arrow row + tachometer -->
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" ClipToBounds="False">
+
+						<!-- Tachometer -->
+						<Grid Width="160" Height="160" ClipToBounds="False" HorizontalAlignment="Center">
+							<Panel Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
+
+								<!-- Layer 1: Forward aura (green) -->
+								<Ellipse Width="150" Height="150" ClipToBounds="False" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsForward}" Opacity="0.6">
+									<Ellipse.Fill>
+										<SolidColorBrush Color="#32CD32" />
+									</Ellipse.Fill>
+									<Ellipse.Effect>
+										<BlurEffect Radius="15" />
+									</Ellipse.Effect>
+								</Ellipse>
+
+								<!-- Layer 2: Reverse aura (blue) -->
+								<Ellipse Width="150" Height="150" ClipToBounds="False" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsReverse}" Opacity="0.6">
+									<Ellipse.Fill>
+										<SolidColorBrush Color="#00BFFF" />
+									</Ellipse.Fill>
+									<Ellipse.Effect>
+										<BlurEffect Radius="25" />
+									</Ellipse.Effect>
+								</Ellipse>
+
+								<!-- Layer 3: Metallic frame -->
+								<Ellipse Width="130" Height="130" ClipToBounds="False" StrokeThickness="10" VerticalAlignment="Center" HorizontalAlignment="Center">
+									<Ellipse.Stroke>
+										<LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+											<GradientStop Offset="0.0" Color="#777777" />
+											<GradientStop Offset="0.4" Color="#222222" />
+											<GradientStop Offset="0.6" Color="#151515" />
+											<GradientStop Offset="1.0" Color="#444444" />
+										</LinearGradientBrush>
+									</Ellipse.Stroke>
+								</Ellipse>
+
+								<!-- Layer 4: Neon ring (above frame) -->
+								<Ellipse Width="110" Height="110" ClipToBounds="False" StrokeThickness="3" VerticalAlignment="Center" HorizontalAlignment="Center" Fill="Transparent" IsVisible="{Binding IsDirectionSelected}" Stroke="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}">
+									<Ellipse.Effect>
+										<BlurEffect Radius="8" />
+									</Ellipse.Effect>
+								</Ellipse>
+
+								<!-- Layer 5: Dial (slightly smaller than neon) -->
+								<Ellipse Width="106" Height="106" ClipToBounds="False" Fill="#050505" VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                                <!-- Layer 6: Text (top) with layered glow fallback -->
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
+                                    <!-- Back glow layer: blurred colored text using DirGlowBrush (IBrush) -->
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
+                                        <TextBlock Text="{Binding TargetSpeed}"
+                                                   FontSize="52" FontWeight="Bold" Margin="0,5,0,0"
+                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}"
+                                                   Opacity="0.95"
+                                                   Padding="10,0,10,0"
+                                                   ClipToBounds="False">
+                                            <TextBlock.Effect>
+                                                <BlurEffect Radius="12" />
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+
+                                        <!-- Foreground text: white and crisp, with DropShadowEffect for neon rim -->
+                                        <TextBlock Text="{Binding TargetSpeed}"
+                                                   FontSize="52" Foreground="#FFFFFF" FontStyle="Italic"  Margin="0,5,0,0"
+                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+                                                   HorizontalAlignment="Center"
+                                                   Padding="10,0,10,0"
+                                                   ClipToBounds="False">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect Color="{Binding IsReverse, Converter={StaticResource DirColor}}" BlurRadius="20" OffsetX="0" OffsetY="0" Opacity="0.9" />
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <TextBlock Text="km/h" FontStyle="Italic" FontSize="12" Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                </StackPanel>
+
+							</Panel>
+						</Grid>
+
+						<!-- Stack for both arrows on right side -->
+						<StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Left" Spacing="20" ClipToBounds="False" Margin="8,0,0,0">
+
+							<!-- FORWARD (top) -->
+							<ToggleButton IsChecked="{Binding IsForward}" Background="Transparent" BorderThickness="0" Width="48" Height="48" ClipToBounds="False">
+								<ToggleButton.Template>
+									<ControlTemplate>
+										<Panel Background="Transparent" ClipToBounds="False">
+											<Path Data="M 10 0 L 20 20 L 0 20 Z"
+												  Stroke="#32CD32" StrokeThickness="8" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+												  Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToEffectOpacity}}">
+												<Path.Effect>
+													<BlurEffect Radius="15" />
+												</Path.Effect>
+											</Path>
+											<Border Width="54" Height="54" CornerRadius="8" BorderBrush="#99FF99" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToOpacity}}" />
+											<Path Data="M 10 0 L 20 20 L 0 20 Z" Width="24" Height="24" Stretch="Uniform" Fill="#32CD32" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToOpacity}}"/>
+										</Panel>
+									</ControlTemplate>
+								</ToggleButton.Template>
+							</ToggleButton>
+
+							<!-- REVERSE (bottom) -->
+							<ToggleButton IsChecked="{Binding IsReverse}" Background="Transparent" BorderThickness="0" Width="48" Height="48" ClipToBounds="False">
+								<ToggleButton.Template>
+									<ControlTemplate>
+										<Panel Background="Transparent" ClipToBounds="False">
+											<Path Data="M 0 0 L 20 0 L 10 20 Z" Stroke="#00BFFF" StrokeThickness="8" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToEffectOpacity}}">
+												<Path.Effect>
+													<BlurEffect Radius="15" />
+												</Path.Effect>
+											</Path>
+											<Border Width="54" Height="54" CornerRadius="8" BorderBrush="#33FFFF" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToOpacity}}" />
+											<Path Data="M 0 0 L 20 0 L 10 20 Z" Width="24" Height="24" Stretch="Uniform" Fill="#00BFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BoolToOpacity}}"/>
+										</Panel>
+									</ControlTemplate>
+								</ToggleButton.Template>
+							</ToggleButton>
+
+						</StackPanel>
+
+					</StackPanel>
+
+					<!-- Emergency Stop -->
+					<Button Content="EMERGENCY STOP"
+							Background="#D50000"
+							Foreground="White"
+							FontWeight="Bold"
+							HorizontalAlignment="Left"
+							Height="30"
+							Width="175"
+							HorizontalContentAlignment="Center"
+							VerticalContentAlignment="Center"
+							ClipToBounds="False"
+							Margin="20,-10,0,0"/>
+
+					<!-- F-buttons in UniformGrid, Columns=6 -->
+					<UniformGrid Columns="6" Rows="2" HorizontalAlignment="Left" ClipToBounds="False" Margin="20,8,0,0">
+						<Button Content="F0"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F1"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F2"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F3"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F4"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F5"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F6"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F7"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F8"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F9"  FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F10" FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+						<Button Content="F11" FontSize="10" Foreground="White" Background="#222"  Width="30" Height="30"/>
+					</UniformGrid>
+
+				</StackPanel>
+			</StackPanel>
+
+
+
+		</Grid>
+	</Border>
+</UserControl>

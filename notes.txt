@@ -1,3 +1,50 @@
+Tu je rozbor tvojho konceptu s mojimi doplneniami pre technickú realizáciu:
+
+1. Inteligentný pás lokomotív
+Stavy: Všetky lokomotívy sú v páse tlmené (Opacity="0.4").
+
+Aktivácia: Kliknutím sa lokomotíva "rozsvieti" a pomocou animácie sa presunie na prvú pozíciu (index 0).
+
+Vizuálna väzba: Aktívna lokomotíva v páse môže mať jemnú žiaru (Glow effect), aby bolo jasné, ktorú práve ovládaš na Dashboarde.
+
+2. Dashboard: Riadenie a Zloženie
+Podľa tvojich nákresov dashboard rozdelíme na vertikálny panel:
+
+Horná časť (Riadenie): * Veľký ukazovateľ rýchlosti.
+
+Vertikálny slider pre výkon/brzdu (ako na obrázku).
+
+Dominantné tlačidlo EMERGENCY STOP.
+
+Mriežka funkčných tlačidiel (F0 - F28) pre svetlá a zvuky.
+
+Dolná časť (Zloženie): * Bude fungovať ako vysúvacia "zásuvka" (Expander).
+
+Zobrazí vertikálny zoznam pripojených vozňov s názvami.
+
+Drag&Drop v zozname: Užívateľ môže myšou chytať vagóny a meniť ich poradie priamo v tomto paneli.
+
+3. Logika vytvárania vlaku (Drag & Drop)
+Mierka na koľajisku: Po pritiahnutí prvého vagóna k lokomotíve sa tento vykreslí hneď za ňou.
+
+Indikátor počtu: Ak pridáš ďalšie, namiesto nekonečného radu sa objaví červená elipsa s číslom (napr. +5).
+
+Dynamické nastavenie: Do nastavení pridáme parameter MaxVisibleVagons. Ak si užívateľ nastaví 4, uvidí lokomotívu + 4 vagóny, a elipsa sa zobrazí až pri piatom.
+
+4. Režimy jazdy (ComboBox)
+Tento prvok je kľúčový pre zjednodušenie UI:
+
+Manuál: Zobrazené všetko (slider, funkcie, smer).
+
+Poloautomat: Slider zmizne (rýchlosť riadi systém podľa návestidiel), zostáva len smer a funkcie.
+
+Automat: Dashboard sa prepne do "Monitorovacieho módu" – väčšina ovládacích prvkov sa deaktivuje, zostáva len Emergency Stop a informácie o vlaku.
+
+Môj návrh na vylepšenie:
+"Smart Tooltip" pri elipse: Keď užívateľ prejde myšou nad červenú elipsu s počtom vagónov, mohlo by sa zobraziť malé plávajúce okno so stručným zoznamom týchto skrytých vagónov, aby nemusel vždy otvárať spodný panel dashboardu.
+
+**********************************************************************************************
+
 View = ako to vyzerá. ViewModel = čo to robí. Model = dáta a doména.
 
 Nižšie je prehľad podľa projektu zo ZIP (TrackFlow.zip) a potom návrh ďalšieho postupu. Beriem ako hotové to, čo píšeš (Z21/z21, status hlášky), aj keď v ZIP-e sú ešte staršie stavy v niektorých súboroch.

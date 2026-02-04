@@ -10,6 +10,17 @@ public sealed class ProjectMigrationService
         if (project.SchemaVersion <= 0)
             project.SchemaVersion = 1;
 
+        // Data fix: older/experimental builds may have written locomotives into TrackFlowProject.Locomotives
+        // while newer code reads from ProjectSettingsData.Locomotives.
+        if (project.Settings == null)
+            project.Settings = new ProjectSettingsData();
+
+        if ((project.Settings.Locomotives == null || project.Settings.Locomotives.Count == 0)
+            && project.Locomotives is { Count: > 0 })
+        {
+            project.Settings.Locomotives = project.Locomotives;
+        }
+
         // TODO: v2+ migrácie sem.
         // Example:
         // if (project.SchemaVersion == 1) { ...; project.SchemaVersion = 2; }

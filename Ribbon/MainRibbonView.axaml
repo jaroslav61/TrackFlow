@@ -25,7 +25,9 @@
   <Border Background="#F2F2F2"
           BorderBrush="#D0D0D0"
           BorderThickness="0,0,0,1"
-          ClipToBounds="True">
+          ClipToBounds="True"
+          Height="160"
+          MinHeight="160">
 
     <TabControl x:Name="RibbonTabs"
                 Classes="tc-tabs"
@@ -108,7 +110,7 @@
                          FontSize="11"
                          Foreground="#666"
                          Text="Lokomotívy a vlaky"
-                         Margin="6,10,0,0"/>
+                         Margin="6,0,0,0"/>
             </StackPanel>
           </StackPanel>
 

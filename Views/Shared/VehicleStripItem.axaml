@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
+             xmlns:local="clr-namespace:TrackFlow.Views.Shared;assembly=TrackFlow"
+             x:Class="TrackFlow.Views.Shared.VehicleStripItem">
+  <Border Margin="0,0,10,0"
+          Padding="0"
+          Background="Transparent"
+          BorderThickness="0"
+          ToolTip.Tip="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}">
+    <StackPanel Background="Transparent" Orientation="Vertical" HorizontalAlignment="Center" Spacing="1">
+      <Image Source="{Binding IconName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}, Converter={StaticResource IconNameToPathConverter}}"
+             Height="20"
+             Stretch="Uniform"
+             HorizontalAlignment="Center"/>
+      <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}"
+                 Foreground="White"
+                 FontSize="11"
+                 TextAlignment="Center"
+                 TextWrapping="NoWrap"
+                 TextTrimming="CharacterEllipsis"
+                 MaxWidth="90"/>
+    </StackPanel>
+  </Border>
+</UserControl>
