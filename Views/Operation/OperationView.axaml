@@ -1,0 +1,155 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="clr-namespace:TrackFlow.ViewModels.Operation"
+			 x:Class="TrackFlow.Views.Operation.OperationView"
+			 x:DataType="vm:OperationViewModel">
+
+	<Grid>
+		<ScrollViewer HorizontalScrollBarVisibility="Auto"
+				  VerticalScrollBarVisibility="Auto"
+				  Background="#E8E8E8">
+			<Canvas Name="OperationCanvas"
+					Width="2400"
+					Height="1440"
+					Background="White"
+					ClipToBounds="True">
+				<!-- Elementy schémy sa vykreslia dynamicky v code-behind -->
+				<Canvas Name="ElementsLayer"
+						Width="2400"
+						Height="1440"
+						UseLayoutRounding="False"
+						IsHitTestVisible="True"/>
+			
+			<!-- Floating šípka indikátor pre drag&drop lokomotívy -->
+			<!-- Horizontálne bloky -->
+			<Image Name="DragArrowRight"
+				   Source="avares://TrackFlow/Assets/Appicons/24/right.png"
+				   Width="24" Height="24"
+				   IsVisible="False"
+				   IsHitTestVisible="False"
+				   UseLayoutRounding="False"
+				   ZIndex="1000">
+				<Image.RenderTransform>
+					<TranslateTransform X="-28" Y="-12"/><!-- Offset nad kurzor, centrované -->
+				</Image.RenderTransform>
+			</Image>
+			
+			<Image Name="DragArrowLeft"
+				   Source="avares://TrackFlow/Assets/Appicons/24/left.png"
+				   Width="24" Height="24"
+				   IsVisible="False"
+				   IsHitTestVisible="False"
+				   UseLayoutRounding="False"
+				   ZIndex="1000">
+				<Image.RenderTransform>
+					<TranslateTransform X="-28" Y="-12"/><!-- Offset nad kurzor, centrované -->
+				</Image.RenderTransform>
+			</Image>
+			
+			<!-- Vertikálne bloky -->
+			<Image Name="DragArrowDown"
+				   Source="avares://TrackFlow/Assets/Appicons/24/down.png"
+				   Width="24" Height="24"
+				   IsVisible="False"
+				   IsHitTestVisible="False"
+				   UseLayoutRounding="False"
+				   ZIndex="1000">
+				<Image.RenderTransform>
+					<TranslateTransform X="-12" Y="-28"/><!-- Offset nad kurzor, centrované -->
+				</Image.RenderTransform>
+			</Image>
+			
+			<Image Name="DragArrowUp"
+				   Source="avares://TrackFlow/Assets/Appicons/24/up.png"
+				   Width="24" Height="24"
+				   IsVisible="False"
+				   IsHitTestVisible="False"
+				   UseLayoutRounding="False"
+				   ZIndex="1000">
+				<Image.RenderTransform>
+					<TranslateTransform X="-12" Y="-28"/><!-- Offset nad kurzor, centrované -->
+				</Image.RenderTransform>
+			</Image>
+			</Canvas>
+		</ScrollViewer>
+
+		<Border Name="RouteActivationMessageOverlay"
+				HorizontalAlignment="Left"
+				VerticalAlignment="Top"
+				Margin="12"
+				Padding="10,6"
+				CornerRadius="4"
+				Background="#CC1E1E1E"
+				BorderBrush="#33FFFFFF"
+				BorderThickness="1"
+				IsHitTestVisible="False"
+				IsVisible="{Binding HasRouteActivationMessage}">
+			<TextBlock Text="{Binding RouteActivationMessageText}"
+					   Foreground="White"
+					   FontSize="12"
+					   TextWrapping="Wrap"
+					   MaxWidth="540"/>
+		</Border>
+
+		<!-- Operation Mode Switch: Simulátor / Live -->
+		<Border HorizontalAlignment="Right"
+				VerticalAlignment="Top"
+				Margin="12"
+				Padding="2"
+				CornerRadius="6"
+				Background="#DD000000"
+				BorderThickness="2">
+			<Border.BorderBrush>
+				<SolidColorBrush Color="{Binding IsSimulationMode, 
+					Converter={StaticResource BoolToColorConverter}, 
+					ConverterParameter='#4CAF50|#FF5722'}"/>
+			</Border.BorderBrush>
+			
+			<StackPanel Orientation="Vertical" Spacing="4">
+				<!-- Label -->
+				<TextBlock Text="REŽIM PREVÁDZKY"
+						   Foreground="#AAAAAA"
+						   FontSize="9"
+						   FontWeight="Bold"
+						   HorizontalAlignment="Center"/>
+				
+				<!-- ToggleButton Switch -->
+				<ToggleButton IsChecked="{Binding IsSimulationMode}"
+							  Width="160"
+							  Height="36"
+							  CornerRadius="4"
+							  HorizontalContentAlignment="Center"
+							  VerticalContentAlignment="Center">
+					<ToggleButton.Styles>
+						<!-- Unchecked = LIVE (červená) -->
+						<Style Selector="ToggleButton">
+							<Setter Property="Background" Value="#FF5722"/>
+							<Setter Property="Foreground" Value="White"/>
+							<Setter Property="Content" Value="⚡ LIVE"/>
+							<Setter Property="FontWeight" Value="Bold"/>
+							<Setter Property="FontSize" Value="13"/>
+						</Style>
+						<!-- Checked = SIMULÁTOR (zelená) -->
+						<Style Selector="ToggleButton:checked">
+							<Setter Property="Background" Value="#4CAF50"/>
+							<Setter Property="Foreground" Value="White"/>
+							<Setter Property="Content" Value="🎮 SIMULÁTOR"/>
+						</Style>
+						<Style Selector="ToggleButton:pointerover">
+							<Setter Property="Opacity" Value="0.85"/>
+						</Style>
+					</ToggleButton.Styles>
+				</ToggleButton>
+				
+				<!-- Status Text -->
+				<TextBlock HorizontalAlignment="Center"
+						   FontSize="10"
+						   Foreground="#CCCCCC"
+						   Text="{Binding IsSimulationMode, 
+								  Converter={StaticResource BoolToStringConverter},
+								  ConverterParameter='Bez DCC centrály|Reálna centrála'}"/>
+			</StackPanel>
+		</Border>
+	</Grid>
+
+</UserControl>

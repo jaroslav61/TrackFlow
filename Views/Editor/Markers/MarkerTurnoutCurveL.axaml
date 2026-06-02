@@ -1,0 +1,60 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerTurnoutCurveL"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+    
+    <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+      
+        <!-- 1. NEAKTÍVNA VETVA (Arc2) - Vzadu -->
+        <Path x:Name="Arc2PathOutline"
+              Stroke="Black"
+              StrokeThickness="3.5" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Stretch="None"
+              Data=""/>
+   
+        <Path x:Name="Arc2Path"
+              Stroke="#FFFFFF"
+              StrokeThickness="2" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Stretch="None"
+              Data=""/>
+     
+        <!-- 2. AKTÍVNA VETVA (Arc1) - Vpredu -->
+        <Path x:Name="Arc1PathOutline"
+              Stroke="Black"
+              StrokeThickness="3.5" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Stretch="None"
+              Data=""/>
+
+        <Path x:Name="Arc1Path"
+              Stroke="#71c5ff"
+              StrokeThickness="2" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Stretch="None"
+              Data=""/>
+     
+  </Canvas>
+</UserControl>

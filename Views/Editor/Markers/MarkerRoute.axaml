@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerRoute"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"
+             UseLayoutRounding="False">
+  <Viewbox Width="24" Height="24">
+    <Canvas Width="24" Height="24" Background="Transparent">
+      
+      <!-- 1. Vrstva: 3D ZÁKLAD TLAČIDLA (Vystúpený efekt) -->
+      <!-- Farba pozadia: A09EA9 -->
+      <Border x:Name="ButtonBase" Width="20" Height="20" Canvas.Left="2" Canvas.Top="2" 
+              Background="#A09EA9" CornerRadius="4">
+      </Border>
+
+      <!-- 2. Vrstva: OUTLINE ŠÍPKY (stále čierna, hrubšia) -->
+      <Path x:Name="ArrowOutlinePath"
+            Data="M 8,12 L 16,12 M 16,12 L 12,8 M 16,12 L 12,16" 
+            Stroke="#333333" 
+            StrokeThickness="4.5" 
+            StrokeLineCap="Round" 
+            StrokeJoin="Round"
+            Canvas.Left="0" 
+            Canvas.Top="0"/>
+
+      <!-- 3. Vrstva: VNÚTRO ŠÍPKY (Farba závisí od HasRoute) -->
+      <!-- Pôvodná hrúbka 2.5px. Farba: D6ED17 (ak má cestu) alebo #FF0000 (ak nemá) -->
+      <Path x:Name="ArrowInnerPath"
+            Data="M 8,12 L 16,12 M 16,12 L 12,8 M 16,12 L 12,16" 
+            Stroke="#D6ED17" 
+            StrokeThickness="2.5" 
+            StrokeLineCap="Round" 
+            StrokeJoin="Round"
+            Canvas.Left="0" 
+            Canvas.Top="0">
+        <Path.Effect>
+          <DropShadowEffect BlurRadius="1" OffsetX="-0.8" OffsetY="-0.8" Color="White" Opacity="0.45"/>
+        </Path.Effect>
+      </Path>
+      
+    </Canvas>
+  </Viewbox>
+</UserControl>
+

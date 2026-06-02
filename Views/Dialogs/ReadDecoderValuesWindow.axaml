@@ -1,0 +1,44 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TrackFlow.Views.Dialogs.ReadDecoderValuesWindow"
+        Title="Čítanie hodnôt dekodéra"
+        Width="470"
+        Height="170"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+    <Border Padding="12"
+            BorderBrush="#B7C7D7"
+            BorderThickness="1">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#F4F8FC" Offset="0" />
+                <GradientStop Color="#E8EEF6" Offset="1" />
+            </LinearGradientBrush>
+        </Border.Background>
+
+        <Grid RowDefinitions="Auto,18,Auto,18,Auto">
+            <TextBlock x:Name="StatusText"
+                       Text="Pripravujem čítanie..."
+                       FontSize="13"
+                       Margin="0,2,0,0"
+                       TextWrapping="Wrap" />
+
+            <ProgressBar x:Name="StatusProgress"
+                         Grid.Row="2"
+                         Minimum="0"
+                         Maximum="100"
+                         Height="18"
+                         Value="0"
+                         HorizontalAlignment="Stretch" />
+
+            <Button Grid.Row="4"
+                    Content="Zrušiť"
+                    Width="100"
+                    Height="28"
+                    HorizontalAlignment="Center"
+                    Click="OnCancelClick" />
+        </Grid>
+    </Border>
+</Window>

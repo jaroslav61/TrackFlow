@@ -1,0 +1,19 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerSignal3Entry"
+             Width="9"
+             Height="18"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- 3-znakové vchodové návestidlo (zelená-červená-biela) -->
+  <Canvas Width="9" Height="18" UseLayoutRounding="False" ClipToBounds="False">
+    <Rectangle Canvas.Left="0" Canvas.Top="0" Width="9" Height="18" Fill="#111111" RadiusX="3" RadiusY="3"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="1.5" Width="3" Height="3" Fill="#00FF44"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="7.0" Width="3" Height="3" Fill="#ff0000"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="12.5" Width="3" Height="3" Fill="#F5F5F5"/>
+  </Canvas>
+</UserControl>
+

@@ -1,0 +1,127 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+             x:Class="TrackFlow.Views.StatusBarView"
+             x:DataType="vm:StatusBarViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Button.telemetryLink">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="6,2"/>
+      <Setter Property="MinWidth" Value="120"/>
+      <Setter Property="MinHeight" Value="20"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Stretch"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.telemetryLink:pointerover">
+      <Setter Property="Background" Value="#22FFFFFF"/>
+    </Style>
+    <Style Selector="Button.telemetryLink:pointerover TextBlock">
+      <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+      <Setter Property="TextBlock.Foreground" Value="#E1F5FE"/>
+    </Style>
+  </UserControl.Styles>
+
+  <!-- StatusBar s dynamickou farbou podľa režimu (Editor/Prevádzka) -->
+  <Border Height="24" Background="{Binding ModeBarColor}">
+    <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
+
+      <!-- Indikátor režimu aplikácie (Editor / Prevádzka) -->
+      <Border Grid.Column="0"
+              Background="{Binding ModeIconColor}"
+              CornerRadius="3"
+              Padding="6,2"
+              Margin="0,0,12,0"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding ModeText}"
+                   FontWeight="SemiBold"
+                   FontSize="11"
+                   Foreground="Black"
+                   VerticalAlignment="Center" />
+      </Border>
+
+      <!-- Stredná sekcia: varovanie (prázdny zoznam) ALEBO multi-centrála -->
+      <Panel Grid.Column="1" VerticalAlignment="Center">
+
+        <!-- ⚠ Prázdny zoznam centrál -->
+        <StackPanel Orientation="Horizontal"
+                    Spacing="5"
+                    IsVisible="{Binding HasNoDigitalSystems}"
+                    VerticalAlignment="Center">
+          <TextBlock Text="⚠"
+                     Foreground="#FFD600"
+                     FontSize="13"
+                     VerticalAlignment="Center" />
+          <TextBlock Text="Nie je definovaná žiadna DCC centrála."
+                     Foreground="White"
+                     FontSize="11"
+                     FontStyle="Italic"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Zoznam centrál s ich stavom -->
+        <ItemsControl ItemsSource="{Binding CentralItems}"
+                      IsVisible="{Binding HasDigitalSystems}"
+                      VerticalAlignment="Center">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="0" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StatusBarCentralItem">
+              <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                <!-- LED štvorček: zelená = pripojená, červená = odpojená -->
+                <Border Width="10" Height="10"
+                        Background="{Binding LedColor}"
+                        BorderBrush="Black"
+                        BorderThickness="1"
+                        CornerRadius="1"
+                        VerticalAlignment="Center" />
+                <!-- Názov centrály a stav -->
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="White"
+                           FontSize="11"
+                           VerticalAlignment="Center" />
+                <!-- Telemetria (napätie • prúd) – zobrazí sa len pri dostupných živých dátach -->
+                <Button Classes="telemetryLink"
+                        IsVisible="{Binding HasTelemetryText}"
+                        Margin="6,0,0,0"
+                        Tapped="OnTelemetryWidgetClick">
+                  <TextBlock Text="{Binding TelemetryText}"
+                             Foreground="#B3E5FC"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                </Button>
+                <!-- Oddeľovač | – skrytý pri poslednej centrále -->
+                <TextBlock Text=" | "
+                           Foreground="White"
+                           FontSize="11"
+                           Opacity="0.55"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding !IsLast}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+      </Panel>
+
+      <!-- Pravý hint (projektová info) -->
+      <TextBlock Grid.Column="2"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Right"
+                 Foreground="White"
+                 FontSize="11"
+                 Opacity="0.85"
+                 Text="{Binding RightHint}" />
+
+    </Grid>
+  </Border>
+
+</UserControl>

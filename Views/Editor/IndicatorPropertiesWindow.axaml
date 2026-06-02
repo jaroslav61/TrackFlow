@@ -1,0 +1,294 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+        x:Class="TrackFlow.Views.Editor.IndicatorPropertiesWindow"
+        x:DataType="vm:IndicatorPropertiesViewModel"
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        Width="650" Height="550"
+        CanResize="False">
+
+  <Window.Styles>
+    <Style Selector="HeaderedContentControl.gb">
+      <Setter Property="Margin" Value="0,8,0,0"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3"
+                    Margin="0,9,0,0" Padding="8,8,8,8">
+              <ContentPresenter Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"/>
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="8,1,0,0" Padding="4,0"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+              <ContentPresenter Content="{TemplateBinding Header}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"/>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+    <TabControl Grid.Row="0" Margin="8,8,8,0" Classes="tc-tabs">
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Všeobecne (všetci) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Všeobecne" IsVisible="{Binding ShowGeneralTab}">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Základné vlastnosti" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="12" ColumnSpacing="8" Margin="0,12,0,2">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Názov:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding IndicatorName}" Height="26" Padding="6,0" VerticalContentAlignment="Center"/>
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Popis:" VerticalAlignment="Top" Margin="0,6,0,0"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Description}" Height="80" Padding="6,4" AcceptsReturn="True" TextWrapping="Wrap"/>
+              </Grid>
+            </HeaderedContentControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Pripojenie (iba Kontaktný indikátor) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Pripojenie" IsVisible="{Binding ShowConnectionTab}">
+        <Grid RowDefinitions="*,Auto">
+          <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="4,4,4,8">
+              <HeaderedContentControl Classes="gb">
+                <HeaderedContentControl.Header>
+                  <TextBlock Text="DCC pripojenie" FontSize="12" FontWeight="Bold"/>
+                </HeaderedContentControl.Header>
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="12" ColumnSpacing="8" Margin="0,12,0,2">
+                  <!-- Digitálny systém -->
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="Digitálny systém:" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+                            ItemsSource="{Binding DccSystems}"
+                            SelectedItem="{Binding SelectedDccSystem}" 
+                            Height="28" 
+                            Width="318"
+                            HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate DataType="vm:DccSystemItem">
+                        <TextBlock Text="{Binding Name}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                    <ComboBox.SelectionBoxItemTemplate>
+                      <DataTemplate DataType="vm:DccSystemItem">
+                        <TextBlock Text="{Binding Name}"/>
+                      </DataTemplate>
+                    </ComboBox.SelectionBoxItemTemplate>
+                  </ComboBox>
+                  
+                  <!-- Adresa -->
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="Adresa:" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" 
+                                 Value="{Binding ModuleAddress}" 
+                                 Minimum="1" Maximum="256" 
+                                 FormatString="0" 
+                                 Width="150" 
+                                 Height="28"
+                                 HorizontalAlignment="Left"/>
+                  
+                  <!-- Vstup -->
+                  <TextBlock Grid.Row="1" Grid.Column="2" Text="Vstup:" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                  <NumericUpDown Grid.Row="1" Grid.Column="3" 
+                                 Value="{Binding PortNumber}" 
+                                 Minimum="1" Maximum="8" 
+                                 FormatString="0" 
+                                 Width="100" 
+                                 Height="28"
+                                 HorizontalAlignment="Left"/>
+                  
+                  <!-- Test -->
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="Test:" VerticalAlignment="Center" Margin="0,15,0,0" />
+                  <Image Grid.Row="2" Grid.Column="1" 
+                          Source="{Binding TestIconImage}" 
+                         Width="16" Height="16" 
+                         Margin="0,15,0,0"
+                         HorizontalAlignment="Left"
+                         VerticalAlignment="Center"/>
+
+                  <TextBlock Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="3"
+                             Margin="15,15,0,0"
+                             Text="{Binding ContactBindingWarning}"
+                             Foreground="#C62828"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding HasContactBindingWarning}"/>
+                </Grid>
+              </HeaderedContentControl>
+            </StackPanel>
+          </ScrollViewer>
+          
+          <!-- Informácie celkom dole -->
+          <Border Grid.Row="1" 
+                  BorderBrush="#C0C0C0" 
+                  BorderThickness="0,1,0,0" 
+                  Background="#F5F5F5"
+                  Padding="12,8">
+            <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11">
+              Kontaktný indikátor detekuje obsadenie pomocou fyzického hardvérového senzora pripojeného cez DCC modul.
+            </TextBlock>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Spúšťač (iba Flagman) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Spúšťač" IsVisible="{Binding ShowTriggerTab}">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Nastavenie spúšťača" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="12" ColumnSpacing="8" Margin="0,12,0,2">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Typ spúšťača:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" SelectedItem="{Binding TriggerType}" Height="26">
+                  <ComboBoxItem Content="Žiadny" Tag="None"/>
+                  <ComboBoxItem Content="Časový" Tag="Time"/>
+                  <ComboBoxItem Content="Udalosť" Tag="Event"/>
+                  <ComboBoxItem Content="Manuálny" Tag="Manual"/>
+                </ComboBox>
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Podmienka:" VerticalAlignment="Top" Margin="0,6,0,0"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TriggerCondition}" Height="60" Padding="6,4" AcceptsReturn="True" TextWrapping="Wrap"/>
+              </Grid>
+            </HeaderedContentControl>
+            
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Informácie" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <TextBlock TextWrapping="Wrap" Margin="0,12,0,2" Foreground="#666">
+                Flagman používa podmienky a spúšťače na riadenie virtuálnej detekcie bez fyzického senzora.
+              </TextBlock>
+            </HeaderedContentControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Podmienky (Flagman a Virtuálny kontakt) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Podmienky" IsVisible="{Binding ShowConditionsTab}">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Podmienka aktivácie" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <TextBox Text="{Binding ConditionExpression}" Height="180" Padding="6,4" 
+                       AcceptsReturn="True" TextWrapping="Wrap" Margin="0,12,0,2"
+                       FontFamily="Consolas" FontSize="11"/>
+            </HeaderedContentControl>
+            
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Nápoveda" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Margin="0,12,0,2" Spacing="4">
+                <TextBlock TextWrapping="Wrap" Foreground="#666">
+                  Zadajte podmienku, ktorá musí byť splnená pre aktiváciu indikátora.
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11">
+                  Príklad: Block["B1"].Occupied AND NOT Block["B2"].Occupied
+                </TextBlock>
+              </StackPanel>
+            </HeaderedContentControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Operácie (všetci) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Operácie" IsVisible="{Binding ShowOperationsTab}">
+        <Grid RowDefinitions="*,Auto">
+          <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="4,4,4,8">
+              <HeaderedContentControl Classes="gb">
+                <HeaderedContentControl.Header>
+                  <TextBlock Text="Skript operácií" FontSize="12" FontWeight="Bold"/>
+                </HeaderedContentControl.Header>
+                <TextBox Text="{Binding OperationsScript}" Height="250" Padding="6,4" 
+                         AcceptsReturn="True" TextWrapping="Wrap" Margin="0,12,0,2"
+                         FontFamily="Consolas" FontSize="11"/>
+              </HeaderedContentControl>
+            </StackPanel>
+          </ScrollViewer>
+          
+          <!-- Nápoveda celkom dole -->
+          <Border Grid.Row="1" 
+                  BorderBrush="#C0C0C0" 
+                  BorderThickness="0,1,0,0" 
+                  Background="#F5F5F5"
+                  Padding="12,8">
+            <StackPanel Spacing="4">
+              <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11">
+                Definujte akcie, ktoré sa vykonajú pri aktivácii indikátora.
+              </TextBlock>
+              <TextBlock TextWrapping="Wrap" Foreground="#888" FontSize="10" FontStyle="Italic">
+                Príklad: SetSignal["S1"] = Red; LogEvent("Block obsadený");
+              </TextBlock>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- Záložka: Reset (všetci) -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <TabItem Header="Reset" IsVisible="{Binding ShowResetTab}">
+        <Grid RowDefinitions="*,Auto">
+          <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="4,4,4,8">
+              <HeaderedContentControl Classes="gb">
+                <HeaderedContentControl.Header>
+                  <TextBlock Text="Nastavenie resetu" FontSize="12" FontWeight="Bold"/>
+                </HeaderedContentControl.Header>
+                <StackPanel Margin="0,12,0,2" Spacing="12">
+                  <CheckBox IsChecked="{Binding AutoReset}" Content="Automatický reset po aktivácii"/>
+                  
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding AutoReset}">
+                    <TextBlock Text="Oneskorenie:" VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding ResetDelayMs}" Minimum="0" Maximum="60000" FormatString="0" Width="150" Height="26"/>
+                    <TextBlock Text="ms" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </StackPanel>
+              </HeaderedContentControl>
+            </StackPanel>
+          </ScrollViewer>
+          
+          <!-- Informácie celkom dole -->
+          <Border Grid.Row="1" 
+                  BorderBrush="#C0C0C0" 
+                  BorderThickness="0,1,0,0" 
+                  Background="#F5F5F5"
+                  Padding="12,8">
+            <TextBlock TextWrapping="Wrap" Foreground="#666" FontSize="11">
+              Automatický reset vráti indikátor do základného stavu po zadanom oneskorení od aktivácie. Toto je užitočné pre dočasné detekcie alebo spúšťače.
+            </TextBlock>
+          </Border>
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+
+    <!-- Tlačidlá Uložiť/Zrušiť -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,4,12,10" Spacing="8">
+      <Button Content="Uložiť" Command="{Binding SaveCommand}" Width="80" Height="28" IsDefault="True" IsEnabled="{Binding CanSave}"/>
+      <Button Content="Zrušiť" Command="{Binding CancelCommand}" Width="80" Height="28" IsCancel="True"/>
+    </StackPanel>
+  </Grid>
+</Window>
+

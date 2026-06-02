@@ -1,0 +1,431 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+        xmlns:local="clr-namespace:TrackFlow.Views.Editor"
+        x:Class="TrackFlow.Views.Editor.RoutesManagerWindow"
+        x:DataType="vm:RoutesManagerViewModel"
+        x:CompileBindings="False"
+        Title="Správca ciest a plánov"
+        WindowStartupLocation="CenterOwner"
+        Width="1160" Height="840"
+        MinWidth="1000" MinHeight="700">
+
+  <Window.Styles>
+    <!-- GroupBox štýl -->
+    <Style Selector="HeaderedContentControl.gb">
+      <Setter Property="Margin" Value="0,8,0,0"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3"
+                    Margin="0,9,0,0" Padding="8,8,8,8">
+              <ContentPresenter Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"/>
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="8,1,0,0" Padding="4,0"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+              <ContentPresenter Content="{TemplateBinding Header}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"/>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+
+    <!-- Riadok cesty v tabuľke -->
+    <Style Selector="Border.route-row">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="CornerRadius" Value="3"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="Margin" Value="0,1"/>
+    </Style>
+    <Style Selector="Border.route-row:pointerover">
+      <Setter Property="Background" Value="#E3F2FD"/>
+    </Style>
+    <Style Selector="Border.route-row.selected">
+      <Setter Property="Background" Value="#BBDEFB"/>
+    </Style>
+
+    <!-- Krok plánu -->
+    <Style Selector="Border.plan-step">
+      <Setter Property="Background" Value="#F5F5F5"/>
+      <Setter Property="BorderBrush" Value="#D0D0D0"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="Margin" Value="0,2"/>
+    </Style>
+    <Style Selector="Border.plan-step:pointerover">
+      <Setter Property="Background" Value="#E8F5E9"/>
+      <Setter Property="BorderBrush" Value="#81C784"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+
+    <!-- ══════════════════════════════════════════════════════════
+         Hlavný obsah: TabControl s dvoma záložkami
+         ══════════════════════════════════════════════════════════ -->
+    <TabControl Grid.Row="0" Margin="8,8,8,0" Classes="tc-tabs">
+
+      <!-- ═══════════════════════════════════════════════════════
+           Záložka 1: VLAKOVÉ CESTY
+           ═══════════════════════════════════════════════════════ -->
+      <TabItem Header="Vlakové cesty">
+        <Grid ColumnDefinitions="380,8,*" Margin="4"> <!-- Increased width of the routes table by 50px -->
+
+          <!-- ── Ľavý panel: Tabuľka ciest ──────────────────── -->
+          <DockPanel Grid.Column="0">
+
+            <!-- Toolbar -->
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,4,0,8">
+              <Button Content="🔄 Pregenerovať cesty" Padding="10,6"
+                      Background="#1565C0" Foreground="White" FontWeight="SemiBold" FontSize="11"
+                      CornerRadius="3"
+                      Command="{Binding RegenerateRoutesCommand}"
+                      ToolTip.Tip="Automaticky nájde všetky možné cesty medzi blokmi"/>
+              <Button Content="➕ Nová cesta" Padding="10,6" FontSize="11" CornerRadius="3"
+                      Command="{Binding AddRouteCommand}"/>
+              <Button Content="🗑 Odstrániť" Padding="10,6" FontSize="11" CornerRadius="3"
+                      Command="{Binding DeleteRouteCommand}"/>
+              <Border Background="#FFEB3B" BorderBrush="#F57F17" BorderThickness="1" CornerRadius="3" Padding="8,2"
+                      VerticalAlignment="Center" IsVisible="{Binding IsManualRouteSelectionActive}">
+                <TextBlock Text="REŽIM VÝBERU AKTÍVNY" FontSize="10" FontWeight="Bold" Foreground="#4E342E"/>
+              </Border>
+              <Rectangle Width="1" Fill="#D0D0D0" Margin="4,2"/>
+              <TextBlock Text="{Binding Routes.Count, StringFormat='Nájdených ciest: {0}'}"
+                         VerticalAlignment="Center" Foreground="#666" FontSize="11" Margin="4,0"/>
+            </StackPanel>
+
+            <Border DockPanel.Dock="Top" Margin="0,0,0,8" Padding="10,8"
+                    Background="#FFF8E1" BorderBrush="#FFB300" BorderThickness="2" CornerRadius="5"
+                    IsVisible="{Binding HasManualRouteSelectionHint}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="⚠" FontSize="18" VerticalAlignment="Top" Foreground="#E65100"/>
+                <StackPanel Spacing="2">
+                  <TextBlock Text="Výber blokov pre novú cestu" FontSize="12" FontWeight="Bold" Foreground="#BF360C"/>
+                  <TextBlock Text="{Binding ManualRouteSelectionHint}" FontSize="11" Foreground="#5D4037" TextWrapping="Wrap"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Tabuľka ciest (data-bound) -->
+            <Border BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="4">
+              <DockPanel>
+                <!-- Header -->
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="24,*,80,50" Margin="8,6">
+                  <TextBlock Grid.Column="0" Text="" FontWeight="Bold" FontSize="10" Foreground="#000"/>
+                  <TextBlock Grid.Column="1" Text="Cesta" FontWeight="Bold" FontSize="10" Foreground="#000"/>
+                  <TextBlock Grid.Column="2" Text="Výhybky" FontWeight="Bold" FontSize="10" Foreground="#000" HorizontalAlignment="Center"/>
+                  <TextBlock Grid.Column="3" Text="Stav" FontWeight="Bold" FontSize="10" Foreground="#000" HorizontalAlignment="Center"/>
+                </Grid>
+                <Rectangle DockPanel.Dock="Top" Height="1" Fill="#E0E0E0" Margin="4,0"/>
+
+                <ListBox ItemsSource="{Binding Routes}"
+                         SelectedItem="{Binding SelectedRoute}"
+                         Background="Transparent" BorderThickness="0">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RouteItemVm">
+                      <Grid ColumnDefinitions="24,*,80,50" Height="18">
+                        <TextBlock Grid.Column="0" Text="{Binding KindGlyph}" FontSize="13"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11"/>
+                        <TextBlock Grid.Column="2" Text="{Binding TurnoutCountText}" Foreground="#666" FontSize="10"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <Border Grid.Column="3" Background="#E8F5E9" CornerRadius="6" Padding="8,1"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <TextBlock Text="✓ OK" FontSize="9" Foreground="#2E7D32" HorizontalAlignment="Center"/>
+                        </Border>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </DockPanel>
+            </Border>
+          </DockPanel>
+
+          <!-- Splitter -->
+          <GridSplitter Grid.Column="1" Width="4" Background="Transparent"/>
+
+          <!-- ── Pravý panel: Detail vybranej cesty ──────────── -->
+          <DockPanel Grid.Column="2">
+            <TextBlock DockPanel.Dock="Top" Text="" FontWeight="Bold" FontSize="13"  Margin="340,12,0,0"/>
+
+            <Grid RowDefinitions="Auto,*"
+                  IsVisible="{Binding SelectedRoute, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+              <!-- Horný riadok: Vlastnosti + Návestidlá + Výhybky vedľa seba -->
+              <Grid Grid.Row="0" ColumnDefinitions="*,8,165,8,185">
+
+                <!-- Vlastnosti -->
+                <HeaderedContentControl Grid.Column="0" Classes="gb" Margin="0,5">
+                  <HeaderedContentControl.Header>
+                    <TextBlock Text="Vlastnosti" FontSize="12" FontWeight="Bold"/>
+                  </HeaderedContentControl.Header>
+                  <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                        RowSpacing="6" ColumnSpacing="8" Margin="0,12,0,2"
+                        DataContext="{Binding SelectedRoute}">
+                    <TextBlock Grid.Row="0" Text="Názov:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Height="26" Padding="6,0"
+                             VerticalContentAlignment="Center"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Typ:" VerticalAlignment="Center"/>
+                    <Border Grid.Row="1" Grid.Column="1" Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1"
+                            CornerRadius="10" Padding="10,4" HorizontalAlignment="Left">
+                      <TextBlock Text="{Binding KindDisplayName}" FontSize="10.5" FontWeight="SemiBold" Foreground="#1B5E20"/>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Z bloku:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FromBlockName}" Height="26" Padding="6,0"
+                             VerticalContentAlignment="Center" IsReadOnly="True" Foreground="#666"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Do bloku:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ToBlockName}" Height="26" Padding="6,0"
+                             VerticalContentAlignment="Center" IsReadOnly="True" Foreground="#666"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Max. rýchlosť:" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                      <NumericUpDown Value="{Binding MaxSpeed}" Minimum="0" Maximum="300" FormatString="0"
+                                     Width="100" Height="26"/>
+                      <TextBlock Text="km/h" VerticalAlignment="Center" Foreground="#666"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Farba:" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                      <Border Width="20" Height="20" Background="{Binding Color}" BorderBrush="#555" BorderThickness="1" CornerRadius="2"/>
+                      <ComboBox Height="26" Width="175" HorizontalAlignment="Left" Margin="5,0,0,0"
+                                ItemsSource="{Binding DataContext.AvailableColors, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                                SelectedItem="{Binding SelectedColorItem}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="vm:ColorItem">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <Border Width="16" Height="16" Background="{Binding Hex}" BorderBrush="#555" BorderThickness="1" CornerRadius="2"/>
+                              <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                  </Grid>
+                </HeaderedContentControl>
+
+                <!-- Návestidlá na ceste -->
+                <HeaderedContentControl Grid.Column="2" Classes="gb" Margin="0,4">
+                  <HeaderedContentControl.Header>
+                    <TextBlock Text="Návestidlá na ceste" FontSize="12" FontWeight="Bold"/>
+                  </HeaderedContentControl.Header>
+                  <ScrollViewer Margin="0,12,0,2" VerticalScrollBarVisibility="Auto">
+                    <StackPanel DataContext="{Binding SelectedRoute}">
+                      <TextBlock Text="(žiadne návestidlá)" Foreground="#999" FontSize="11" Margin="4"
+                                 IsVisible="{Binding !RouteSignals.Count}"/>
+                      <ItemsControl ItemsSource="{Binding RouteSignals}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:RouteSignalVm">
+                            <Border Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="3" Margin="0,0,0,3" Padding="6,5">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </ScrollViewer>
+                </HeaderedContentControl>
+
+                <!-- Výhybky na ceste -->
+                <HeaderedContentControl Grid.Column="4" Classes="gb" Margin="0,4">
+                  <HeaderedContentControl.Header>
+                    <TextBlock Text="Výhybky na ceste" FontSize="12" FontWeight="Bold"/>
+                  </HeaderedContentControl.Header>
+                  <ScrollViewer Margin="0,12,0,2" VerticalScrollBarVisibility="Auto">
+                    <StackPanel DataContext="{Binding SelectedRoute}">
+                      <TextBlock Text="(žiadne výhybky)" Foreground="#999" FontSize="11" Margin="4"
+                                 IsVisible="{Binding !TurnoutSettings.Count}"/>
+                      <ItemsControl ItemsSource="{Binding TurnoutSettings}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:TurnoutSettingVm">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Background="#FAFAFA" Margin="0,0,0,3" Height="30">
+                              <ContentControl Grid.Column="0" Margin="4,0,2,0"
+                                              x:Name="TurnoutVisualHost"
+                                              Loaded="TurnoutVisualHost_Loaded"
+                                              VerticalAlignment="Center"/>
+                              <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0" Spacing="1">
+                                <TextBlock Text="{Binding TurnoutName}" FontWeight="SemiBold" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding RequiredStateText}" Foreground="#666" FontSize="9.5"/>
+                              </StackPanel>
+                              <TextBlock Grid.Column="2" Text="{Binding DccAddress, StringFormat='DCC: {0}'}"
+                                         Foreground="#999" FontSize="9.5" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </ScrollViewer>
+                </HeaderedContentControl>
+              </Grid>
+
+              <!-- Spodný riadok: Náhľad zvýraznenia - zaberá zvyšok -->
+              <HeaderedContentControl Grid.Row="1" Classes="gb">
+                <HeaderedContentControl.Header>
+                  <TextBlock Text="Náhľad zvýraznenia" FontSize="12" FontWeight="Bold"/>
+                </HeaderedContentControl.Header>
+                <Border x:Name="RoutePreviewHost" Margin="0,12,0,2" CornerRadius="4" ClipToBounds="True"
+                        BorderBrush="#D0D0D0" BorderThickness="1">
+                  <local:RoutePreviewControl x:Name="RoutePreview"/>
+                </Border>
+              </HeaderedContentControl>
+            </Grid>
+          </DockPanel>
+        </Grid>
+      </TabItem>
+
+      <!-- ═══════════════════════════════════════════════════════
+           Záložka 2: JAZDNÉ PLÁNY
+           ═══════════════════════════════════════════════════════ -->
+      <TabItem Header="Jazdné plány">
+        <Grid ColumnDefinitions="220,8,*" Margin="4">
+
+          <!-- ── Ľavý panel: Zoznam plánov ───────────────────── -->
+          <DockPanel Grid.Column="0">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,4,0,8">
+              <Button Content="➕" Padding="6,4" FontSize="12" CornerRadius="3" ToolTip.Tip="Nový plán"
+                      Command="{Binding AddPlanCommand}"/>
+              <Button Content="🗑" Padding="6,4" FontSize="12" CornerRadius="3" ToolTip.Tip="Odstrániť"
+                      Command="{Binding DeletePlanCommand}"/>
+            </StackPanel>
+
+            <Border BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="4">
+              <ListBox ItemsSource="{Binding Plans}"
+                       SelectedItem="{Binding SelectedPlan}"
+                       Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="4,2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12"/>
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding LocoName}" Foreground="#555" FontSize="10"/>
+                        <TextBlock Text="│" Foreground="#CCC" FontSize="10"/>
+                        <TextBlock Text="{Binding StepCountText}" Foreground="#555" FontSize="10"/>
+                      </StackPanel>
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Border>
+          </DockPanel>
+
+          <GridSplitter Grid.Column="1" Width="4" Background="Transparent"/>
+
+          <!-- ── Pravý panel: Kroky plánu ────────────────────── -->
+          <DockPanel Grid.Column="2">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,4,0,8"
+                  DataContext="{Binding SelectedPlan}"
+                  IsVisible="{Binding SelectedPlan, Converter={x:Static ObjectConverters.IsNotNull},
+                              RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                <TextBox Text="{Binding Name}" FontWeight="Bold" FontSize="14"
+                         VerticalAlignment="Center" BorderThickness="0" Background="Transparent"
+                         Padding="0" Width="200"/>
+                <TextBlock Text="│" Foreground="#CCC" VerticalAlignment="Center"/>
+                <TextBox Text="{Binding LocoName}" Foreground="#666" VerticalAlignment="Center"
+                         BorderThickness="0" Background="Transparent" Padding="0" Width="150"
+                         Watermark="Názov lokomotívy"/>
+              </StackPanel>
+              <CheckBox Grid.Column="1" Content="Slučka" IsChecked="{Binding IsLoop}" VerticalAlignment="Center"/>
+            </Grid>
+
+            <ScrollViewer>
+              <StackPanel Spacing="0" Margin="0,0,0,8"
+                          IsVisible="{Binding SelectedPlan, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                <ItemsControl ItemsSource="{Binding SelectedPlan.Steps}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel>
+                        <Border Classes="plan-step">
+                          <Grid ColumnDefinitions="30,*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding Number, StringFormat='{}{0}.'}"
+                                       FontWeight="Bold" FontSize="16" Foreground="#1565C0" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Border Background="#E3F2FD" CornerRadius="4" Padding="6,2">
+                                  <TextBlock FontWeight="SemiBold" FontSize="12">
+                                    <TextBlock.Text>
+                                      <MultiBinding StringFormat="{}{0} → {1}">
+                                        <Binding Path="FromBlockName"/>
+                                        <Binding Path="ToBlockName"/>
+                                      </MultiBinding>
+                                    </TextBlock.Text>
+                                  </TextBlock>
+                                </Border>
+                                <TextBlock Text="{Binding RouteName}" Foreground="#1565C0" FontSize="11" VerticalAlignment="Center"/>
+                              </StackPanel>
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding DwellTimeSeconds, StringFormat='⏱ Čakanie: {0}s'}" Foreground="#666" FontSize="11"/>
+                                <TextBlock Text="{Binding SpeedKmh, StringFormat='🚀 Rýchlosť: {0} km/h'}" Foreground="#666" FontSize="11"/>
+                              </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                              <Button Content="▲" Padding="4,2" FontSize="10" CornerRadius="2"
+                                      Command="{Binding DataContext.MoveStepUpCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                                      CommandParameter="{Binding}"/>
+                              <Button Content="▼" Padding="4,2" FontSize="10" CornerRadius="2"
+                                      Command="{Binding DataContext.MoveStepDownCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                                      CommandParameter="{Binding}"/>
+                              <Button Content="✕" Padding="4,2" FontSize="10" CornerRadius="2" Foreground="#E53935"
+                                      Command="{Binding DataContext.RemovePlanStepCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                                      CommandParameter="{Binding}"/>
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                        <TextBlock Text="↓" HorizontalAlignment="Center" Foreground="#BDBDBD" FontSize="16" Margin="0,2"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button HorizontalAlignment="Center" Margin="0,4,0,0"
+                        Content="＋ Pridať krok" Padding="16,8"
+                        Background="#E3F2FD" Foreground="#1565C0"
+                        FontWeight="SemiBold" CornerRadius="4" FontSize="12"
+                        BorderBrush="#90CAF9" BorderThickness="1"
+                        Command="{Binding AddPlanStepCommand}"/>
+              </StackPanel>
+            </ScrollViewer>
+          </DockPanel>
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Spodný panel: tlačidlá
+         ══════════════════════════════════════════════════════════ -->
+    <Border Grid.Row="1" BorderBrush="#D0D0D0" BorderThickness="0,1,0,0" Padding="12,8">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Vertical" Spacing="4">
+          <!-- Štatistika -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{Binding AvailableBlocks.Count, StringFormat='Blokov: {0}'}"
+                       Foreground="#666" FontSize="11" VerticalAlignment="Center"/>
+            <TextBlock Text="│" Foreground="#CCC" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding AvailableTurnouts.Count, StringFormat='Výhybiek: {0}'}"
+                       Foreground="#666" FontSize="11" VerticalAlignment="Center"/>
+          </StackPanel>
+          <!-- Checkbox pre auto-regeneráciu -->
+          <CheckBox Content="Automaticky pregenerovať cesty pri zmene schémy"
+                    IsChecked="{Binding AutoRegenerateRoutes}"
+                    FontSize="11"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="Uložiť" Padding="20,8" FontWeight="SemiBold"
+                  Background="#1565C0" Foreground="White" CornerRadius="3"
+                  Command="{Binding SaveCommand}"/>
+          <Button Content="Zavrieť" Padding="20,8" CornerRadius="3"
+                  x:Name="CloseButton" Click="CloseButton_Click"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
+

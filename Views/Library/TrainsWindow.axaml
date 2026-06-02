@@ -1,0 +1,13 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TrackFlow.Views.Library.TrainsWindow"
+        Title="Vlaky"
+        Width="900" Height="600"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="14">
+    <TextBlock Foreground="#666" TextWrapping="Wrap"
+               Text="Toto je placeholder pre evidenciu Vlakov."/>
+  </Grid>
+
+</Window>

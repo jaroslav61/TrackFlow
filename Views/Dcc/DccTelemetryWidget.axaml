@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Dcc"
+        x:Class="TrackFlow.Views.Dcc.DccTelemetryWidget"
+        x:DataType="vm:DccTelemetryWidgetViewModel"
+        SystemDecorations="None"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        SizeToContent="Manual"
+        Width="220"
+        Height="200"
+        ShowInTaskbar="False"
+        CanResize="False">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.hudCaption">
+      <Setter Property="Foreground" Value="#D6E4F0"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Opacity" Value="0.88"/>
+    </Style>
+    <Style Selector="TextBlock.hudLabel">
+      <Setter Property="Foreground" Value="#AFC1D1"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style Selector="TextBlock.hudValue">
+      <Setter Property="Foreground" Value="#F4FBFF"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.closeButton">
+      <Setter Property="Width" Value="20"/>
+      <Setter Property="Height" Value="20"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#F4FBFF"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.closeButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#C0392B"/>
+      <Setter Property="BorderBrush" Value="#E74C3C"/>
+      <Setter Property="TextBlock.Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="Button.closeButton:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="#922B21"/>
+      <Setter Property="BorderBrush" Value="#E74C3C"/>
+      <Setter Property="TextBlock.Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="ProgressBar.telemetryProgress">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#2ECC71"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Height" Value="16"/>
+      <Setter Property="MinWidth" Value="0"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid Background="Transparent"
+        PointerPressed="OnWindowPointerPressed">
+    <Border Background="#2C3E50"
+            CornerRadius="8"
+            BorderBrush="#34495E"
+            BorderThickness="1"
+            ClipToBounds="True">
+
+      <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0"
+                Background="#1A5276"
+                Padding="10,6,6,6"
+                CornerRadius="8,8,0,0">
+          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+            <TextBlock Grid.Column="0"
+                       Text="DCC Telemetria"
+                       Foreground="#FFFFFF"
+                       FontWeight="Bold"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+            <Button Grid.Column="1"
+                    Classes="closeButton"
+                    Content="×"
+                    ToolTip.Tip="Zatvoriť widget"
+                    Click="OnCloseClick"/>
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1"
+                    Spacing="8"
+                    Margin="10,8,10,10">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="hudValue">
+              <Run Text="Systém: "/>
+              <Run Text="{Binding Name}"/>
+            </TextBlock>
+            <TextBlock Text="{Binding MainVoltageText}"
+                       FontSize="30"
+                       FontWeight="Bold"
+                       Foreground="#F8FBFF"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       Margin="0,2,0,0"/>
+          </StackPanel>
+
+          <StackPanel Spacing="3">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0"
+                         Text="Hlavná koľaj - odber"
+                         Foreground="#D5F7E3"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1"
+                         Foreground="{Binding MainTrackCurrentBarBrush}"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center">
+                <Run Text="{Binding MainTrackCurrentText}"/>
+                <Run Text=" / "/>
+                <Run Text="{Binding MainTrackCurrentMaximumText}"/>
+              </TextBlock>
+            </Grid>
+
+            <Border Background="#0E1A24"
+                    BorderBrush="#1B2834"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    ClipToBounds="True"
+                    Height="16">
+              <ProgressBar Classes="telemetryProgress"
+                           Foreground="{Binding MainTrackCurrentBarBrush}"
+                           Minimum="0"
+                           Maximum="{Binding MainTrackCurrentMaximum}"
+                           Value="{Binding TrackCurrentProgressValue}"/>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Spacing="3">
+            <TextBlock Classes="hudValue">
+              <Run Text="Teplota centrály: "/>
+              <Run Text="{Binding TemperatureText}"/>
+            </TextBlock>
+            <TextBlock Classes="hudValue">
+              <Run Text="Progr. koľaj - odber: "/>
+              <Run Text="{Binding ProgTrackCurrentText}"/>
+            </TextBlock>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
+
+
+
+
+
+
+

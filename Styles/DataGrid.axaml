@@ -1,0 +1,79 @@
+﻿<Styles xmlns="https://github.com/avaloniaui">
+
+    <Style Selector="DataGrid.locoGrid:disabled">
+        <Setter Property="Opacity" Value="0.65"/>
+    </Style>
+
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,9">
+                <GradientStop Color="#F7F7F7" Offset="0"/>
+                <GradientStop Color="#E1E1E1" Offset="1"/>
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#BEBEBE"/>
+        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="DataGridColumnHeader:pointerover">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,9">
+                <GradientStop Color="#FFFFFF" Offset="0"/>
+                <GradientStop Color="#E7E7E7" Offset="1"/>
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+
+    <Style Selector="DataGridCell">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="6,0"/>
+    </Style>
+
+    <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
+        <Setter Property="IsVisible" Value="False"/>
+    </Style>
+
+    <Style Selector="DataGridCell:focus">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style Selector="DataGridCell:current">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="#0078D4"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <Style Selector="DataGridRow:selected DataGridCell">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style Selector="DataGridRow:selected:focus /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="#0078D4"/>
+    </Style>
+
+</Styles>

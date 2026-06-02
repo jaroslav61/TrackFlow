@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="TrackFlow.Views.Editor.RoutePreviewControl">
+
+  <DockPanel LastChildFill="True">
+
+    <!-- Toolbar so zoom-om -->
+    <Border DockPanel.Dock="Top" Background="#F5F5F5" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Padding="6,3">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,8,Auto">
+        <TextBlock Text="Zoom:" FontSize="11" VerticalAlignment="Center"/>
+        <ComboBox x:Name="ZoomCombo" Grid.Column="1" Margin="6,0,0,0" Width="120" Height="26" FontSize="12"
+                  SelectionChanged="ZoomCombo_SelectionChanged">
+          <ComboBoxItem Content="10 %"   Tag="0.10"/>
+          <ComboBoxItem Content="25 %"   Tag="0.25"/>
+          <ComboBoxItem Content="50 %"   Tag="0.50"/>
+          <ComboBoxItem Content="75 %"   Tag="0.75"/>
+          <ComboBoxItem Content="100 %"  Tag="1.00" IsSelected="True"/>
+          <ComboBoxItem Content="Na okno" Tag="fit"/>
+        </ComboBox>
+        <Border x:Name="RouteKindBadge" Grid.Column="3" Background="#EDE7F6" BorderBrush="#B39DDB" BorderThickness="1"
+                CornerRadius="10" Padding="8,2" IsVisible="False">
+          <TextBlock x:Name="RouteKindBadgeText" FontSize="10" FontWeight="SemiBold" Foreground="#4527A0"/>
+        </Border>
+        <TextBlock x:Name="RouteKindLegend" Grid.Column="5" FontSize="10" Foreground="#666" VerticalAlignment="Center"
+                   Text="Legenda: ✍ manuálna · ⚙ auto"/>
+      </Grid>
+    </Border>
+
+    <Border Background="#C4D8EE" ClipToBounds="True"
+            SizeChanged="PreviewArea_SizeChanged">
+      <ScrollViewer x:Name="PreviewScroller"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto">
+        <Canvas x:Name="LayoutCanvas"
+                Background="Transparent"
+                UseLayoutRounding="False"
+                ClipToBounds="False"/>
+      </ScrollViewer>
+    </Border>
+
+  </DockPanel>
+
+</UserControl>
+
+
+
+
+
+

@@ -1,0 +1,325 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+             x:Class="TrackFlow.Views.Editor.LayoutEditorView"
+             x:DataType="vm:LayoutEditorViewModel"
+             UseLayoutRounding="False">
+
+  <UserControl.Styles>
+    <!-- Mriežka a pravítka – farby -->
+    <Style Selector="Border.ruler">
+      <Setter Property="Background" Value="#F0F0F0"/>
+      <Setter Property="BorderBrush" Value="#C0C0C0"/>
+    </Style>
+  </UserControl.Styles>
+
+  <!-- Hlavné rozloženie: Canvas + Inšpektor vpravo -->
+  <Grid ColumnDefinitions="*,Auto">
+
+    <!-- ══════════════════════════════════════════════════
+         Ľavá časť: pravítko hore + pravítko vľavo + canvas
+         ══════════════════════════════════════════════════ -->
+    <Grid Grid.Column="0" RowDefinitions="20,*" ColumnDefinitions="20,*">
+
+      <!-- Roh (ľavý horný – prázdny) -->
+      <Border Grid.Row="0" Grid.Column="0"
+              Background="#E0E0E0"
+              BorderBrush="#C0C0C0"
+              BorderThickness="0,0,1,1"/>
+
+      <!-- Pravítko HORE -->
+      <Border Grid.Row="0" Grid.Column="1"
+              Background="#F0F0F0"
+              BorderBrush="#C0C0C0"
+              BorderThickness="0,0,0,1"
+              ClipToBounds="True">
+        <Canvas Name="TopRulerCanvas"
+                Height="20"
+                Background="Transparent"/>
+      </Border>
+
+      <!-- Pravítko VĽAVO -->
+      <Border Grid.Row="1" Grid.Column="0"
+              Background="#F0F0F0"
+              BorderBrush="#C0C0C0"
+              BorderThickness="0,0,1,0"
+              ClipToBounds="True">
+        <Canvas Name="LeftRulerCanvas"
+                Width="20"
+                Background="Transparent"/>
+      </Border>
+
+      <!-- Hlavný ScrollViewer s canvas -->
+      <ScrollViewer Grid.Row="1" Grid.Column="1"
+                    Name="CanvasScroller"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    Background="#D8D8D8">
+        <Canvas Name="LayoutCanvas"
+                Width="{Binding CanvasWidth}"
+                Height="{Binding CanvasHeight}"
+                Background="White"
+                ClipToBounds="False">
+
+          <!-- Mriežka sa kreslí v code-behind cez DrawGrid() -->
+          <Canvas Name="GridLayer"
+                  Width="{Binding CanvasWidth}"
+                  Height="{Binding CanvasHeight}"
+                  IsHitTestVisible="False"/>
+
+          <!-- Hover bunka -->
+          <Rectangle Name="HoverCell"
+                     Width="26" Height="26"
+                     Fill="#400080FF"
+                     Stroke="#0060CC"
+                     StrokeThickness="1"
+                     RadiusX="2" 
+                     RadiusY="2"
+                     IsHitTestVisible="False"
+                     IsVisible="False"/>
+
+          <!-- Vrstva prvkov koľajiska -->
+          <Canvas Name="ElementsLayer"
+                  Width="{Binding CanvasWidth}"
+                  Height="{Binding CanvasHeight}"
+                  UseLayoutRounding="False"
+                  IsHitTestVisible="False"/>
+
+          <!-- Ghost vrstva pre drag-kreslenie -->
+          <Canvas Name="GhostLayer"
+                  Width="{Binding CanvasWidth}"
+                  Height="{Binding CanvasHeight}"
+                  IsHitTestVisible="False"/>
+
+          <!-- Floating šípka indikátor pre drag&drop lokomotívy -->
+          <!-- Horizontálne bloky -->
+          <Image Name="DragArrowRight"
+                 Source="avares://TrackFlow/Assets/Appicons/24/right.png"
+                 Width="24" Height="24"
+                 IsVisible="False"
+                 IsHitTestVisible="False"
+                 ZIndex="1000">
+            <Image.RenderTransform>
+              <TranslateTransform X="-28" Y="-12"/><!-- Offset nad kurzor, centrované -->
+            </Image.RenderTransform>
+          </Image>
+
+          <Image Name="DragArrowLeft"
+                 Source="avares://TrackFlow/Assets/Appicons/24/left.png"
+                 Width="24" Height="24"
+                 IsVisible="False"
+                 IsHitTestVisible="False"
+                 ZIndex="1000">
+            <Image.RenderTransform>
+              <TranslateTransform X="10" Y="-12"/><!-- Offset nad kurzor, centrované -->
+            </Image.RenderTransform>
+          </Image>
+          
+          <!-- Vertikálne bloky -->
+          <Image Name="DragArrowDown"
+                 Source="avares://TrackFlow/Assets/Appicons/24/down.png"
+                 Width="24" Height="24"
+                 IsVisible="False"
+                 IsHitTestVisible="False"
+                 ZIndex="1000">
+            <Image.RenderTransform>
+              <TranslateTransform X="-12" Y="-28"/><!-- Offset nad kurzor, centrované -->
+            </Image.RenderTransform>
+          </Image>
+          
+          <Image Name="DragArrowUp"
+                 Source="avares://TrackFlow/Assets/Appicons/24/up.png"
+                 Width="24" Height="24"
+                 IsVisible="False"
+                 IsHitTestVisible="False"
+                 ZIndex="1000">
+            <Image.RenderTransform>
+              <TranslateTransform X="-12" Y="-28"/><!-- Offset nad kurzor, centrované -->
+            </Image.RenderTransform>
+          </Image>
+
+          <!-- Marquee vrstva pre multi-select obdĺžnik -->
+          <Canvas Name="MarqueeLayer"
+                  Width="{Binding CanvasWidth}"
+                  Height="{Binding CanvasHeight}"
+                  IsHitTestVisible="False"/>
+
+          <!-- Paste Preview vrstva pre vizualizáciu vkladania -->
+          <Canvas Name="PastePreviewLayer"
+                  Width="{Binding CanvasWidth}"
+                  Height="{Binding CanvasHeight}"
+                  IsHitTestVisible="False"/>
+
+        </Canvas>
+      </ScrollViewer>
+
+    </Grid>
+
+    <!-- ══════════════════════════════════════════════════
+         Inšpektor vpravo
+         ══════════════════════════════════════════════════ -->
+    <Border Grid.Column="1"
+            Width="200"
+            Background="#FAFAFA"
+            BorderBrush="#D0D0D0"
+            BorderThickness="1,0,0,0"
+            Padding="10">
+      <StackPanel Spacing="8">
+
+        <TextBlock Text="Inšpektor"
+                   FontWeight="SemiBold"
+                   FontSize="13"
+                   Foreground="#333"/>
+
+        <Separator/>
+
+        <!-- Multi-select info -->
+        <StackPanel Spacing="2" IsVisible="{Binding IsMultiSelectMode}">
+          <TextBlock Text="Multi-výber:" FontSize="11" Foreground="#666"/>
+          <TextBlock Text="{Binding SelectedCount, StringFormat='Vybraných: {0}'}"
+                     FontWeight="SemiBold"
+                     FontSize="12"
+                     Foreground="#1565C0"/>
+        </StackPanel>
+
+        <Separator IsVisible="{Binding IsMultiSelectMode}"/>
+
+        <!-- Typ prvku -->
+        <StackPanel Spacing="2">
+          <TextBlock Text="Typ:" FontSize="11" Foreground="#666"/>
+          <TextBlock Text="{Binding InspectorType}"
+                     FontWeight="SemiBold"
+                     FontSize="12"/>
+        </StackPanel>
+
+        <!-- Pozícia -->
+        <StackPanel Spacing="2">
+          <TextBlock Text="Pozícia:" FontSize="11" Foreground="#666"/>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="X:" FontSize="11"/>
+            <TextBlock Text="{Binding InspectorX}" FontSize="11" FontWeight="SemiBold"/>
+            <TextBlock Text="Y:" FontSize="11"/>
+            <TextBlock Text="{Binding InspectorY}" FontSize="11" FontWeight="SemiBold"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Uhol -->
+        <StackPanel Spacing="2">
+          <TextBlock Text="Uhol:" FontSize="11" Foreground="#666"/>
+          <TextBlock Text="{Binding InspectorAngle, StringFormat='{}{0}°'}"
+                     FontSize="11" FontWeight="SemiBold"/>
+        </StackPanel>
+
+        <!-- Názov / štítok -->
+        <StackPanel Spacing="2">
+          <TextBlock Text="Názov:" FontSize="11" Foreground="#666"/>
+          <TextBox Text="{Binding InspectorLabel, Mode=TwoWay}"
+                   FontSize="11"
+                   Height="26"
+                   Padding="4,2"
+                   IsEnabled="{Binding HasSelection}"/>
+        </StackPanel>
+
+        <!-- DCC adresa – viditeľná len pre výhybky, signály, senzory -->
+        <StackPanel Spacing="2"
+                    IsVisible="{Binding InspectorHasDcc}">
+          <TextBlock Text="DCC adresa:" FontSize="11" Foreground="#666"/>
+          <NumericUpDown Value="{Binding InspectorDccAddress, Mode=TwoWay}"
+                         Minimum="0" Maximum="2048"
+                         Increment="1"
+                         FontSize="11"
+                         Height="26"
+                         FormatString="0"
+                         HorizontalAlignment="Stretch"/>
+          <Border Background="#FFF3CD" BorderBrush="#FFC107" BorderThickness="1"
+                  CornerRadius="3" Padding="5,3"
+                  IsVisible="{Binding InspectorHasDccAddressError}">
+            <TextBlock Text="{Binding InspectorDccAddressError}"
+                       Foreground="#856404" FontSize="10" FontWeight="SemiBold"
+                       TextWrapping="Wrap"/>
+          </Border>
+        </StackPanel>
+
+        <StackPanel Spacing="4" IsVisible="{Binding InspectorIsBlock}">
+          <Separator Margin="0,2"/>
+          <TextBlock Text="Návestidlá (smerovo)" FontSize="11" Foreground="#666"/>
+
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
+            <TextBlock Grid.Row="0" Text="Doľava:" FontSize="11" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="0" Grid.Column="1"
+                      ItemsSource="{Binding InspectorDirectionalSignalItems}"
+                      SelectedItem="{Binding InspectorSelectedSignalLeft}"
+                      Height="26" FontSize="11">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:InspectorDirectionalSignalOption">
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="1" Text="Doprava:" FontSize="11" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="1" Grid.Column="1"
+                      ItemsSource="{Binding InspectorDirectionalSignalItems}"
+                      SelectedItem="{Binding InspectorSelectedSignalRight}"
+                      Height="26" FontSize="11">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:InspectorDirectionalSignalOption">
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="2" Text="Nahor:" FontSize="11" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      ItemsSource="{Binding InspectorDirectionalSignalItems}"
+                      SelectedItem="{Binding InspectorSelectedSignalUp}"
+                      Height="26" FontSize="11">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:InspectorDirectionalSignalOption">
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="3" Text="Nadol:" FontSize="11" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="3" Grid.Column="1"
+                      ItemsSource="{Binding InspectorDirectionalSignalItems}"
+                      SelectedItem="{Binding InspectorSelectedSignalDown}"
+                      Height="26" FontSize="11">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:InspectorDirectionalSignalOption">
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </Grid>
+
+          <Border Background="#FFF9E3" BorderBrush="#E0C37A" BorderThickness="1"
+                  CornerRadius="3" Padding="6,4"
+                  IsVisible="{Binding InspectorHasSignalDirectionWarning}">
+            <TextBlock Text="{Binding InspectorSignalDirectionWarning}"
+                       Foreground="#7A4E00" FontSize="10" TextWrapping="Wrap"/>
+          </Border>
+        </StackPanel>
+
+        <!-- Tlačidlá akcií -->
+        <Separator Margin="0,4"/>
+
+        <Button Content="↻ Otočiť o 45°"
+                Command="{Binding RotateSelectedCommand}"
+                HorizontalAlignment="Stretch"
+                Height="28" FontSize="11"
+                IsEnabled="{Binding HasSelection}"/>
+
+        <Button Content="🗑 Odstrániť"
+                Command="{Binding DeleteSelectedCommand}"
+                HorizontalAlignment="Stretch"
+                Height="28" FontSize="11"
+                Foreground="#C62828"
+                IsEnabled="{Binding HasSelection}"/>
+
+      </StackPanel>
+    </Border>
+ </Grid>
+
+</UserControl>

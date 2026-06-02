@@ -1,0 +1,76 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerTurnout3W"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  
+  <!-- 3-cestná výhybka: priama + dve odbočky -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+        
+     <!-- 1. NEAKTÍVNE VETVY (oblúky) - Vzadu -->
+     <Path x:Name="ArcLPathOutline"
+           Stroke="Black" 
+           StrokeThickness="3.5" 
+           Fill="Transparent"
+           StrokeLineCap="Flat"
+           RenderOptions.EdgeMode="Antialias"
+           UseLayoutRounding="False"
+           Stretch="None"
+           Data=""/>
+        
+     <Path x:Name="ArcLPath"
+           Stroke="#FFFFFF" 
+           StrokeThickness="2" 
+           Fill="Transparent"
+           StrokeLineCap="Flat"
+           RenderOptions.EdgeMode="Antialias"
+           UseLayoutRounding="False"
+           Stretch="None"
+           Data=""/>
+        
+     <Path x:Name="ArcRPathOutline"
+           Stroke="Black" 
+           StrokeThickness="3.5" 
+           Fill="Transparent"
+           StrokeLineCap="Flat"
+           RenderOptions.EdgeMode="Antialias"
+           UseLayoutRounding="False"
+           Stretch="None"
+           Data=""/>
+        
+     <Path x:Name="ArcRPath"
+           Stroke="#FFFFFF" 
+           StrokeThickness="2" 
+           Fill="Transparent"
+           StrokeLineCap="Flat"
+           RenderOptions.EdgeMode="Antialias"
+           UseLayoutRounding="False"
+           Stretch="None"
+           Data=""/>
+     
+     <!-- 2. AKTÍVNA VETVA (priama) - Vpredu -->
+     <Line x:Name="CenterLineOutline"
+           StartPoint="12, 23.8" 
+           EndPoint="12, 0.2"
+           Stroke="Black" 
+           StrokeThickness="3.5" 
+           StrokeLineCap="Flat"/>
+     
+     <Line x:Name="CenterLine"
+           StartPoint="12, 23.8" 
+           EndPoint="12, 0.2"
+           Stroke="#71c5ff" 
+           StrokeThickness="2" 
+           StrokeLineCap="Flat"/>
+
+        
+  </Canvas>
+</UserControl>

@@ -1,0 +1,66 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerBridge45R"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+      
+      <!-- Most 45° pravý: uhlopriečna koľaj + mostové stojky -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+        
+     <Line x:Name="CrossTrackTop"
+           StartPoint="23.8,0.2" 
+           EndPoint="15,9" 
+           Stroke="#71c5ff" 
+           StrokeThickness="2" 
+           StrokeLineCap="Flat"/>
+     
+     <Line x:Name="CrossTrackMiddle"
+           StartPoint="15,9" 
+           EndPoint="9,15" 
+           Stroke="#71c5ff" 
+           Opacity="0.1"
+           StrokeThickness="2" 
+           StrokeLineCap="Flat"
+           Tag="NoOutline"/>
+     
+     <Line x:Name="CrossTrackBottom"
+           StartPoint="9,15" 
+           EndPoint="0.2,23.8" 
+           Stroke="#71c5ff" 
+           StrokeThickness="2" 
+           StrokeLineCap="Flat"/>
+    
+        <!-- Hlavná koľaj -->
+    <Line x:Name="TrackLine"
+          StartPoint="0.2,12" 
+          EndPoint="23.8,12" 
+          Stroke="#71c5ff" 
+          StrokeThickness="2" 
+          StrokeLineCap="Flat"/>
+   
+    <!-- Mostové nosníky -->
+    <Line x:Name="Bridge1Line"
+          StartPoint="2,8.5" 
+          EndPoint="22,8.5" 
+          Stroke="#ff0000" 
+          StrokeThickness="2" 
+          StrokeLineCap="Flat"
+          Tag="NoOutline"/>
+     
+    <Line x:Name="Bridge2Line"
+          StartPoint="2,15.5" 
+          EndPoint="22,15.5" 
+          Stroke="#ff0000" 
+          StrokeThickness="2" 
+          StrokeLineCap="Flat"
+          Tag="NoOutline"/>
+  </Canvas>
+</UserControl>

@@ -1,0 +1,152 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+        x:Class="TrackFlow.Views.Editor.SignalPropertiesWindow"
+        x:DataType="vm:SignalPropertiesViewModel"
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        Width="525" 
+        Height="620"
+        CanResize="False">
+
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="16" Spacing="16">
+        <TextBlock Text="Vlastnosti signálu"
+                   FontSize="18"
+                   FontWeight="SemiBold"/>
+
+        <!-- HLAVNÉ NASTAVENIA -->
+        <Border BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="4" Padding="12" Background="#FAFAFA">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+            
+            <TextBlock Grid.Row="0" Text="Názov:" VerticalAlignment="Center"/>
+            <TextBox Grid.Row="0" Grid.Column="1"
+                     Text="{Binding SignalName}"
+                     Watermark="napr. Vchod A"
+                     Height="30"/>
+
+            <TextBlock Grid.Row="1" Text="DCC adresa:" VerticalAlignment="Center"/>
+            <NumericUpDown Grid.Row="1" Grid.Column="1"
+                           Value="{Binding DccAddress, Mode=TwoWay}"
+                           Minimum="1"
+                           Maximum="2048"
+                           Increment="1"
+                           FormatString="0"
+                           Height="30"/>
+
+            <StackPanel Grid.Row="2" Grid.Column="1" Spacing="8">
+              <TextBlock Text="Režim ovládania dekodéra:" FontSize="12" FontWeight="SemiBold"/>
+              <StackPanel Orientation="Horizontal" Spacing="20">
+                <RadioButton Content="Základný (4 adresy)"
+                             IsChecked="{Binding IsBasicMode, Mode=TwoWay}"
+                             GroupName="DecoderModeGroup"/>
+                <RadioButton Content="Rozšírený (1 adresa)"
+                             IsChecked="{Binding IsExtendedMode, Mode=OneWay}"
+                             GroupName="DecoderModeGroup"/>
+              </StackPanel>
+
+              <!-- Dynamický blok s farebným odlíšením podľa režimu -->
+              <Border BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="10,8">
+                <Border.Background>
+                  <SolidColorBrush Color="{Binding IsBasicMode, Converter={StaticResource DecoderModeBackgroundConverter}}"/>
+                </Border.Background>
+                <Border.BorderBrush>
+                  <SolidColorBrush Color="{Binding IsBasicMode, Converter={StaticResource DecoderModeBorderConverter}}"/>
+                </Border.BorderBrush>
+
+                <!-- Dynamický text headeru -->
+                <StackPanel Spacing="4">
+                  <TextBlock FontSize="12" FontWeight="SemiBold">
+                    <TextBlock.Foreground>
+                      <SolidColorBrush Color="{Binding IsBasicMode, Converter={StaticResource DecoderModeTextConverter}}"/>
+                    </TextBlock.Foreground>
+                    <TextBlock.Text>
+                      <MultiBinding StringFormat="Logické priradenie ({0}):">
+                        <Binding Path="IsBasicMode" Converter="{StaticResource DecoderModeNameConverter}"/>
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
+
+                  <TextBlock FontSize="11" FontWeight="Bold">
+                    <TextBlock.Text>
+                      <MultiBinding StringFormat="{}{0}">
+                        <Binding Path="IsBasicMode" Converter="{StaticResource DecoderModeDescriptionConverter}"/>
+                      </MultiBinding>
+                    </TextBlock.Text>
+                  </TextBlock>
+
+                  <!-- Obsah podľa režimu -->
+                  <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Margin="10,2,0,0"
+                        IsVisible="{Binding IsBasicMode}">
+                    <TextBlock Grid.Row="0" Grid.Column="0" FontSize="11" Text="• Základná adresa"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" FontSize="11" Text="• Adresa + 1"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" FontSize="11" Text="• Adresa + 2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" Text="• Adresa + 3"/>
+                  </Grid>
+
+                  <TextBlock FontSize="11" Margin="10,2,0,0" TextWrapping="Wrap"
+                             Text="• Všetky aspekty sú prenášané cez jedinú adresu."
+                             IsVisible="{Binding IsExtendedMode}"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <TextBlock Grid.Row="3" Text="Chránený blok:" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="3" Grid.Column="1"
+                      ItemsSource="{Binding AvailableBlocks}"
+                      SelectedItem="{Binding SelectedProtectedBlock}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="4" Text="Profil (znaky):" VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="4" Grid.Column="1"
+                      ItemsSource="{Binding AvailableProfiles}"
+                      SelectedItem="{Binding SelectedProfile}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </Grid>
+        </Border>
+
+        <!-- PREVÁDZKOVÁ LOGIKA (VIZUÁLNA ÚPRAVA) -->
+        <Border BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="4" Padding="12">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Logika automatizácie v TrackFlow" FontWeight="SemiBold" FontSize="14"/>
+            
+            <Grid ColumnDefinitions="24,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6" Margin="0,5">
+              <Ellipse Width="10" Height="10" Fill="Red" HorizontalAlignment="Left" Stroke="Gray" StrokeThickness="1"/>
+              <TextBlock Grid.Column="1" Text="Obsadený blok → Červená (Stoj)" VerticalAlignment="Center"/>
+              
+              <Ellipse Grid.Row="1" Width="10" Height="10" Fill="Yellow" HorizontalAlignment="Left" Stroke="Gray" StrokeThickness="1"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="Voľný blok + Vyžiadať žltú → Žltá (Výstraha)" VerticalAlignment="Center"/>
+              
+              <Ellipse Grid.Row="2" Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Left" Stroke="Gray" StrokeThickness="1"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="Voľný blok → Zelená (Voľno)" VerticalAlignment="Center"/>
+              
+              <Ellipse Grid.Row="3" Width="10" Height="10" Fill="Gray" HorizontalAlignment="Left" Stroke="Gray" StrokeThickness="1"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" Text="Bez väzby na blok → Zhasnuté" VerticalAlignment="Center"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- TLAČIDLÁ -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,10,16,16" Spacing="10">
+      <Button Content="Uložiť" Width="100" Height="32" Background="{DynamicResource SystemAccentColor}" Foreground="White" Command="{Binding SaveCommand}"/>
+      <Button Content="Zrušiť" Width="100" Height="32" Command="{Binding CancelCommand}"/>
+    </StackPanel>
+  </Grid>
+</Window>

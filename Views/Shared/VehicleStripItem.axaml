@@ -1,0 +1,129 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:CompileBindings="False"
+             x:Name="root"
+             xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
+             xmlns:local="clr-namespace:TrackFlow.Views.Shared;assembly=TrackFlow"
+             xmlns:m="clr-namespace:TrackFlow.Models;assembly=TrackFlow"
+             x:Class="TrackFlow.Views.Shared.VehicleStripItem">
+  <UserControl.Resources>
+    <conv:BoolToHorizontalAlignmentConverter x:Key="BoolToHorizontalAlignment" TrueValue="Left" FalseValue="Right" />
+    <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+  </UserControl.Resources>
+
+  <Border x:Name="BorderRoot" Margin="0,0,10,0"
+          Padding="0"
+          IsHitTestVisible="True"
+          ClipToBounds="False"
+          Background="Transparent"
+          BorderThickness="0"
+          PointerPressed="OnPointerPressed"
+          DragDrop.Drop="OnDrop"
+          DragDrop.DragEnter="OnDragOver"
+          DragDrop.DragOver="OnDragOver"
+          DragDrop.DragLeave="OnDragLeave"
+          DragDrop.AllowDrop="True"
+          ToolTip.Tip="{Binding DisplayName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}">
+    
+    <Border.ContextMenu>
+      <ContextMenu>
+        <MenuItem Header="Vlastnosti..." Command="{Binding ShowPropertiesCommand, ElementName=root}" CommandParameter="{Binding DataContext, ElementName=root}" >
+          <MenuItem.Icon>
+            <Image Width="24" Height="24" Source="avares://TrackFlow/Assets/Appicons/16/prop.png" RenderOptions.BitmapInterpolationMode="HighQuality" RenderOptions.EdgeMode="Aliased" />
+          </MenuItem.Icon>
+        </MenuItem>
+          
+          <Separator />
+          
+        <MenuItem Header="Kopírovať" IsEnabled="False" >
+          <MenuItem.Icon>
+            <Image Width="24" Height="24" Source="avares://TrackFlow/Assets/Appicons/16/copy.png" RenderOptions.BitmapInterpolationMode="HighQuality" RenderOptions.EdgeMode="Aliased" />
+          </MenuItem.Icon>
+          </MenuItem>
+          
+        <MenuItem Header="Zmazať" IsEnabled="False" >
+          <MenuItem.Icon>
+            <Image Width="24" Height="24" Source="avares://TrackFlow/Assets/Appicons/16/trash.png" RenderOptions.BitmapInterpolationMode="HighQuality" RenderOptions.EdgeMode="Aliased" />
+          </MenuItem.Icon>
+        </MenuItem>
+          
+          
+        <Separator />
+    
+        <MenuItem Header="Vlaková súprava" IsVisible="{Binding IsLoco, ElementName=root}">
+        <MenuItem.Icon>
+            <Image Width="24" Height="24" Source="avares://TrackFlow/Assets/Appicons/32/loco_01.png" RenderOptions.BitmapInterpolationMode="HighQuality" RenderOptions.EdgeMode="Aliased" />
+        </MenuItem.Icon>
+          
+          <MenuItem Header="Otočiť orientáciu lokomotívy" Click="OnFlipOrientationMenuClick" />
+          <Separator />
+          <MenuItem Header="Premenovať vlak" Click="OnRenameMenuClick" IsEnabled="{Binding HasWagons, ElementName=root}" /> 
+          <MenuItem Header="Odpojiť prvý vagón" Click="OnDetachFirstWagonMenuClick" IsEnabled="{Binding HasWagons, ElementName=root}" />
+          <MenuItem Header="Odpojiť posledný vagón" Command="{Binding DetachLastWagonCommand, ElementName=root}" IsEnabled="{Binding HasWagons, ElementName=root}" />
+          <MenuItem Header="Odpojiť tento vagón" Click="HandleDetachThisWagonMenuClick" />
+        <Separator />
+          <MenuItem Header="Rozpustiť súpravu" Command="{Binding ClearWagonsCommand, ElementName=root}" IsEnabled="{Binding HasWagons, ElementName=root}" />
+     
+        </MenuItem>
+      </ContextMenu>
+    </Border.ContextMenu>
+
+    <StackPanel IsHitTestVisible="False" Background="Transparent" Orientation="Vertical" HorizontalAlignment="Center" Spacing="0" VerticalAlignment="Top" Margin="0,3,0,0">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="0" VerticalAlignment="Top" ClipToBounds="False">
+        <Rectangle x:Name="LeftIndicator" Width="3" Fill="White" Opacity="0" Height="20" Margin="0">
+          <Rectangle.RenderTransform><TranslateTransform X="-1.5" Y="0" /></Rectangle.RenderTransform>
+        </Rectangle>
+
+        <ItemsControl x:Name="LeftItems" ItemsSource="{Binding WagonsLeft, ElementName=root}" IsHitTestVisible="True">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="0" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="m:Wagon">
+              <Image Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}" Height="20" Margin="2,0,0,-2" IsHitTestVisible="True" VerticalAlignment="Bottom"  />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid VerticalAlignment="Top">
+          <Ellipse Width="4" Height="4" Fill="Lime" IsVisible="{Binding IsLoco, RelativeSource={RelativeSource AncestorType=local:VehicleStripItem}}" VerticalAlignment="Top" Margin="0,-1,0,0"
+                   HorizontalAlignment="{Binding IsFlipped, RelativeSource={RelativeSource AncestorType=local:VehicleStripItem}, Converter={StaticResource BoolToHorizontalAlignment}}" />
+          <Image x:Name="IconImage" IsHitTestVisible="False" Source="{Binding IconName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}, Converter={StaticResource IconNameToPathConverter}}"
+                 Height="20" Stretch="Uniform" VerticalAlignment="Top" Margin="0,2,0,0" RenderTransformOrigin="0.5,0.5" />
+        </Grid>
+
+        <ItemsControl x:Name="RightItems" ItemsSource="{Binding WagonsRight, ElementName=root}" IsHitTestVisible="True">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="0" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="m:Wagon">
+              <!-- Pridaný top margin 2 aby boli vagóny vertikálne zarovnané s lokomotívou -->
+              <Image Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}" Height="20" Margin="2,2,0,0" IsHitTestVisible="True" VerticalAlignment="Top" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Červený krúžok s počtom skrytých vagónov -->
+        <Border IsVisible="{Binding ShowOverflowIndicator, ElementName=root}"
+                Background="#E53935"
+                CornerRadius="8"
+                Padding="4,1"
+                Margin="4,2,0,0"
+                VerticalAlignment="Top"
+                MinWidth="16"
+                Height="16">
+          <TextBlock Text="{Binding AttachedOverflowText, ElementName=root}"
+                     Foreground="White"
+                     FontSize="10"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+        </Border>
+
+        <Rectangle x:Name="RightIndicator" Width="3" Fill="White" Opacity="0" Height="20" Margin="0">
+          <Rectangle.RenderTransform><TranslateTransform X="-1.5" Y="0" /></Rectangle.RenderTransform>
+        </Rectangle>
+      </StackPanel>
+
+      <TextBlock x:Name="DisplayNameTextBlock" IsHitTestVisible="False" Text="{Binding DisplayName, RelativeSource={RelativeSource AncestorType={x:Type local:VehicleStripItem}}}"
+                 Foreground="White" FontSize="11" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" MaxWidth="120" Margin="0,1,0,0" HorizontalAlignment="Center" />
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Cab"
+         xmlns:cab="clr-namespace:TrackFlow.Cab"
+        x:Class="TrackFlow.Cab.CabStripWindow"
+        Width="1200"
+        Height="140"
+        MinWidth="600"
+        MinHeight="120"
+        CanResize="True"
+        SystemDecorations="Full"
+        Title="Multi-Cab">
+
+  <cab:CabStripView/>
+
+</Window>

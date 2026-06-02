@@ -1,0 +1,442 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:primitives="clr-namespace:Avalonia.Controls.Primitives;assembly=Avalonia.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:TrackFlow.Converters"
+             xmlns:m="clr-namespace:TrackFlow.Models"
+             x:Class="TrackFlow.Views.LocoDashboardView"
+             x:DataType="m:Locomotive"
+             mc:Ignorable="d"
+             d:DesignWidth="270" d:DesignHeight="320"
+             x:Name="Root"
+             ClipToBounds="False" VerticalAlignment="Top">
+
+    <!-- Štýly -->
+    <UserControl.Styles>
+        <!-- Štýl Expander: urobiť úplne priehľadným a odstrániť predvolené orámovania/pozadia -->
+        <Style Selector="Expander">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <!-- Zabezpečiť, že ToggleButton používaný Expanderom má priehľadné pozadie -->
+        <Style Selector="Expander /template/ ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <!-- Zabezpečiť, že ContentPresenter v ToggleButton je priehľadný (bežný názov časti PART_ContentPresenter) -->
+        <Style Selector="Expander /template/ ToggleButton /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- Prepisy pri ukazovateli/interaction: odstrániť hover/pressed/checked pozadia alebo orámovania -->
+        <Style Selector="Expander:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- Žiadne hover efekty: šípka hlavičky zostáva stále viditeľná -->
+
+        <!-- Cieľom je zacieliť template toggle podľa mena, aby sa nezobrazilo hover pozadie -->
+        <Style Selector="ToggleButton#PART_Toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- Zabezpečiť, že ContentPresenter v toggle nemá pozadie v žiadnom stave -->
+        <Style Selector="ToggleButton#PART_Toggle /template/ ContentPresenter#PART_ContentPresenter:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="ToggleButton#PART_Toggle /template/ ContentPresenter#PART_ContentPresenter:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <!-- E-Stop tlačidlo: hover = svetlejšie orámovanie, farba pozadia sa nemení -->
+        <Style Selector="Button.estop">
+            <Setter Property="Background" Value="#D50000" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.estop:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D50000" />
+            <Setter Property="BorderBrush" Value="#FF6666" />
+        </Style>
+        <Style Selector="Button.estop:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#B00000" />
+            <Setter Property="BorderBrush" Value="#FF6666" />
+        </Style>
+
+        <!-- Ikony funkcií – flat štýl: len ikona, žiadne pozadie ani rám -->
+        <Style Selector="Button.fnbtn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.fnbtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="BorderBrush" Value="#888888" />
+        </Style>
+        <Style Selector="Button.fnbtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#444444" />
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
+        <Style Selector="Button.fnbtn.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A4A1A" />
+            <Setter Property="BorderBrush" Value="#32CD32" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Konvertory dostupné v projekte -->
+    <UserControl.Resources>
+        <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        <conv:BoolToEffectOpacityConverter x:Key="BoolToEffectOpacity" />
+        <conv:BoolToBrushConverter x:Key="DirGlowBrush" TrueBrush="#00BFFF" FalseBrush="#32CD32" />
+        <conv:DirectionStateToColorConverter x:Key="DirColor" />
+
+        <!-- Poznámka: konvertory pre slider sú ponechané; nechajte ich k dispozícii, ak budú potrebné -->
+        <conv:ValueToLengthConverter x:Key="ValueToLength" />
+
+    </UserControl.Resources>
+    <!-- Štýl Slidera odstránený: vlastný template bude vložený priamo v ovládacom prvku Slider -->
+
+    <!-- Hlavný Border / dashboard -->
+    <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top" Width="163">
+    <Border Background="#151515" Padding="8" CornerRadius="8" ClipToBounds="False" HorizontalAlignment="Stretch">
+        <Grid RowDefinitions="Auto, *, Auto" ClipToBounds="False" >
+
+            <!-- HORNÁ ČASŤ: názov -->
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,10" ClipToBounds="False">
+                <TextBlock Text="{Binding Name, FallbackValue='Neznáma lokomotíva'}"
+                           Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+
+            </StackPanel>
+
+            <!-- STRED: kompaktné horizontálne rozloženie -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="0" HorizontalAlignment="Left" ClipToBounds="False">
+
+                <!-- Slider (posunutý bližšie k tachometru) - plne vlastný template vložený inline -->
+                <Grid ClipToBounds="False" Width="36" HorizontalAlignment="Left" Margin="0,0,-5,10">
+                    <Slider Orientation="Vertical"
+                            Minimum="0" Maximum="100"
+                            Value="{Binding CurrentDisplaySpeed, Mode=OneWay}"
+                            Width="36"
+                            HorizontalAlignment="Left"
+                            ClipToBounds="False">
+
+                        <Slider.Template>
+                            <ControlTemplate x:DataType="Slider">
+                                <Border Background="Transparent" Padding="0">
+                                    <Grid Width="36" Height="260">
+                                        <!-- Pozadie trate: tenký oválny obrys bez výplne -->
+                                        <Border x:Name="TrackBackground" Width="12" CornerRadius="6" Background="Transparent" BorderBrush="White" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+
+                                        <!-- Výplň trate: neonová farba podľa smeru (zelená vpred, modrá vzad) -->
+                                        <Border x:Name="TrackFill" Width="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" CornerRadius="6"
+                                                Background="{Binding ElementName=Root, Path=((m:Locomotive)DataContext).IsReverse, Converter={StaticResource DirGlowBrush}}"
+                                                Opacity="0.95"
+                                                Height="{Binding Path=$parent[Slider].Value, Converter={StaticResource ValueToLength}, ConverterParameter=220}">
+                                            <Border.Effect>
+                                                <BlurEffect Radius="12" />
+                                            </Border.Effect>
+                                        </Border>
+
+                                        <primitives:Track x:Name="PART_Track"
+                                                          Orientation="Vertical"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Stretch"
+                                                          Minimum="{TemplateBinding Minimum}"
+                                                          Maximum="{TemplateBinding Maximum}"
+                                                          Value="{TemplateBinding Value}">
+                                            <primitives:Track.Thumb>
+                                                <Thumb Width="32" Height="32" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent">
+                                                    <Thumb.Template>
+                                                        <ControlTemplate>
+                                                            <Grid Width="40" Height="40" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <!-- Mäkké žiarenie za thumbom (farba podľa smeru) -->
+                                                                <Ellipse Width="40" Height="40" Fill="{Binding ElementName=Root, Path=((m:Locomotive)DataContext).IsReverse, Converter={StaticResource DirGlowBrush}}" Opacity="0.38" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                    <Ellipse.Effect>
+                                                                        <BlurEffect Radius="24" />
+                                                                    </Ellipse.Effect>
+                                                                </Ellipse>
+
+                                                                <!-- Vonkajší obrysový kruh (farba podľa smeru) -->
+                                                                <Ellipse Stroke="{Binding ElementName=Root, Path=((m:Locomotive)DataContext).IsReverse, Converter={StaticResource DirGlowBrush}}" StrokeThickness="3" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="Transparent">
+                                                                    <Ellipse.Effect>
+                                                                        <DropShadowEffect Color="{Binding ElementName=Root, Path=((m:Locomotive)DataContext).IsReverse, Converter={StaticResource DirColor}}" BlurRadius="18" OffsetX="0" OffsetY="0" Opacity="0.9" />
+                                                                    </Ellipse.Effect>
+                                                                </Ellipse>
+
+                                                                <!-- Vnútorný biely kruh -->
+                                                                <Ellipse Fill="White" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            </Grid>
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </primitives:Track.Thumb>
+                                        </primitives:Track>
+                                    </Grid>
+                                </Border>
+                            </ControlTemplate>
+                        </Slider.Template>
+
+                    </Slider>
+                </Grid>
+
+                <!-- PRAVÁ STRANA: ovládací panel / sústava prístrojov -->
+                <StackPanel Spacing="14" VerticalAlignment="Center" HorizontalAlignment="Left" ClipToBounds="False">
+
+                    <!-- Riadok so šípkami + tachometer -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" ClipToBounds="False">
+
+                        <!-- Tachometer -->
+                        <Grid Width="160" Height="160" ClipToBounds="False" HorizontalAlignment="Center">
+                            <Panel Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
+
+                                <!-- Vrstva 1: aura vpred (zelená) -->
+                                <Ellipse Width="150" Height="150" ClipToBounds="False" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsForward}" Opacity="0.6">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="#32CD32" />
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <BlurEffect Radius="15" />
+                                    </Ellipse.Effect>
+                                </Ellipse>
+
+                                <!-- Vrstva 2: aura vzad (modrá) -->
+                                <Ellipse Width="150" Height="150" ClipToBounds="False" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding IsReverse}" Opacity="0.6">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="#00BFFF" />
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <BlurEffect Radius="25" />
+                                    </Ellipse.Effect>
+                                </Ellipse>
+
+                                <!-- Vrstva 3: Metalický rám -->
+                                <Ellipse Width="130" Height="130" ClipToBounds="False" StrokeThickness="10" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Ellipse.Stroke>
+                                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                            <GradientStop Offset="0.0" Color="#777777" />
+                                            <GradientStop Offset="0.4" Color="#222222" />
+                                            <GradientStop Offset="0.6" Color="#151515" />
+                                            <GradientStop Offset="1.0" Color="#444444" />
+                                        </LinearGradientBrush>
+                                    </Ellipse.Stroke>
+                                </Ellipse>
+
+                                <!-- Vrstva 4: Neonový kruh (nad rámom) -->
+                                <Ellipse Width="110" Height="110" ClipToBounds="False" StrokeThickness="3" VerticalAlignment="Center" HorizontalAlignment="Center" Fill="Transparent" IsVisible="{Binding IsDirectionSelected}" Stroke="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}">
+                                    <Ellipse.Effect>
+                                        <BlurEffect Radius="8" />
+                                    </Ellipse.Effect>
+                                </Ellipse>
+
+                                <!-- Vrstva 5: Ciferník (mierne menší ako neon) -->
+                                <Ellipse Width="106" Height="106" ClipToBounds="False" Fill="#050505" VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                                <!-- Vrstva 6: Text (hore) s fallbackom vrstveného žiarenia -->
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
+                                    <!-- Zadná vrstva žiarenia: rozmazaný farebný text použitím DirGlowBrush (IBrush) -->
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False">
+                                        <TextBlock Text="{Binding CurrentDisplaySpeed}"
+                                                   FontSize="52" FontWeight="Bold" Margin="0,5,0,0"
+                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}"
+                                                   Opacity="0.95"
+                                                   Padding="10,0,10,0"
+                                                   ClipToBounds="False">
+                                            <TextBlock.Effect>
+                                                <BlurEffect Radius="12" />
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+
+                                        <!-- Popredný text: biely a ostrý, s DropShadowEffect pre neonový okraj -->
+                                        <TextBlock Text="{Binding CurrentDisplaySpeed}"
+                                                   FontSize="52" Foreground="#FFFFFF" FontStyle="Italic"  Margin="0,5,0,0"
+                                                   FontFamily="avares://TrackFlow/Assets/Fonts/#Digital-7"
+                                                   HorizontalAlignment="Center"
+                                                   Padding="10,0,10,0"
+                                                   ClipToBounds="False">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect Color="{Binding IsReverse, Converter={StaticResource DirColor}}" BlurRadius="20" OffsetX="0" OffsetY="0" Opacity="0.9" />
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <TextBlock Text="km/h" FontStyle="Italic" FontSize="12" Foreground="{Binding IsReverse, Converter={StaticResource DirGlowBrush}}" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                </StackPanel>
+
+                            </Panel>
+                        </Grid>
+
+                        <!-- Stĺpec pre obe šípky na pravej strane -->
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Left" Spacing="20" ClipToBounds="False" Margin="8,0,0,0">
+
+                            <!-- VPRED (hore) -->
+                            <RadioButton GroupName="{Binding Code}" IsChecked="{Binding IsForward, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Width="48" Height="48" ClipToBounds="False">
+                                <RadioButton.Template>
+                                    <ControlTemplate x:DataType="RadioButton">
+                                        <Panel Background="Transparent" ClipToBounds="False">
+                                            <Path Data="M 10 0 L 20 20 L 0 20 Z"
+                                                  Stroke="#32CD32" StrokeThickness="8" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToEffectOpacity}}">
+                                                <Path.Effect>
+                                                    <BlurEffect Radius="15" />
+                                                </Path.Effect>
+                                            </Path>
+                                            <Border Width="54" Height="54" CornerRadius="8" BorderBrush="#99FF99" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToOpacity}}" />
+                                            <Path Data="M 10 0 L 20 20 L 0 20 Z" Width="24" Height="24" Stretch="Uniform" Fill="#32CD32" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToOpacity}}" />
+                                        </Panel>
+                                    </ControlTemplate>
+                                </RadioButton.Template>
+                            </RadioButton>
+
+                            <!-- VZAD (dolu) -->
+                            <RadioButton GroupName="{Binding Code}" IsChecked="{Binding IsReverse, Mode=TwoWay}" Background="Transparent" BorderThickness="0" Width="48" Height="48" ClipToBounds="False">
+                                <RadioButton.Template>
+                                    <ControlTemplate x:DataType="RadioButton">
+                                        <Panel Background="Transparent" ClipToBounds="False">
+                                            <Path Data="M 0 0 L 20 0 L 10 20 Z" Stroke="#00BFFF" StrokeThickness="8" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToEffectOpacity}}">
+                                                <Path.Effect>
+                                                    <BlurEffect Radius="15" />
+                                                </Path.Effect>
+                                                </Path>
+                                            <Border Width="54" Height="54" CornerRadius="8" BorderBrush="#33FFFF" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToOpacity}}" />
+                                            <Path Data="M 0 0 L 20 0 L 10 20 Z" Width="24" Height="24" Stretch="Uniform" Fill="#00BFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="{TemplateBinding IsChecked, Converter={StaticResource BoolToOpacity}}" />
+                                        </Panel>
+                                    </ControlTemplate>
+                                </RadioButton.Template>
+                            </RadioButton>
+
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <!-- Núdzové zastavenie -->
+                    <Button Classes="estop"
+                            Content="EMERGENCY STOP"
+                            Foreground="White"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Left"
+                            Height="30"
+                            Width="175"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            ClipToBounds="False"
+                            Margin="20,-10,0,0"
+                            Click="OnEmergencyStopClick"/>
+
+                    <!-- F-tlačidlá – dynamicky z Locomotive.Functions -->
+                    <ItemsControl ItemsSource="{Binding Functions}"
+                                  HorizontalAlignment="Left"
+                                  ClipToBounds="False"
+                                  Margin="20,8,0,0"
+                                  IsVisible="{Binding Functions.Count, Converter={x:Static conv:IntToBoolConverter.Instance}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" MaxWidth="180"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:LocoFunctionDef">
+                                <Button Classes="fnbtn"
+                                        Width="34" Height="34"
+                                        Tag="{Binding Slot}"
+                                        Click="OnFunctionButtonClick"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center">
+                                    <ToolTip.Tip>
+                                        <ToolTip Background="#FFD700" Foreground="#1A1A1A" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="{Binding SlotLabel}" FontWeight="Bold" FontSize="11"/>
+                                                <TextBlock Text="–" FontSize="11"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="11"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </ToolTip.Tip>
+                                    <Image Source="{Binding IconImage}"
+                                           Width="28" Height="28"
+                                           Stretch="Uniform"
+                                           RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Fallback: ak lokomotíva nemá definované funkcie -->
+                    <UniformGrid Columns="6" Rows="2"
+                                 HorizontalAlignment="Left"
+                                 ClipToBounds="False"
+                                 Margin="20,8,0,0"
+                                 IsVisible="{Binding !Functions.Count, FallbackValue=True}">
+                        <Button Classes="fnbtn" Content="F0"  Tag="0"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F1"  Tag="1"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F2"  Tag="2"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F3"  Tag="3"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F4"  Tag="4"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F5"  Tag="5"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F6"  Tag="6"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F7"  Tag="7"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F8"  Tag="8"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F9"  Tag="9"  FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F10" Tag="10" FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                        <Button Classes="fnbtn" Content="F11" Tag="11" FontSize="10" Foreground="White" Background="#222" Width="30" Height="30" Click="OnFunctionButtonClick"/>
+                    </UniformGrid>
+
+                </StackPanel>
+            </StackPanel>
+
+        </Grid>
+    </Border>
+    </Viewbox>
+</UserControl>

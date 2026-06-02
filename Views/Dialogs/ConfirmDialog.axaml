@@ -1,0 +1,174 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TrackFlow.Views.Dialogs.ConfirmDialog"
+        Width="420" Height="280"
+        CanResize="False"
+        RequestedThemeVariant="Dark"
+        WindowStartupLocation="CenterOwner"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="Transparent">
+  
+  <Window.Styles>
+    <!-- Modern Button Base Style -->
+    <Style Selector="Button.modern">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="16,8" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    
+    <!-- Primary Button (Áno) -->
+    <Style Selector="Button.modern.primary">
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#0078D4" />
+            <GradientStop Offset="1" Color="#0063B1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#0063B1" />
+    </Style>
+    <Style Selector="Button.modern.primary:pointerover">
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#1C97EA" />
+            <GradientStop Offset="1" Color="#0078D4" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style Selector="Button.modern.primary:pressed">
+      <Setter Property="Background" Value="#0063B1" />
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
+    
+    <!-- Secondary Button (Nie, Zrušiť) -->
+    <Style Selector="Button.modern.secondary">
+      <Setter Property="Background" Value="#3A3A3A" />
+      <Setter Property="Foreground" Value="#E0E0E0" />
+      <Setter Property="BorderBrush" Value="#555555" />
+    </Style>
+    <Style Selector="Button.modern.secondary:pointerover">
+      <Setter Property="Background" Value="#505050" />
+      <Setter Property="BorderBrush" Value="#666666" />
+    </Style>
+    <Style Selector="Button.modern.secondary:pressed">
+      <Setter Property="Background" Value="#2A2A2A" />
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
+  </Window.Styles>
+
+  <!-- Hlavný obsah s moderným designom -->
+  <Border CornerRadius="12" 
+          BoxShadow="0 8 32 0 #40000000"
+          ClipToBounds="True">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Offset="0" Color="#2D2D30" />
+        <GradientStop Offset="1" Color="#252526" />
+      </LinearGradientBrush>
+    </Border.Background>
+    
+    <Grid RowDefinitions="Auto,*,Auto">
+      <!-- Hlavička s gradientom -->
+      <Border Grid.Row="0" 
+              Padding="24,16"
+              BorderThickness="0,0,0,1"
+              BorderBrush="#1E1E1E">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Offset="0" Color="#1E1E1E" />
+            <GradientStop Offset="1" Color="#252526" />
+          </LinearGradientBrush>
+        </Border.Background>
+        
+        <Grid ColumnDefinitions="Auto,*">
+          <!-- Ikon警告 -->
+          <Border Width="32" Height="32"
+                  CornerRadius="16"
+                  Margin="0,0,12,0"
+                  VerticalAlignment="Center">
+            <Border.Background>
+              <RadialGradientBrush>
+                <GradientStop Offset="0" Color="#40FFA500" />
+                <GradientStop Offset="1" Color="#20FFA500" />
+              </RadialGradientBrush>
+            </Border.Background>
+            <TextBlock Text="⚠" 
+                       FontSize="18" 
+                       FontWeight="Bold"
+                       Foreground="#FFB627"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Border>
+          
+          <TextBlock x:Name="TitleText" 
+                     Grid.Column="1"
+                     Text="Potvrdenie" 
+                     FontSize="16" 
+                     FontWeight="SemiBold"
+                     Foreground="White"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <!-- Obsah s lepším spacingom -->
+      <Border Grid.Row="1" Padding="32,24">
+        <TextBlock x:Name="MessageText" 
+                   Text="Správa dialógu" 
+                   FontSize="14"
+                   Foreground="#E0E0E0"
+                   TextWrapping="Wrap"
+                   LineHeight="22"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   MaxWidth="440" />
+      </Border>
+
+      <!-- Tlačidlá s moderným layoutom -->
+      <Border Grid.Row="2" 
+              Background="#1E1E1E" 
+              Padding="24,16"
+              BorderThickness="0,1,0,0"
+              BorderBrush="#2D2D30">
+        <StackPanel Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Spacing="12">
+          <Button x:Name="YesButton" 
+                  Content="Áno" 
+                  MinWidth="100" 
+                  Height="36"
+                  Classes="modern primary"
+                  Click="YesButton_Click"
+                  IsDefault="True" />
+          <Button x:Name="NoButton" 
+                  Content="Nie" 
+                  MinWidth="100" 
+                  Height="36"
+                  Classes="modern secondary"
+                  Click="NoButton_Click" />
+          <Button x:Name="CancelButton" 
+                  Content="Zrušiť" 
+                  MinWidth="100" 
+                  Height="36"
+                  Classes="modern secondary"
+                  Click="CancelButton_Click"
+                  IsCancel="True" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Border>
+</Window>
+

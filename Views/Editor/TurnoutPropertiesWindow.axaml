@@ -1,0 +1,357 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+        xmlns:local="clr-namespace:TrackFlow.Views.Editor"
+        x:Class="TrackFlow.Views.Editor.TurnoutPropertiesWindow"
+        x:DataType="vm:TurnoutPropertiesViewModel"
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        Width="590" Height="600"
+        CanResize="False">
+
+  <Window.Styles>
+    <Style Selector="HeaderedContentControl.gb">
+      <Setter Property="Margin" Value="0,8,0,0"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3"
+                    Margin="0,9,0,0" Padding="8,8,8,8">
+              <ContentPresenter Content="{TemplateBinding Content}"/>
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="8,1,0,0" Padding="4,0"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+              <ContentPresenter Content="{TemplateBinding Header}"/>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#666"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+    
+    <!-- Hlavný obsah - TabControl -->
+    <TabControl Grid.Row="0" Margin="8,8,8,0" Classes="tc-tabs">
+      
+      <!-- Záložka: Všeobecne -->
+      <TabItem Header="Všeobecné">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            
+            <!-- Vlastnosti výhybky -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Vlastnosti výhybky" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" 
+                    RowSpacing="8" ColumnSpacing="12" Margin="0,20,0,2">
+                
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Typ výhybky:" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding TurnoutTypeName}" 
+                          FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Názov:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding TurnoutName}" 
+                         Height="26" Padding="6,2" VerticalContentAlignment="Center"/>
+                
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Default stav:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="2" Grid.Column="1" 
+                         x:Name="InitialStateCombo"
+                         Height="28" HorizontalAlignment="Left" Width="180">
+                  <!-- Template pre položky -->
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate DataType="local:TurnoutStateItem">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ContentPresenter Content="{Binding Visual}" />
+                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                  <!-- Template pre zatvorený ComboBox -->
+                  <ComboBox.SelectionBoxItemTemplate>
+                    <DataTemplate DataType="local:TurnoutStateItem">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ContentPresenter Content="{Binding Visual}" />
+                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.SelectionBoxItemTemplate>
+                </ComboBox>
+                
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Dĺžka výhybky:" VerticalAlignment="Center"/>
+                <NumericUpDown Grid.Row="3" Grid.Column="1"
+                              Value="{Binding TurnoutLength}"
+                              Minimum="0" Maximum="500" Increment="5"
+                              FormatString="0" Width="130" Height="26" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="cm" VerticalAlignment="Center" Margin="0,0,290,0"/>
+              </Grid>
+            </HeaderedContentControl>
+            
+            <!-- Signál a rýchlostné obmedzenia -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Signál a rýchlostné obmedzenia" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Spacing="8" Margin="0,12,0,2">
+                <CheckBox IsChecked="{Binding RequestYellow}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="14" Height="14" Fill="Yellow" Margin="8,0,0,0" Stroke="#B8860B" StrokeThickness="1" VerticalAlignment="Center"/>
+                    <TextBlock Text="Vyžiadať žltú" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </CheckBox>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Ellipse Width="14" Height="14" Fill="Lime" Stroke="#2E7D32" StrokeThickness="1" VerticalAlignment="Center"/>
+                  <TextBlock Text="Maximálna:" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding MaxSpeed}" Minimum="0" Maximum="999" FormatString="0" Width="120" Height="26"/>
+                  <TextBlock Text="km/h" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                  <Ellipse Width="14" Height="14" Fill="Yellow" Stroke="#B8860B" StrokeThickness="1" VerticalAlignment="Center"/>
+                  <TextBlock Text="Obmedzená:" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding LimitedSpeed}" Minimum="0" Maximum="999" FormatString="0" Width="120" Height="26"/>
+                  <TextBlock Text="km/h" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </HeaderedContentControl>
+            
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      
+      <!-- Záložka: Pripojenie -->
+      <TabItem Header="Pripojenie">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            
+            <!-- DCC pripojenie -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="DCC pripojenie" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" 
+                    RowSpacing="10" ColumnSpacing="12" Margin="0,20,0,2">
+                
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Digitálny systém:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" 
+                         x:Name="DccSystemCombo"
+                         ItemsSource="{Binding DccSystems}"
+                         SelectedItem="{Binding SelectedDccSystem}"
+                         Height="26" MinWidth="200" HorizontalAlignment="Left">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Name}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Dĺžka impulzu (ms):" VerticalAlignment="Center"/>
+                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="18">
+                  <NumericUpDown Value="{Binding PulseLength}"
+                                IsEnabled="{Binding PulseLengthEnabled}"
+                                Minimum="10" Maximum="5000" Increment="10"
+                                FormatString="0" Width="100" Height="26"/>
+                  <CheckBox IsChecked="{Binding UseDefaultPulse}"
+                           Content="Predvolené" 
+                           VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Adresa:" VerticalAlignment="Center"/>
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Vertical" Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="18">
+                    <NumericUpDown Value="{Binding DccAddress}"
+                                  Minimum="0" Maximum="9999" Increment="1"
+                                  FormatString="0" Width="100" Height="26"/>
+                    <Button Content="Nájsť" 
+                           Command="{Binding FindAddressCommand}"
+                           Width="92" Height="26"/>
+                  </StackPanel>
+                  <Border Background="#FFF3CD" BorderBrush="#FFC107" BorderThickness="1"
+                          CornerRadius="3" Padding="6,4"
+                          IsVisible="{Binding HasDccAddressError}">
+                    <TextBlock Text="{Binding DccAddressError}"
+                               Foreground="#856404" FontSize="11" FontWeight="SemiBold"
+                               TextWrapping="Wrap"/>
+                  </Border>
+                </StackPanel>
+                
+                <TextBlock Grid.Row="3" Grid.Column="0" 
+                           Text="Adresa 2:" 
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding ShowSecondAddress}"/>
+                <StackPanel Grid.Row="3" Grid.Column="1" 
+                            Orientation="Vertical" Spacing="4"
+                            IsVisible="{Binding ShowSecondAddress}">
+                  <StackPanel Orientation="Horizontal" Spacing="18">
+                    <NumericUpDown Value="{Binding DccAddressTwo}"
+                                   Minimum="0" Maximum="9999" Increment="1"
+                                   FormatString="0" Width="100" Height="26"/>
+                    <TextBlock Text="(2. pohon)" VerticalAlignment="Center" Foreground="#666"/>
+                  </StackPanel>
+                  <Border Background="#FFF3CD" BorderBrush="#FFC107" BorderThickness="1"
+                          CornerRadius="3" Padding="6,4"
+                          IsVisible="{Binding HasDccAddressTwoError}">
+                    <TextBlock Text="{Binding DccAddressTwoError}"
+                               Foreground="#856404" FontSize="11" FontWeight="SemiBold"
+                               TextWrapping="Wrap"/>
+                  </Border>
+                </StackPanel>
+                
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Invertovaná logika:" VerticalAlignment="Center"/>
+                <CheckBox Grid.Row="4" Grid.Column="1" 
+                         IsChecked="{Binding ReverseLogic}"
+                         VerticalAlignment="Center"/>
+              </Grid>
+            </HeaderedContentControl>
+            
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      
+      <!-- Záložka: Indikátory -->
+      <TabItem Header="Indikátory">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            
+            <!-- Výber indikátorov -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Výber indikátorov" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="*,Auto,*" Margin="0,12,0,2">
+                
+                <!-- Dostupné indikátory -->
+                <StackPanel Grid.Column="0" Spacing="4">
+                  <TextBlock Text="Dostupné indikátory" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                  <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="2">
+                    <ListBox x:Name="AvailableIndicatorsListBox"
+                            SelectionMode="Multiple"
+                            Background="Transparent"
+                            Height="425">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="4,2"/>
+                          <Setter Property="MinHeight" Value="0"/>
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate DataType="vm:SensorItem">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Image Source="{Binding Icon}" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="11"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Border>
+                </StackPanel>
+                
+                <!-- Tlačidlá pre presun -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="12,0">
+                  <Button x:Name="AddIndicatorButton" Content="→" Width="40" Height="30" 
+                          FontSize="16" FontWeight="Bold" ToolTip.Tip="Pridať vybrané"/>
+                  <Button x:Name="RemoveIndicatorButton" Content="←" Width="40" Height="30" 
+                          FontSize="16" FontWeight="Bold" ToolTip.Tip="Odstrániť vybrané"/>
+                </StackPanel>
+                
+                <!-- Priradené indikátory -->
+                <StackPanel Grid.Column="2" Spacing="4">
+                  <TextBlock Text="Priradené indikátory" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                  <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="2">
+                    <ListBox x:Name="AssignedIndicatorsListBox"
+                            SelectionMode="Multiple"
+                            Background="Transparent"
+                            Height="425">
+                      <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                          <Setter Property="Padding" Value="4,2"/>
+                          <Setter Property="MinHeight" Value="0"/>
+                        </Style>
+                      </ListBox.Styles>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate DataType="vm:SensorItem">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Image Source="{Binding Icon}" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="11"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Border>
+                </StackPanel>
+                
+              </Grid>
+            </HeaderedContentControl>
+            
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      
+      <!-- Záložka: Podmienky -->
+      <TabItem Header="Podmienky">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            
+            <!-- Podmienka 1 -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Podmienka 1" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Spacing="8" Margin="0,12,0,2">
+                <TextBlock Text="Zatiaľ prázdne" FontSize="11" Foreground="#666"/>
+                <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="2">
+                  <ListBox SelectionMode="Multiple"
+                          Background="Transparent"
+                          Height="150">
+                  </ListBox>
+                </Border>
+              </StackPanel>
+            </HeaderedContentControl>
+            
+            <!-- Podmienka 2 -->
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Podmienka 2" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Spacing="8" Margin="0,12,0,2">
+                <TextBlock Text="Zatiaľ prázdne" FontSize="11" Foreground="#666"/>
+                <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="2">
+                  <ListBox SelectionMode="Multiple"
+                          Background="Transparent"
+                          Height="150">
+                  </ListBox>
+                </Border>
+              </StackPanel>
+            </HeaderedContentControl>
+            
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      
+    </TabControl>
+
+    <!-- Tlačidlá -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" 
+                Margin="10" Spacing="10">
+      <Button Content="Uložiť" Width="80" Height="32" Command="{Binding SaveCommand}"
+              ToolTip.Tip="Opravte neplatné DCC adresy pred uložením"/>
+      <Button Content="Zrušiť" Width="80" Height="32" Command="{Binding CancelCommand}"/>
+    </StackPanel>
+    
+  </Grid>
+</Window>
+
+
+
+
+
+
+
+
+
+

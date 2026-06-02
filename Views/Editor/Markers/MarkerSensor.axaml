@@ -1,0 +1,22 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerSensor"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- Senzor obsadenosti: koľaj + zelený indikátor -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+    <Line StartPoint="0,12" EndPoint="24,12" Stroke="#71c5ff" StrokeThickness="3" StrokeLineCap="Square"/>
+    <Rectangle Canvas.Left="8"  Canvas.Top="8" Width="8" Height="8"
+               Fill="Transparent" Stroke="#388E3C" StrokeThickness="1.5" RadiusX="1" RadiusY="1"/>
+    <Ellipse Canvas.Left="10" Canvas.Top="10" Width="4" Height="4" Fill="#388E3C"/>
+  </Canvas>
+</UserControl>
+

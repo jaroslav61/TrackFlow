@@ -1,0 +1,36 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TrackFlow.Views.Library.RenameTrainWindow"
+        Title="Premenovať vlak"
+        Width="350" Height="150"
+        CanResize="False"
+        RequestedThemeVariant="Dark"
+        WindowStartupLocation="CenterOwner"
+        Background="#2B2B2B">
+  <Window.Styles>
+    <!-- Ensure TextBox focus keeps dark background and blue border; remove focus adorner -->
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="#444444" />
+      <Setter Property="BorderBrush" Value="#007ACC" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+
+    <!-- Ensure button hover keeps neutral gray background and white text -->
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="#555555" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="12" Spacing="8">
+    <TextBlock Text="Zadajte nový názov vlaku:" Foreground="White" />
+    <TextBox x:Name="NameTextBox" Width="320" Height="26" Background="#333333" Foreground="White" AcceptsReturn="False" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="CancelButton" Content="Zrušiť" Width="90" Background="#444444" Foreground="White" Click="CancelButton_Click" IsCancel="True" />
+      <Button x:Name="OkButton" Content="OK" Width="90" Background="#444444" Foreground="White" Click="OkButton_Click" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

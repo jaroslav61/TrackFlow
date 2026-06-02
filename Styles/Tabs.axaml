@@ -1,0 +1,39 @@
+﻿<Styles xmlns="https://github.com/avaloniaui">
+
+    <Style Selector="TabControl.tc-tabs">
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style Selector="TabControl.tc-tabs /template/ TabStrip">
+        <Setter Property="Margin" Value="0,4,0,0"/>
+    </Style>
+
+    <Style Selector="TabControl.tc-tabs TabItem">
+        <Setter Property="Padding" Value="8,2"/>
+        <Setter Property="Margin" Value="0,0,4,0"/>
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Background" Value="#E9E9E9"/>
+        <Setter Property="BorderBrush" Value="#B5B5B5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="2,2,0,0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+
+    <Style Selector="TabControl.tc-tabs TabItem:selected">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderThickness" Value="1,1,1,0"/>
+    </Style>
+
+    <Style Selector="TabControl.tc-tabs TabItem:not(:selected)">
+        <Setter Property="Margin" Value="0,2,4,0"/>
+    </Style>
+
+    <Style Selector="TabControl.tc-tabs /template/ ContentPresenter">
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#B5B5B5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+</Styles>

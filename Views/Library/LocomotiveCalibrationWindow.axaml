@@ -1,0 +1,597 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
+        xmlns:vmc="clr-namespace:TrackFlow.ViewModels.Calibration;assembly=TrackFlow"
+        x:Class="TrackFlow.Views.Library.LocomotiveCalibrationWindow"
+        x:DataType="vm:LocomotiveSpeedEditorViewModel"
+        Title="Kalibrácia rýchlosti lokomotívy"
+        Width="1300"
+        Height="560"
+        MinWidth="1150"
+        MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+    <Window.Resources>
+        <DataTemplate x:Key="CalibrationIndicatorComboItemTemplate" x:DataType="vm:CalibrationIndicatorOption">
+            <StackPanel Orientation="Horizontal" Spacing="7" MinWidth="210">
+                <Image Width="16" Height="16" Source="{Binding IconPath}" Stretch="Uniform" />
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="None" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="ComboBox">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Border.speedCard">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D7DEE8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BoxShadow" Value="0 4 18 0 #16000000" />
+        </Style>
+
+        <Style Selector="TextBlock.sectionHeader">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+
+        <Style Selector="Border.profileHeaderBar">
+            <Setter Property="CornerRadius" Value="6,6,0,0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+        </Style>
+
+        <Style Selector="TextBlock.profileHeaderBarText">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#5B6575" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style Selector="Button.speedPrimaryButton">
+            <Setter Property="Background" Value="#F8FAFF" />
+            <Setter Property="BorderBrush" Value="#BFD5FF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.speedAccentButton">
+            <Setter Property="Background" Value="#DFF1FF" />
+            <Setter Property="BorderBrush" Value="#93C5FD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="RadioButton.profileModeRadioButton">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="Padding" Value="4,2" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid">
+            <Setter Property="GridLinesVisibility" Value="All" />
+            <Setter Property="RowHeight" Value="26" />
+            <Setter Property="RowHeaderWidth" Value="0" />
+            <Setter Property="BorderBrush" Value="#D5DCE6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="Background" Value="#FFFFFF" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid DataGridColumnHeader">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid DataGridCell">
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="BorderBrush" Value="#D5DCE6" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Cursor" Value="IBeam" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="TabControl.speedInnerTabs /template/ ContentPresenter">
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <Style Selector="ComboBox.speedCompactCombo">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style Selector="TextBox.speedCompactTextBox">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#C7D2E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <!-- Potlač focus border v bunkách DataGrid -->
+        <Style Selector="DataGridCell:focus /template/ Panel#FocusVisual">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+    </Window.Styles>
+
+    <Grid Margin="12"
+          RowDefinitions="*,Auto"
+          ColumnDefinitions="260,*,420"
+          ColumnSpacing="10"
+          RowSpacing="14"
+          x:CompileBindings="False">
+        <Border Grid.Row="0" Grid.Column="0" Classes="speedCard" Padding="12">
+            <StackPanel Spacing="10">
+
+                
+                <TextBlock Text="{Binding SelectedLocomotiveDisplayName}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap" />
+                <Border Width="220"
+                        Height="50"
+                        Background="#F8FAFC"
+                        BorderBrush="#D7DEE8"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        HorizontalAlignment="Center"
+                        Padding="6">
+                    <Image Source="{Binding SelectedLocomotiveImage}"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                </Border>
+                
+                <TextBlock Classes="sectionHeader" Text="Kalibračná metóda" FontSize="14" />
+                <ComboBox Classes="speedCompactCombo"
+                          x:CompileBindings="False"
+                          MinWidth="220"
+                          ItemsSource="{Binding CalibrationMethods}"
+                          SelectedItem="{Binding SelectedMethod, Mode=TwoWay}"
+                          ToolTip.Tip="{Binding SelectedCalibrationMethodTooltip}">
+                    <ComboBox.Styles>
+                        <Style Selector="ComboBoxItem">
+                            <Setter Property="ToolTip.Tip" Value="{Binding Description}" />
+                        </Style>
+                    </ComboBox.Styles>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vmc:CalibrationMethodItemViewModel">
+                            <Image Source="{Binding Icon}"
+                                   Width="105"
+                                   Height="15"
+                                   Stretch="None"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   RenderOptions.BitmapInterpolationMode="None"
+                                   ToolTip.Tip="{Binding Description}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
+
+                <TextBlock Classes="sectionHeader" Text="Kalibračné bloky" />
+                <Grid ColumnDefinitions="Auto,*"
+                      RowDefinitions="Auto,Auto,Auto"
+                      ColumnSpacing="8"
+                      RowSpacing="6"
+                      IsEnabled="{Binding IsBlockConfigurationEnabled}">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Štart" VerticalAlignment="Center" FontSize="12" Foreground="#5B6575" />
+                    <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---"  ItemsSource="{Binding StartBlockOptions}" SelectedItem="{Binding SelectedStartBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Stred" VerticalAlignment="Center" FontSize="12" Foreground="#5B6575" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---" ItemsSource="{Binding MiddleBlockOptions}" SelectedItem="{Binding SelectedMiddleBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Koniec" FontSize="12" Foreground="#5B6575" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---" ItemsSource="{Binding EndBlockOptions}" SelectedItem="{Binding SelectedEndBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                </Grid>
+
+                <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
+
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto" ColumnSpacing="10">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldLabel" Text="Pauza (s)" VerticalAlignment="Center" Margin="0" />
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                             Classes="speedCompactTextBox"
+                             Width="40"
+                             MinWidth="20"
+                             HorizontalContentAlignment="Right"
+                             Text="{Binding PauseSecondsText, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+
+                <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
+
+                <DockPanel>
+                    <TextBlock Classes="sectionHeader" Text="Stav kalibrácie" DockPanel.Dock="Left" />
+                    <TextBlock Text="{Binding CalibrationProgressText}" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+                </DockPanel>
+                <ProgressBar Minimum="0" Maximum="100" Value="{Binding CalibrationProgress}" Height="12" Width="230" MinWidth="230" MaxWidth="230" HorizontalAlignment="Left" />
+                <TextBlock Text="{Binding CalibrationStatusText}" TextWrapping="Wrap" FontSize="12" Foreground="#5B6575" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="0" Grid.Column="1" Classes="speedCard" Padding="10">
+            <DockPanel LastChildFill="True">
+
+                <TextBlock DockPanel.Dock="Top"
+                           Classes="sectionHeader"
+                           Text="Krivka rýchlostného profilu"
+                           FontSize="18"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8" />
+
+                <Border Classes="speedCard" Padding="8">
+                    <DockPanel LastChildFill="True">
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="{Binding SelectedProfileDisplayName}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{Binding SelectedProfileDisplayForeground}"
+                                   Margin="0,0,0,6" />
+
+                        <Border DockPanel.Dock="Bottom"
+                                Background="#F8FAFC"
+                                BorderBrush="#D7DEE8"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10,8"
+                                Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="70">
+                                <RadioButton Classes="profileModeRadioButton"
+                                             GroupName="CalibrationProfileMode"
+                                             Content="Profil dopredu"
+                                             IsChecked="{Binding IsForwardProfileSelected, Mode=TwoWay}" />
+                                <RadioButton Classes="profileModeRadioButton"
+                                             GroupName="CalibrationProfileMode"
+                                             Content="Profil dozadu"
+                                             IsChecked="{Binding IsBackwardProfileSelected, Mode=TwoWay}" />
+                                <RadioButton Classes="profileModeRadioButton"
+                                             GroupName="CalibrationProfileMode"
+                                             Content="Obidva profily"
+                                             IsChecked="{Binding IsBothProfilesSelected, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock DockPanel.Dock="Bottom"
+                                   Text="{Binding DecoderStepAxisTitle}"
+                                   HorizontalAlignment="Center"
+                                   FontWeight="Bold"
+                                   FontSize="14"
+                                   Foreground="#1F2937"
+                                   Margin="0,0,0,26" />
+
+                        <Grid ColumnDefinitions="28,*" ColumnSpacing="2">
+                        <Canvas Grid.Column="0" Width="28" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                            <TextBlock Text="Model Speed (km/h)" Canvas.Left="-50" Canvas.Top="170" FontWeight="SemiBold" FontSize="14" Foreground="#1F2937">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform Angle="-90" />
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                        </Canvas>
+
+                        <Viewbox Grid.Column="1" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid Width="900" Height="620">
+                                <Canvas x:Name="ForwardSpeedProfileChartCanvas" Width="900" Height="620" Background="Transparent">
+                                    <Rectangle Width="824" Height="522" Stroke="#AEBCCC" StrokeThickness="1" Canvas.Left="58" Canvas.Top="22">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#F9FBFD" Offset="0" />
+                                                <GradientStop Color="#EEF4FA" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+
+                                    <Line StartPoint="58,22" EndPoint="58,544" Stroke="#7F8FA3" StrokeThickness="1.4" />
+                                    <Line StartPoint="58,544" EndPoint="882,544" Stroke="#7F8FA3" StrokeThickness="1.4" />
+
+                                    <ItemsControl x:Name="ForwardVerticalGridLinesPresenter" Width="900" Height="620" ItemsSource="{Binding VerticalGridLines}" IsHitTestVisible="False">
+                                        <ItemsControl.Styles>
+                                            <Style Selector="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="0" />
+                                                <Setter Property="Canvas.Top" Value="0" />
+                                                <Setter Property="Width" Value="900" />
+                                                <Setter Property="Height" Value="620" />
+                                            </Style>
+                                        </ItemsControl.Styles>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ChartGridLineViewModel">
+                                                <Canvas Width="900" Height="620" IsHitTestVisible="False">
+                                                    <Line StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" Stroke="#D3DCE8" StrokeThickness="1" />
+                                                </Canvas>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ItemsControl x:Name="ForwardHorizontalGridLinesPresenter" Width="900" Height="620" ItemsSource="{Binding HorizontalGridLines}" IsHitTestVisible="False">
+                                        <ItemsControl.Styles>
+                                            <Style Selector="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="0" />
+                                                <Setter Property="Canvas.Top" Value="0" />
+                                                <Setter Property="Width" Value="900" />
+                                                <Setter Property="Height" Value="620" />
+                                            </Style>
+                                        </ItemsControl.Styles>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ChartGridLineViewModel">
+                                                <Canvas Width="900" Height="620" IsHitTestVisible="False">
+                                                    <Line StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" Stroke="#D3DCE8" StrokeThickness="1" />
+                                                </Canvas>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Line StartPoint="99.2,22" EndPoint="99.2,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                    <Line StartPoint="470,22" EndPoint="470,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                    <Line StartPoint="676,22" EndPoint="676,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                    <TextBlock Text="predp. max" Canvas.Left="760" Canvas.Top="0" FontSize="20" Foreground="#475569" />
+
+                                    <Path Data="{Binding ForwardAreaPathData}"
+                                          IsVisible="{Binding IsForwardProfileVisible}"
+                                          IsHitTestVisible="False">
+                                        <Path.Fill>
+                                            <!-- Gradient kolmý na krivku: pri krivke ľahký nádych modrej, smerom k baseline priehľadné -->
+                                            <LinearGradientBrush StartPoint="{Binding ForwardGradientStart}" EndPoint="{Binding ForwardGradientEnd}">
+                                                <GradientStop Color="#66A0BEEF" Offset="0" />
+                                                <GradientStop Color="#40B5D4EE" Offset="0.35" />
+                                                <GradientStop Color="#20D6E8F5" Offset="0.7" />
+                                                <GradientStop Color="#00EEF6FF" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Path.Fill>
+                                    </Path>
+                                    <Path Data="{Binding BackwardAreaPathData}"
+                                          IsVisible="{Binding IsBackwardProfileVisible}"
+                                          IsHitTestVisible="False">
+                                        <Path.Fill>
+                                            <!-- Gradient kolmý na krivku: pri krivke ľahký nádych červenej, smerom k baseline priehľadné -->
+                                            <LinearGradientBrush StartPoint="{Binding BackwardGradientStart}" EndPoint="{Binding BackwardGradientEnd}">
+                                                <GradientStop Color="#66EE9090" Offset="0" />
+                                                <GradientStop Color="#40F5B1B1" Offset="0.35" />
+                                                <GradientStop Color="#20FAD0D0" Offset="0.7" />
+                                                <GradientStop Color="#00FDECEC" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Path.Fill>
+                                    </Path>
+                                    <Path Data="{Binding ForwardCurvePathData}" Stroke="#1976D2" StrokeThickness="4" IsVisible="{Binding IsForwardProfileVisible}" />
+                                    <Path Data="{Binding BackwardCurvePathData}" Stroke="#C53030" StrokeThickness="4" IsVisible="{Binding IsBackwardProfileVisible}" />
+                                    <Path Data="{Binding ForwardMarkerPathData}"
+                                          Fill="#FFFFFF"
+                                          Stroke="#1976D2"
+                                          StrokeThickness="3"
+                                          IsVisible="{Binding IsForwardProfileVisible}"
+                                          IsHitTestVisible="False" />
+                                    <Path Data="{Binding BackwardMarkerPathData}"
+                                          Fill="#FFFFFF"
+                                          Stroke="#C53030"
+                                          StrokeThickness="3"
+                                          IsVisible="{Binding IsBackwardProfileVisible}"
+                                          IsHitTestVisible="False" />
+
+                                    <ItemsControl x:Name="ForwardYAxisLabelsPresenter" Width="900" Height="620" ItemsSource="{Binding YAxisLabels}">
+                                        <ItemsControl.Styles>
+                                            <Style Selector="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                            </Style>
+                                        </ItemsControl.Styles>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:AxisLabelViewModel">
+                                                <TextBlock Text="{Binding Text}" Width="28" TextAlignment="Right" FontSize="20" Foreground="#334155" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ItemsControl x:Name="ForwardXAxisLabelsPresenter" Width="900" Height="620" ItemsSource="{Binding XAxisLabels}">
+                                        <ItemsControl.Styles>
+                                            <Style Selector="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                            </Style>
+                                        </ItemsControl.Styles>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:AxisLabelViewModel">
+                                                <TextBlock Text="{Binding Text}"
+                                                           FontSize="20"
+                                                           Foreground="#334155" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ItemsControl x:Name="ForwardXAxisTickMarksPresenter" Width="900" Height="620" ItemsSource="{Binding XAxisTickMarks}" IsHitTestVisible="False">
+                                        <ItemsControl.Styles>
+                                            <Style Selector="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="0" />
+                                                <Setter Property="Canvas.Top" Value="0" />
+                                                <Setter Property="Width" Value="900" />
+                                                <Setter Property="Height" Value="620" />
+                                            </Style>
+                                        </ItemsControl.Styles>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ChartGridLineViewModel">
+                                                <Canvas Width="900" Height="620" IsHitTestVisible="False">
+                                                    <Line StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" Stroke="#7F8FA3" StrokeThickness="1.2" />
+                                                </Canvas>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                </Canvas>
+                                <Canvas x:Name="ForwardSpeedProfileChartInteractionCanvas" Width="900" Height="620" Background="Transparent" />
+                            </Grid>
+                        </Viewbox>
+                    </Grid>
+                    </DockPanel>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="0" Grid.Column="2" RowDefinitions="*" RowSpacing="14">
+            <Border Grid.Row="0" Classes="speedCard" Padding="10">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <TextBlock Grid.Row="0" Classes="sectionHeader" Text="Namerané rýchlosti" FontSize="18" HorizontalAlignment="Center" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10" VerticalAlignment="Stretch">
+                        <Border Grid.Column="0" Classes="speedCard" Padding="8" Width="194" VerticalAlignment="Stretch">
+                            <DockPanel LastChildFill="True">
+                                <Border Classes="profileHeaderBar" Background="#1F77B4" DockPanel.Dock="Top">
+                                    <TextBlock Classes="profileHeaderBarText" Text="Smer dopredu" />
+                                </Border>
+                                <DataGrid
+                                          Classes="speedGrid"
+                                          x:CompileBindings="False"
+                                          ItemsSource="{Binding ForwardSpeedProfileRows}"
+                                          SelectedItem="{Binding SelectedSpeedProfileRow, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          RowHeight="26"
+                                          CanUserResizeColumns="False"
+                                          CanUserSortColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="40" MinWidth="40" CanUserSort="False" IsReadOnly="True">
+                                            <DataGridTemplateColumn.Header>
+                                                <TextBlock Text="Typ" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate x:DataType="vm:SpeedProfileTableRowViewModel">
+                                                    <Border Background="{Binding TypeBadgeBackground}" BorderBrush="{Binding TypeBadgeBorder}" BorderThickness="1" CornerRadius="10" Padding="0" Width="22" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusSummary}">
+                                                        <TextBlock Text="{Binding TypeBadgeText}" Foreground="{Binding TypeBadgeForeground}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45" MinWidth="45" CanUserSort="False">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="Krok" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding FwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="89" MinWidth="89" CanUserSort="False">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="Nameraná&#x0a;km/h" TextWrapping="Wrap" TextAlignment="Center" MaxLines="2" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Classes="speedCard" Padding="8" Width="194" VerticalAlignment="Stretch">
+                            <DockPanel LastChildFill="True">
+                                <Border Classes="profileHeaderBar" Background="#C53030" DockPanel.Dock="Top">
+                                    <TextBlock Classes="profileHeaderBarText" Text="Smer dozadu" />
+                                </Border>
+                                <DataGrid
+                                          Classes="speedGrid"
+                                          x:CompileBindings="False"
+                                          ItemsSource="{Binding BackwardSpeedProfileRows}"
+                                          SelectedItem="{Binding SelectedSpeedProfileRow, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          RowHeight="26"
+                                          CanUserResizeColumns="True"
+                                          CanUserSortColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="40" MinWidth="40" CanUserSort="False" IsReadOnly="True">
+                                            <DataGridTemplateColumn.Header>
+                                                <TextBlock Text="Typ" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate x:DataType="vm:SpeedProfileTableRowViewModel">
+                                                    <Border Background="{Binding TypeBadgeBackground}" BorderBrush="{Binding TypeBadgeBorder}" BorderThickness="1" CornerRadius="10" Padding="0" Width="22" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusSummary}">
+                                                        <TextBlock Text="{Binding TypeBadgeText}" Foreground="{Binding TypeBadgeForeground}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45" MinWidth="45" CanUserSort="False">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="Krok" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding BwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="89" MinWidth="89" CanUserSort="False">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="Nameraná&#x0a;km/h" TextWrapping="Wrap" TextAlignment="Center" MaxLines="2" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+
+            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="12" HorizontalAlignment="Stretch">
+                <Button Grid.Column="0" Classes="speedAccentButton" Content="Štart automatického merania" Command="{Binding StartAutomatedSequenceCommand}" />
+                <Button Grid.Column="1" Classes="speedPrimaryButton" Content="Pridať bod manuálne" Command="{Binding AddPointManuallyCommand}" IsEnabled="{Binding CanAddPointManually}" />
+                <Button Grid.Column="2" Classes="speedPrimaryButton" Content="Inicializovať profil" Click="OnInitializeProfileClick" />
+                <Button Grid.Column="3" Classes="speedPrimaryButton" Content="Verify" Command="{Binding VerifyCommand}" />
+                <Button Grid.Column="4" Classes="speedPrimaryButton" Content="Uložiť profil" Command="{Binding SaveProfileCommand}" IsEnabled="{Binding CanSaveActiveProfile}" />
+            </Grid>
+        </Grid>
+</Window>

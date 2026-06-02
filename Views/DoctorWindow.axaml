@@ -1,0 +1,106 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:TrackFlow.Services"
+        x:Class="TrackFlow.Views.DoctorWindow"
+        x:CompileBindings="False"
+        Title="TrackFlow Doktor - Diagnostika" Width="1200" Height="600">
+
+    <Window.Styles>
+        <!-- Farby ikoniek v správach (Začiatok/Koniec cesty) -->
+        <!-- ▶ zelený -->
+        <Style Selector="TextBlock.routeStartIcon">
+            <Setter Property="Foreground" Value="#2E7D32"/>
+        </Style>
+        <!-- ■ tmavo žltý / medový -->
+        <Style Selector="TextBlock.routeEndIcon">
+            <Setter Property="Foreground" Value="#B8860B"/>
+        </Style>
+    </Window.Styles>
+    
+    <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Background="#f0f0f0" Padding="6,4">
+            <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="✚" VerticalAlignment="Center" FontWeight="Bold" FontSize="15" Foreground="#2E7D32"/>
+                    <TextBlock Text="On-line diagnostika" VerticalAlignment="Center" FontWeight="Bold" FontSize="14"/>
+                    <TextBlock Name="EventCounterTextBlock"
+                               Text="Udalosti: 0 / 0"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Margin="4,0,8,0"/>
+                    <Button Name="SaveLogButton" Content="Uložiť log" FontSize="12" Padding="8,2" Height="24"/>
+                    <Button Name="SaveFilteredLogButton" Content="Uložiť filtrovaný log" FontSize="12" Padding="8,2" Height="24"/>
+                    <Button Name="CopyFilteredLogButton" Content="Kopírovať filtrovaný log" FontSize="12" Padding="8,2" Height="24"/>
+                    <Button Name="CopyFullLogButton" Content="Kopírovať celý log" FontSize="12" Padding="8,2" Height="24"/>
+                    <Button Name="InsertMarkerButton" Content="Vložiť značku" FontSize="12" Padding="8,2" Height="24"/>
+                    <Button Name="ClearLogButton" Content="Vymazať" FontSize="12" Padding="8,2" Height="24"/>
+                    <CheckBox Name="AutoScrollCheckBox"
+                              Content="Automatické posúvanie"
+                              IsChecked="True"
+                              VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Filtre viacvlakovej diagnostiky:" FontSize="11" FontWeight="SemiBold"/>
+                    <WrapPanel Name="FiltersPanel" ItemHeight="22">
+                        <CheckBox Content="Čakanie" Tag="WAIT" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Diagnostika čakania a opakovaných pokusov."/>
+                        <CheckBox Content="Arbitráž" Tag="ARBITER" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Rozhodovanie o priorite po uvoľnení shared prvku."/>
+                        <CheckBox Content="Patová situácia" Tag="DEADLOCK" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Detekcia a rozbitie kruhového čakania medzi cestami."/>
+                        <CheckBox Content="Blok" Tag="BLOCK" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Rezervácie a runtime stav blokov."/>
+                        <CheckBox Content="Výhybka" Tag="TURNOUT" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Požiadavky a konflikty výhybiek."/>
+                        <CheckBox Content="Návestidlo" Tag="SIGNAL" FontSize="11" Height="20" Margin="0,0,8,0" ToolTip.Tip="Zmeny aspektov a stavov návestidiel."/>
+                    </WrapPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Name="DoctorGrid"
+                  Grid.Row="1"
+                  ItemsSource="{Binding FilteredEvents}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="All"
+                  RowHeight="17"
+                  FontSize="11"
+                  ColumnHeaderHeight="20">
+            <DataGrid.Styles>
+                <!-- Kompaktné header bunky -->
+                <Style Selector="DataGridColumnHeader">
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="4,1"/>
+                    <Setter Property="MinHeight" Value="0"/>
+                </Style>
+                <!-- Kompaktné riadky: minimálna výška, žiadne extra padding -->
+                <Style Selector="DataGridCell">
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="4,1"/>
+                    <Setter Property="MinHeight" Value="0"/>
+                </Style>
+            </DataGrid.Styles>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Čas"    Binding="{Binding Timestamp, StringFormat=\{0:HH:mm:ss\}}" Width="80"/>
+                <DataGridTextColumn Header="Zdroj"  Binding="{Binding DisplaySource}"  Width="150"/>
+                <DataGridTemplateColumn Header="Správa" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="local:DiagnosticEvent">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                 <Image Source="{Binding MessageIconImage}"
+                                        IsVisible="{Binding HasMessageIconImage}"
+                                        Width="16" Height="16"
+                                        VerticalAlignment="Center"
+                                        Stretch="Uniform"/>
+                                <TextBlock Text="{Binding MessageIcon}"
+                                           IsVisible="{Binding HasMessageIcon}"
+                                           FontWeight="Bold"
+                                           Classes.routeStartIcon="{Binding IsRouteStartIcon}"
+                                           Classes.routeEndIcon="{Binding IsRouteEndIcon}"/>
+                                <TextBlock Text="{Binding MessageText}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Úroveň"  Binding="{Binding DisplayLevelText}"   Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

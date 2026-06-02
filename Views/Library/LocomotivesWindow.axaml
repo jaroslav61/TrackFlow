@@ -1,0 +1,1542 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shapes="clr-namespace:Avalonia.Controls.Shapes;assembly=Avalonia.Controls"
+        xmlns:primitives="clr-namespace:Avalonia.Controls.Primitives;assembly=Avalonia.Controls"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
+        xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
+        x:Class="TrackFlow.Views.Library.LocomotivesWindow" x:DataType="vm:LocomotivesWindowViewModel"
+        Title="Editor lokomotív" Width="1400" Height="860" WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
+        <conv:StringNotNullOrWhiteSpaceToBoolConverter x:Key="StringNotNullOrWhiteSpaceToBoolConverter" />
+        <conv:EqualsStringConverter x:Key="EqualsStringConverter" />
+        <conv:ObjectNullToBoolConverter x:Key="ObjectNullToBoolConverter" />
+        <DataTemplate x:Key="CalibrationIndicatorComboItemTemplate" x:DataType="vm:CalibrationIndicatorOption">
+            <StackPanel Orientation="Horizontal" Spacing="7" MinWidth="210">
+                <Image Width="16" Height="16" Source="{Binding IconPath}" Stretch="Uniform" />
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="None" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="ComboBox">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Slider.thresholdBalanceSlider">
+            <Setter Property="Width" Value="220" />
+            <Setter Property="Template">
+                <ControlTemplate x:DataType="Slider">
+                    <Grid Width="{TemplateBinding Width}" RowDefinitions="Auto,10,22">
+                        <Grid Grid.Row="0" Width="{TemplateBinding Width}" ColumnDefinitions="*,*,*">
+                            <TextBlock Grid.Column="0" Text="Dozadu" FontSize="11" Foreground="#5B6575" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Column="1" Text="0" FontSize="11" FontWeight="Bold" Foreground="#374151" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="Dopredu" FontSize="11" Foreground="#5B6575" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Grid.Row="1"
+                              Width="{TemplateBinding Width}"
+                              Margin="8,0"
+                              Height="10"
+                              ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*">
+                            <Border Grid.Column="0" Width="1" Height="5" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="1" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="2" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="3" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="4" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="5" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="6" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="7" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="8" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="9" Width="1" Height="5" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="10" Width="1" Height="9" Background="#374151" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="11" Width="1" Height="5" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="12" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="13" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="14" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="15" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="16" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="17" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="18" Width="1" Height="4" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="19" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="20" Width="1" Height="5" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                        </Grid>
+
+                        <Grid Grid.Row="2" Width="{TemplateBinding Width}" Margin="8,0">
+                            <Border Height="2" Background="#7C8796" CornerRadius="1" VerticalAlignment="Center" />
+                            <Border Width="1" Height="14" Background="#374151" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <primitives:Track x:Name="PART_Track"
+                                              Orientation="Horizontal"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Minimum="{TemplateBinding Minimum}"
+                                              Maximum="{TemplateBinding Maximum}"
+                                              Value="{TemplateBinding Value}">
+                                <primitives:Track.Thumb>
+                                    <Thumb Width="10" Height="18" Background="Transparent">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Border Width="10"
+                                                        Height="18"
+                                                        Background="#586474"
+                                                        BorderBrush="#2F3A47"
+                                                        BorderThickness="1"
+                                                        CornerRadius="1"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </primitives:Track.Thumb>
+                            </primitives:Track>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="Slider.dccCompactSlider">
+            <Setter Property="Margin" Value="0,2,0,2" />
+            <Setter Property="TickPlacement" Value="BottomRight" />
+            <Setter Property="TickFrequency" Value="25" />
+            <Setter Property="Template">
+                <ControlTemplate x:DataType="Slider">
+                    <Grid RowDefinitions="20,10">
+                        <Grid Grid.Row="0" Margin="6,0">
+                            <Border Height="2" Background="#7C8796" CornerRadius="1" VerticalAlignment="Center" />
+                            <primitives:Track x:Name="PART_Track"
+                                              Orientation="Horizontal"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Minimum="{TemplateBinding Minimum}"
+                                              Maximum="{TemplateBinding Maximum}"
+                                              Value="{TemplateBinding Value}">
+                                <primitives:Track.Thumb>
+                                    <Thumb Width="12" Height="18" Background="Transparent">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Image Width="12"
+                                                       Height="18"
+                                                       Source="avares://TrackFlow/Assets/Appicons/12/slider_green.png"
+                                                       Stretch="Uniform" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </primitives:Track.Thumb>
+                            </primitives:Track>
+                        </Grid>
+
+                        <Grid Grid.Row="1"
+                              Margin="6,0"
+                              Height="10"
+                              ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*">
+                            <Border Grid.Column="0" Width="1" Height="7" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="1" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="2" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="3" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="4" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="5" Width="1" Height="7" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="6" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="7" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="8" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="9" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="10" Width="1" Height="7" Background="#374151" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="11" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="12" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="13" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="14" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="15" Width="1" Height="7" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="16" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="17" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="18" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="19" Width="1" Height="3" Background="#9CA3AF" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                            <Border Grid.Column="20" Width="1" Height="7" Background="#6B7280" VerticalAlignment="Top" HorizontalAlignment="Center" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.dccCvBadge">
+            <Setter Property="Background" Value="#ECEFF3" />
+            <Setter Property="BorderBrush" Value="#D1D5DB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="5,1" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="TextBlock.dccCvBadgeText">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="#4B5563" />
+        </Style>
+
+        <Style Selector="Border[IsEnabled=False] StackPanel.dccDisabledTextContent">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+        <Style Selector="Border[IsEnabled=False] Grid.dccDisabledTextContent">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
+        <Style Selector="Border.speedCard">
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D7DEE8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BoxShadow" Value="0 4 18 0 #16000000" />
+        </Style>
+
+        <Style Selector="TextBlock.sectionHeader">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#1F2937" />
+        </Style>
+
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#5B6575" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style Selector="Button.speedPrimaryButton">
+            <Setter Property="Background" Value="#F8FAFF" />
+            <Setter Property="BorderBrush" Value="#BFD5FF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.speedAccentButton">
+            <Setter Property="Background" Value="#DFF1FF" />
+            <Setter Property="BorderBrush" Value="#93C5FD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.speedCalibrationLaunchButton">
+            <Setter Property="Background" Value="#1D4ED8" />
+            <Setter Property="BorderBrush" Value="#1E40AF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Padding" Value="24,12" />
+            <Setter Property="Height" Value="58" />
+            <Setter Property="MinWidth" Value="360" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="RadioButton.profileModeRadioButton">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="Padding" Value="4,2" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid">
+            <Setter Property="GridLinesVisibility" Value="All" />
+            <Setter Property="RowHeight" Value="26" />
+            <Setter Property="RowHeaderWidth" Value="0" />
+            <Setter Property="BorderBrush" Value="#D5DCE6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="Background" Value="#FFFFFF" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid DataGridColumnHeader">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="DataGrid.speedGrid DataGridCell">
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="BorderBrush" Value="#D5DCE6" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Cursor" Value="IBeam" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+
+        <Style Selector="ComboBox.speedCompactCombo">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style Selector="TextBox.speedCompactTextBox">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#C7D2E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <!-- Potlač focus border v bunkách DataGrid -->
+        <Style Selector="DataGridCell:focus /template/ Panel#FocusVisual">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto" Margin="10">
+        <Grid Grid.Row="0" ColumnDefinitions="360,5,*" RowDefinitions="*">
+
+            <Border Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1">
+                <DataGrid x:Name="LocoGrid"
+                          Classes="locoGrid"
+                          ItemsSource="{Binding Locomotives}"
+                          SelectedItem="{Binding Selected, Mode=TwoWay}"
+                          IsHitTestVisible="{Binding IsGridEnabled}"
+                          AutoGenerateColumns="False"
+                          RowHeight="22"
+                          GridLinesVisibility="All"
+                          HeadersVisibility="Column"
+                          CanUserReorderColumns="False"
+                          CanUserResizeColumns="False"
+                          CanUserSortColumns="True">
+
+
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Ikona" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image
+                                            Source="{Binding IconName, Converter={StaticResource IconNameToPathConverter}}"
+                                            Height="24" Stretch="Uniform" />
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Názov" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="Adresa" Binding="{Binding Address}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" Background="#E0E0E0" />
+
+            <Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1" Padding="12">
+                <Grid RowDefinitions="Auto,*"
+                      ColumnDefinitions="*,340"
+                      ColumnSpacing="6" RowSpacing="8"
+                      x:CompileBindings="False">
+
+                    <!-- SKUPINA: Všeobecné (ľavý panel) - obsahuje aj výber ikony v pravom hornom rohu -->
+                   <Border Grid.Row="0" Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1">
+                     <StackPanel>
+                      <Border Background="#E8E8E8" Padding="8,4">
+                      <TextBlock Text="Všeobecné" FontWeight="Bold" FontSize="13" />
+                     </Border>
+                     <Border Padding="8">
+                      <Grid ColumnDefinitions="Auto,16,220" RowDefinitions="Auto,Auto,Auto" HorizontalAlignment="Left" RowSpacing="8">
+                         <Grid Grid.Row="0" Grid.Column="0"
+                           ColumnDefinitions="45,350"
+                      ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center"  FontSize="12" Text="Názov" />
+                    <TextBox x:Name="NameBox"
+                             Grid.Column="1"
+                             Width="350"
+                             Height="26"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"
+                             Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                     </Grid>
+
+                     <Grid Grid.Row="1" Grid.Column="0"
+                      ColumnDefinitions="45,350"
+                      ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Popis" />
+                    <TextBox Grid.Column="1"
+                             Width="350"
+                             Height="26"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"
+                             Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+                      </Grid>
+
+                      <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
+                      ColumnDefinitions="Auto,*"
+                      ColumnSpacing="8"
+                      VerticalAlignment="Top"
+                      Margin="0,0,0,0">
+                          <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Ikona:" />
+                          <ComboBox Grid.Column="1" Height="50" Width="165" HorizontalAlignment="Left"
+                              ItemsSource="{Binding IconComboItems}"
+                              SelectedItem="{Binding SelectedIcon, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Image
+                                        Source="{Binding FullPath, Converter={StaticResource IconNameToPathConverter}}"
+                                        Height="32" Stretch="Uniform"
+                                        IsVisible="{Binding FullPath, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}}" />
+                                    <TextBlock Text="{Binding Name}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               IsVisible="{Binding FullPath, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}, ConverterParameter=Invert}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                     </ComboBox>
+                      </Grid>
+
+                        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                      ColumnDefinitions="210,12,180,12,210"
+                      ColumnSpacing="0">
+                        <Grid Grid.Column="0"
+                          RowDefinitions="Auto,Auto,Auto,Auto"
+                          ColumnDefinitions="72,120,Auto"
+                          ColumnSpacing="8"
+                          RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Epocha" />
+                        <ComboBox Grid.Row="0" Grid.Column="1" Height="26" Width="150" Margin="-25,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  ItemsSource="{Binding EpochChoices}"
+                                  SelectedItem="{Binding SelectedEpoch, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Depo" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Height="26" Width="150" Margin="-25,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                 Text="{Binding HomeDepot, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Typ" />
+                        <ComboBox Grid.Row="2" Grid.Column="1" Width="150" Height="26" Margin="-25,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  ItemsSource="{Binding LocomotiveTypes}"
+                                  SelectedItem="{Binding SelectedLocomotiveType, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Min. polomer" />
+                        <TextBox x:Name="MinRadiusBox" Grid.Row="3" Grid.Column="1" Width="75" Height="26"  HorizontalContentAlignment="Right" Margin="5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" MaxLength="4"
+                                 Text="{Binding MinRadiusText, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="[mm]" Margin="-35,0,0,0" FontSize="12" />
+                       </Grid>
+
+                         <Grid Grid.Column="2"
+                          RowDefinitions="Auto,Auto,Auto,Auto"
+                          ColumnDefinitions="120,50"
+                          ColumnSpacing="8"
+                          RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12" Text="Číslo" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Height="26" Width="120" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="110,40,Auto" ColumnSpacing="0">
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12" Text="Kont. bod vpredu" />
+                            <TextBox x:Name="ContactPointForwardBox" Grid.Column="1" Height="26" Width="35" MinWidth="35" MaxWidth="35" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                     MaxLength="2" TextAlignment="Right"
+                                     Text="{Binding ContactPointForward, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[mm]" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="110,40,Auto" ColumnSpacing="0">
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12" Text="Kont. bod vzadu" />
+                            <TextBox x:Name="ContactPointBackwardBox" Grid.Column="1" Height="26" Width="35" MinWidth="35" MaxWidth="35" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                     MaxLength="2" TextAlignment="Right"
+                                     Text="{Binding ContactPointBackward, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[mm]" Margin="0,0,0,0" />
+                          
+                        </Grid>
+                        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="12" Text="Mierka" />
+                        <ComboBox Grid.Row="3" Grid.Column="1" Height="26" Width="120" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  ItemsSource="{Binding ScaleChoices}"
+                                  SelectedItem="{Binding SelectedScale, Mode=TwoWay}" />
+                            </Grid>
+
+                           <Grid Grid.Column="4"
+                          RowDefinitions="Auto,Auto,Auto,Auto"
+                          ColumnDefinitions="80,70,Auto"
+                          ColumnSpacing="8"
+                          RowSpacing="8">
+                           <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Max. rýchlosť" />
+                          <TextBox x:Name="MaxSpeedBox" Grid.Row="0" Grid.Column="1" Height="26" VerticalAlignment="Center" MaxLength="3"
+                                 Text="{Binding MaxSpeedText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[km/h]" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Výkon" />
+                            <TextBox x:Name="PowerBox" Grid.Row="1" Grid.Column="1" Height="26" VerticalAlignment="Center" MaxLength="4"
+                                 Text="{Binding PowerText, UpdateSourceTrigger=PropertyChanged}" />
+                               <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[kW]" />
+
+                               <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Dĺžka" />
+                              <TextBox x:Name="LengthBox" Grid.Row="2" Grid.Column="1" Height="26" VerticalAlignment="Center" MaxLength="4"
+                                 Text="{Binding LengthCmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                              <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[cm]" />
+
+                             <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Hmotnosť" />
+                             <TextBox x:Name="WeightBox" Grid.Row="3" Grid.Column="1" Height="26" VerticalAlignment="Center" MaxLength="4"
+                                 Text="{Binding WeightText, UpdateSourceTrigger=PropertyChanged}" />
+                              <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Text="[t]" />
+                                </Grid>
+                              </Grid>
+                               </Grid>
+                                 </Border>
+                                 </StackPanel>
+                        </Border>
+
+                      <!-- SKUPINA: DCC / Dekodér (pravý panel) -->
+                      <Border Grid.Row="0" Grid.Column="1" BorderBrush="#C8C8C8" BorderThickness="1">
+                        <Grid RowDefinitions="Auto,*">
+                            <Border Background="#E8E8E8" Padding="8,4">
+                                <TextBlock Text="DCC / Dekodér" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Padding="8">
+                                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"
+                                      ColumnDefinitions="90,*"
+                                      ColumnSpacing="8"
+                                      RowSpacing="6">
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Krok dekodéra:"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding DecoderTypes}"
+                                              SelectedItem="{Binding SelectedDecoderType, Mode=TwoWay}" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="DCC systém:"/>
+                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding DigitalSystems}"
+                                              SelectedItem="{Binding SelectedDigitalSystem, Mode=TwoWay}"
+                                              PlaceholderText="-- Zvoľte DCC systém --"
+                                              IsEnabled="{Binding HasConfiguredDigitalSystems}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding DisplayText}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Text="Adresa:"/>
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <TextBox x:Name="AddressBox"
+                                                 Width="70"
+                                                 MaxLength="5"
+                                                 Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Text="{Binding AddressKindText}"
+                                                   FontSize="12"
+                                                   Foreground="#5B6575" />
+                                    </StackPanel>
+
+                                    <Border Grid.Row="4"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Height="1"
+                                            Margin="0,6,0,2"
+                                            Background="#D7DEE8" />
+
+                                    <UniformGrid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Rows="1" HorizontalAlignment="Stretch" Margin="0,6,0,0">
+                                        <Button x:Name="ReadAddressButton"
+                                                Content="Načítať adresu"
+                                                Command="{Binding ReadAddressCommand}"
+                                                IsEnabled="{Binding CanReadDecoderAddress}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                Padding="10,6"
+                                                FontSize="12"
+                                                Margin="0,0,4,0"/>
+
+                                        <Button x:Name="WriteAddressButton"
+                                                Content="Zapísať adresu"
+                                                Command="{Binding WriteAddressCommand}"
+                                                IsEnabled="{Binding CanWriteDecoderAddress}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                Padding="10,6"
+                                                FontSize="12"
+                                                Margin="4,0,0,0"/>
+                                    </UniformGrid>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+               
+                      <!-- TAB CONTROL -->
+                      <TabControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                  Classes="tc-tabs"
+                                  VerticalAlignment="Stretch"
+                                  HorizontalAlignment="Stretch">
+
+                          <TabItem Header="Rýchlosť">
+                                  <Grid Margin="12" ColumnDefinitions="*,500" ColumnSpacing="10">
+                                      <Grid Grid.Column="0" RowDefinitions="*,Auto" RowSpacing="10">
+                                          <Border Grid.Row="0" Classes="speedCard" Padding="12">
+                                              <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+                                                  <TextBlock Grid.Row="0"
+                                                             Text="Náhľad uloženého rýchlostného profilu"
+                                                             FontSize="16"
+                                                             HorizontalAlignment="Center"
+                                                             Foreground="#1F2937" />
+                                                  <TextBlock Grid.Row="1"
+                                                             Text="{Binding SpeedEditor.SelectedProfileDisplayName}"
+                                                             FontSize="14"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalAlignment="Center"
+                                                             Foreground="{Binding SpeedEditor.SelectedProfileDisplayForeground}" />
+                                                  <Border Grid.Row="2"
+                                                          Background="#F8FAFC"
+                                                          BorderBrush="#DCE5EF"
+                                                          BorderThickness="1"
+                                                          CornerRadius="8"
+                                                          Padding="8"
+                                                          MinHeight="220"
+                                                          ClipToBounds="True">
+                                                      <Grid RowDefinitions="*,Auto" RowSpacing="6" ClipToBounds="True">
+                                                          <Viewbox Grid.Row="0" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False">
+                                                              <Grid Width="900" Height="620" ClipToBounds="False">
+                                                                  <Canvas Width="900" Height="620" Background="Transparent" IsHitTestVisible="False" ClipToBounds="False">
+                                                              <Rectangle Width="824" Height="522" Stroke="#AEBCCC" StrokeThickness="1" Canvas.Left="58" Canvas.Top="22">
+                                                                  <Rectangle.Fill>
+                                                                      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                          <GradientStop Color="#F9FBFD" Offset="0" />
+                                                                          <GradientStop Color="#EEF4FA" Offset="1" />
+                                                                      </LinearGradientBrush>
+                                                                  </Rectangle.Fill>
+                                                              </Rectangle>
+
+                                                              <Line StartPoint="58,22" EndPoint="58,544" Stroke="#7F8FA3" StrokeThickness="1.4" />
+                                                              <Line StartPoint="58,544" EndPoint="882,544" Stroke="#7F8FA3" StrokeThickness="1.4" />
+
+                                                              <ItemsControl Width="900" Height="620" ItemsSource="{Binding SpeedEditor.VerticalGridLines}" IsHitTestVisible="False">
+                                                                  <ItemsControl.Styles>
+                                                                      <Style Selector="ContentPresenter">
+                                                                          <Setter Property="Canvas.Left" Value="0" />
+                                                                          <Setter Property="Canvas.Top" Value="0" />
+                                                                          <Setter Property="Width" Value="900" />
+                                                                          <Setter Property="Height" Value="620" />
+                                                                      </Style>
+                                                                  </ItemsControl.Styles>
+                                                                  <ItemsControl.ItemsPanel>
+                                                                      <ItemsPanelTemplate>
+                                                                          <Canvas />
+                                                                      </ItemsPanelTemplate>
+                                                                  </ItemsControl.ItemsPanel>
+                                                                  <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:ChartGridLineViewModel">
+                                                                        <Canvas Width="900" Height="620" IsHitTestVisible="False">
+                                                                            <Line StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" Stroke="#D3DCE8" StrokeThickness="1" />
+                                                                        </Canvas>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                            <Line StartPoint="99.2,22" EndPoint="99.2,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                                            <Line StartPoint="470,22" EndPoint="470,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                                            <Line StartPoint="676,22" EndPoint="676,544" Stroke="#9AA7B5" StrokeThickness="1" StrokeDashArray="5,4" />
+                                                            <TextBlock Text="predp. max" Canvas.Left="742" Canvas.Top="-2" Width="140" TextAlignment="Right" FontSize="24" FontWeight="SemiBold" Foreground="#475569" />
+
+                                                            <Path Data="{Binding SpeedEditor.ForwardAreaPathData}"
+                                                                  IsVisible="{Binding SpeedEditor.IsForwardProfileVisible}"
+                                                                  IsHitTestVisible="False">
+                                                                <Path.Fill>
+                                                                    <LinearGradientBrush StartPoint="{Binding SpeedEditor.ForwardGradientStart}" EndPoint="{Binding SpeedEditor.ForwardGradientEnd}">
+                                                                        <GradientStop Color="#66A0BEEF" Offset="0" />
+                                                                        <GradientStop Color="#40B5D4EE" Offset="0.35" />
+                                                                        <GradientStop Color="#20D6E8F5" Offset="0.7" />
+                                                                        <GradientStop Color="#00EEF6FF" Offset="1" />
+                                                                    </LinearGradientBrush>
+                                                                </Path.Fill>
+                                                            </Path>
+                                                            <Path Data="{Binding SpeedEditor.BackwardAreaPathData}"
+                                                                  IsVisible="{Binding SpeedEditor.IsBackwardProfileVisible}"
+                                                                  IsHitTestVisible="False">
+                                                                <Path.Fill>
+                                                                    <LinearGradientBrush StartPoint="{Binding SpeedEditor.BackwardGradientStart}" EndPoint="{Binding SpeedEditor.BackwardGradientEnd}">
+                                                                        <GradientStop Color="#66EE9090" Offset="0" />
+                                                                        <GradientStop Color="#40F5B1B1" Offset="0.35" />
+                                                                        <GradientStop Color="#20FAD0D0" Offset="0.7" />
+                                                                        <GradientStop Color="#00FDECEC" Offset="1" />
+                                                                    </LinearGradientBrush>
+                                                                </Path.Fill>
+                                                            </Path>
+                                                            <Path Data="{Binding SpeedEditor.ForwardCurvePathData}" Stroke="#1976D2" StrokeThickness="4" IsVisible="{Binding SpeedEditor.IsForwardProfileVisible}" IsHitTestVisible="False" />
+                                                            <Path Data="{Binding SpeedEditor.BackwardCurvePathData}" Stroke="#C53030" StrokeThickness="4" IsVisible="{Binding SpeedEditor.IsBackwardProfileVisible}" IsHitTestVisible="False" />
+                                                            <Path Data="{Binding SpeedEditor.ForwardMarkerPathData}" Fill="#FFFFFF" Stroke="#1976D2" StrokeThickness="3" IsVisible="{Binding SpeedEditor.IsForwardProfileVisible}" IsHitTestVisible="False" />
+                                                            <Path Data="{Binding SpeedEditor.BackwardMarkerPathData}" Fill="#FFFFFF" Stroke="#C53030" StrokeThickness="3" IsVisible="{Binding SpeedEditor.IsBackwardProfileVisible}" IsHitTestVisible="False" />
+
+                                                            <ItemsControl Width="900" Height="620" ItemsSource="{Binding SpeedEditor.YAxisLabels}" IsHitTestVisible="False">
+                                                                <ItemsControl.Styles>
+                                                                    <Style Selector="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                                                        <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                                                    </Style>
+                                                                </ItemsControl.Styles>
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:AxisLabelViewModel">
+                                                                        <TextBlock Text="{Binding Text}" Width="50" TextAlignment="Right" FontSize="24" FontWeight="SemiBold" Foreground="#334155" />
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                            <ItemsControl Width="900" Height="620" ItemsSource="{Binding SpeedEditor.XAxisLabels}" IsHitTestVisible="False">
+                                                                <ItemsControl.Styles>
+                                                                    <Style Selector="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                                                                        <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                                                                    </Style>
+                                                                </ItemsControl.Styles>
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:AxisLabelViewModel">
+                                                                        <TextBlock Text="{Binding Text}" FontSize="26" FontWeight="SemiBold" Foreground="#334155" />
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                            <ItemsControl Width="900" Height="620" ItemsSource="{Binding SpeedEditor.XAxisTickMarks}" IsHitTestVisible="False">
+                                                                <ItemsControl.Styles>
+                                                                    <Style Selector="ContentPresenter">
+                                                                        <Setter Property="Canvas.Left" Value="0" />
+                                                                        <Setter Property="Canvas.Top" Value="0" />
+                                                                        <Setter Property="Width" Value="900" />
+                                                                        <Setter Property="Height" Value="620" />
+                                                                    </Style>
+                                                                </ItemsControl.Styles>
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <Canvas />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:ChartGridLineViewModel">
+                                                                        <Canvas Width="900" Height="620" IsHitTestVisible="False">
+                                                                            <Line StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" Stroke="#7F8FA3" StrokeThickness="1.2" />
+                                                                        </Canvas>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                            <TextBlock Text="Modelová rýchlosť (km/h)"
+                                                                       Canvas.Left="-60"
+                                                                       Canvas.Top="470"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="30"
+                                                                       Foreground="#1F2937"
+                                                                       RenderTransformOrigin="0,0">
+                                                                <TextBlock.RenderTransform>
+                                                                    <RotateTransform Angle="-90" />
+                                                                </TextBlock.RenderTransform>
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding SpeedEditor.DecoderStepAxisTitle}"
+                                                                       Canvas.Left="240"
+                                                                       Canvas.Top="595"
+                                                                       HorizontalAlignment="Center"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="30"
+                                                                       Foreground="#1F2937" />
+                                                                </Canvas>
+                                                            </Grid>
+                                                        </Viewbox>
+                                                        <StackPanel Grid.Row="1"
+                                                                    Orientation="Horizontal"
+                                                                    HorizontalAlignment="Center"
+                                                                    Spacing="22"
+                                                                    Margin="0,0,0,2">
+                                                            <RadioButton Classes="profileModeRadioButton"
+                                                                         GroupName="SpeedPreviewMode"
+                                                                         Content="Profil dopredu"
+                                                                         IsChecked="{Binding SpeedEditor.IsForwardProfileSelected, Mode=TwoWay}" />
+                                                            <RadioButton Classes="profileModeRadioButton"
+                                                                         GroupName="SpeedPreviewMode"
+                                                                         Content="Profil dozadu"
+                                                                         IsChecked="{Binding SpeedEditor.IsBackwardProfileSelected, Mode=TwoWay}" />
+                                                            <RadioButton Classes="profileModeRadioButton"
+                                                                         GroupName="SpeedPreviewMode"
+                                                                         Content="Obidva profily"
+                                                                         IsChecked="{Binding SpeedEditor.IsBothProfilesSelected, Mode=TwoWay}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <Button Grid.Row="1"
+                                                Classes="speedCalibrationLaunchButton"
+                                                Content="Kalibrácia rýchlosti..."
+                                                Click="OpenCalibrationWindow_Click"
+                                                Margin="0,4,0,0" />
+                                    </Grid>
+
+                                    <Border Grid.Column="1"
+                                            Classes="speedCard"
+                                            Padding="10"
+                                            ClipToBounds="False">
+                                       <Grid RowDefinitions="110,190,Auto,*"  ColumnDefinitions="240,226" RowSpacing="10" ColumnSpacing="10" ClipToBounds="False">
+                                              <Border Grid.Row="0" Grid.Column="0" Width="240" Height="110" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#DCE5EF" BorderThickness="1" CornerRadius="8" Padding="8,3,8,3">
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock Classes="sectionHeader" Text="Porovnanie kriviek &amp; Štatistika" Margin="0,0,0,6" />
+                                                    <Grid ColumnDefinitions="85,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="1" RowSpacing="3">
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Max. dopredu:" FontSize="11" Foreground="#475569" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxForwardSpeedValueText}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="•" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxForwardSpeedDetailText}" FontSize="9" Foreground="#64748B" VerticalAlignment="Center" />
+                                                        </StackPanel>
+
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Max. dozadu:" FontSize="11" Foreground="#475569"  VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxBackwardSpeedValueText}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="•" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxBackwardSpeedDetailText}" FontSize="9" Foreground="#64748B" VerticalAlignment="Center" />
+                                                        </StackPanel>
+
+                                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Priem. rozdiel:" FontSize="11" Foreground="#475569" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding SpeedEditor.AverageDifferenceValueText}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="•" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding SpeedEditor.AverageDifferenceDetailText}" FontSize="9" Foreground="#64748B" VerticalAlignment="Center" />
+                                                        </StackPanel>
+
+                                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Max. odchýlka:" FontSize="11" Foreground="#475569" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxDeviationValueText}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="•" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MaxDeviationDetailText}" FontSize="9" Foreground="#64748B" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="1" Grid.Column="0" Width="240" VerticalAlignment="Stretch" Background="#F8FAFC" BorderBrush="#DCE5EF" BorderThickness="1" CornerRadius="8" Padding="8" ClipToBounds="False">
+                                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="4" MinHeight="0" ClipToBounds="False">
+                                                    <TextBlock Grid.Row="0" Classes="sectionHeader" Text="Asymetria smerov (Vpred-Vzad)" FontSize="14"/>
+                                                    <Viewbox Grid.Row="1" Stretch="Uniform" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ClipToBounds="False">
+                                                        <Canvas Width="240" Height="170" ClipToBounds="False">
+                                                            <Rectangle Width="228" Height="{Binding SpeedEditor.MechanicalRedBandHeight}" Fill="#FEE2E2" Canvas.Left="32" Canvas.Top="10" />
+                                                            <Rectangle Width="228" Height="{Binding SpeedEditor.MechanicalOrangeBandHeight}" Fill="#FFEDD5" Canvas.Left="32" Canvas.Top="{Binding SpeedEditor.MechanicalOrangeBandTop}" />
+                                                            <Rectangle Width="228" Height="{Binding SpeedEditor.MechanicalGreenBandHeight}" Fill="#DCFCE7" Canvas.Left="32" Canvas.Top="{Binding SpeedEditor.MechanicalGreenBandTop}" />
+                                                            <Rectangle Width="228" Height="118" Fill="Transparent" Stroke="#D6DEE8" StrokeThickness="1" Canvas.Left="32" Canvas.Top="10" />
+                                                            <Line StartPoint="32,10" EndPoint="32,128" Stroke="#94A3B8" StrokeThickness="1" />
+                                                            <Line StartPoint="32,128" EndPoint="260,128" Stroke="#94A3B8" StrokeThickness="1" />
+                                                            <Line StartPoint="32,39.5" EndPoint="260,39.5" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Line StartPoint="32,69" EndPoint="260,69" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Line StartPoint="32,98.5" EndPoint="260,98.5" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Line StartPoint="32,0" EndPoint="260,0" Stroke="#FB923C" StrokeThickness="1" StrokeDashArray="3,3" Canvas.Top="{Binding SpeedEditor.MechanicalWarningThresholdTop}" IsVisible="{Binding SpeedEditor.MechanicalWarningThresholdVisible}" />
+                                                            <Line StartPoint="32,0" EndPoint="260,0" Stroke="#22C55E" StrokeThickness="1" StrokeDashArray="3,3" Canvas.Top="{Binding SpeedEditor.MechanicalIdealThresholdTop}" IsVisible="{Binding SpeedEditor.MechanicalIdealThresholdVisible}" />
+                                                            <Line StartPoint="89,10" EndPoint="89,128" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Line StartPoint="146,10" EndPoint="146,128" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Line StartPoint="203,10" EndPoint="203,128" Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="3,3" />
+                                                            <Path Data="{Binding SpeedEditor.FrictionCurvePathData}" Stroke="#D97706" StrokeThickness="3" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MechanicalYAxisTopLabel}" Canvas.Left="4" Canvas.Top="6" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MechanicalYAxisThreeQuarterLabel}" Canvas.Left="6" Canvas.Top="35" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MechanicalYAxisMidLabel}" Canvas.Left="6" Canvas.Top="64" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.MechanicalYAxisQuarterLabel}" Canvas.Left="6" Canvas.Top="94" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="0" Canvas.Left="13" Canvas.Top="123" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="0" Canvas.Left="28" Canvas.Top="133" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.PerformanceQuarterStepLabel}" Canvas.Left="77" Canvas.Top="133" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.PerformanceMidStepLabel}" Canvas.Left="129" Canvas.Top="133" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.PerformanceThreeQuarterStepLabel}" Canvas.Left="181" Canvas.Top="133" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="{Binding SpeedEditor.PerformanceMaxStepLabel}" Canvas.Left="228" Canvas.Top="133" FontSize="14" Foreground="#64748B" />
+                                                            <TextBlock Text="Asymetria [%]" Canvas.Left="-70" Canvas.Top="60" FontSize="16" FontWeight="SemiBold" Foreground="#475569">
+                                                                <TextBlock.RenderTransform>
+                                                                    <RotateTransform Angle="-90" />
+                                                                </TextBlock.RenderTransform>
+                                                            </TextBlock>
+                                                            <TextBlock Text="Stupeň dekodéra" Canvas.Left="70" Canvas.Top="150" FontSize="16" FontWeight="SemiBold" Foreground="#475569" />
+                                                            <TextBlock Text="{Binding SpeedEditor.PerformanceEmptyStateText}"
+                                                                       Canvas.Left="58"
+                                                                       Canvas.Top="58"
+                                                                       Width="160"
+                                                                       TextAlignment="Center"
+                                                                       TextWrapping="Wrap"
+                                                                       FontSize="14"
+                                                                       Foreground="#64748B"
+                                                                       IsVisible="{Binding SpeedEditor.PerformanceEmptyStateText, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}}" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                    <StackPanel Grid.Row="2" Spacing="1" Margin="0,1,0,0">
+                                                        <TextBlock Text="{Binding SpeedEditor.MechanicalCriticalStepText}" FontSize="12" Foreground="#475569" />
+                                                        <TextBlock Text="{Binding SpeedEditor.FrictionPeakSummaryText}" FontSize="12" FontWeight="SemiBold" Foreground="#C2410C" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Background="#F8FAFC" BorderBrush="#DCE5EF" BorderThickness="1" CornerRadius="8" Padding="8">
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Classes="sectionHeader" Text="Odhad brzdnej dráhy" />
+                                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="22">
+                                                        <StackPanel Grid.Column="0" Spacing="2">
+                                                            <TextBlock Text="Zastavenie pri 10 km/h:" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding SpeedEditor.ForwardStop10Text}" />
+                                                            <TextBlock Text="{Binding SpeedEditor.BackwardStop10Text}" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="2">
+                                                            <TextBlock Text="Zastavenie pri 60 km/h:" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding SpeedEditor.ForwardStop60Text}" />
+                                                            <TextBlock Text="{Binding SpeedEditor.BackwardStop60Text}" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Spacing="2">
+                                                            <TextBlock Text="Zastavenie pri 120 km/h:" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding SpeedEditor.ForwardStop120Text}" />
+                                                            <TextBlock Text="{Binding SpeedEditor.BackwardStop120Text}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Height="310" MinHeight="310" VerticalAlignment="Top" Background="#F6FBF7" BorderBrush="#CFE7D3" BorderThickness="1" CornerRadius="8" Padding="8" ClipToBounds="True">
+                                                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="6" MinHeight="0" ClipToBounds="True">
+                                                    <TextBlock Grid.Row="0" Classes="sectionHeader" Text="Inteligentná diagnostika" TextAlignment="Center"/>
+                                                    <Border Grid.Row="1"
+                                                            Background="{Binding SpeedEditor.EngineStatusBackground}"
+                                                            BorderBrush="{Binding SpeedEditor.EngineStatusBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6"
+                                                            Padding="8,5">
+                                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="{Binding SpeedEditor.EngineStatusIconText}"
+                                                                       FontSize="{Binding SpeedEditor.EngineStatusIconFontSize}"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="{Binding SpeedEditor.EngineStatusForeground}"
+                                                                       VerticalAlignment="Center"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1"
+                                                                       Text="{Binding SpeedEditor.EngineStatusText}"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{Binding SpeedEditor.EngineStatusForeground}"
+                                                                       VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap" />
+                                                        </Grid>
+                                                    </Border>
+                                                    <Border Grid.Row="2" MinHeight="0" ClipToBounds="True">
+                                                        <ScrollViewer MinHeight="0"
+                                                                      VerticalAlignment="Stretch"
+                                                                      HorizontalAlignment="Stretch"
+                                                                      VerticalScrollBarVisibility="Auto"
+                                                                      HorizontalScrollBarVisibility="Disabled"
+                                                                      AllowAutoHide="False"
+                                                                      ClipToBounds="True">
+                                                            <StackPanel Spacing="6" Margin="0,0,6,0">
+                                                            <TextBlock Text="{Binding SpeedEditor.AnalysisSummaryText}" TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding SpeedEditor.AiRecommendationText}" TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding SpeedEditor.RecommendedCvTweaksText}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                        </TabItem>
+
+                        <TabItem Header="DCC konfigurácia">
+                            <Grid Margin="4"
+                                  RowDefinitions="Auto,4,Auto,4,Auto,*,Auto"
+                                  Grid.IsSharedSizeScope="True"
+                                  x:CompileBindings="False">
+
+                                <!-- Sekcia 0: Hlavná lišta DCC komunikácie -->
+                                <Border Grid.Row="0" BorderBrush="#C8C8C8" BorderThickness="1">
+                                    <StackPanel>
+                                        <Border Background="#E8E8E8" Padding="6,3">
+                                            <TextBlock Text="DCC komunikácia" FontWeight="Bold" FontSize="13" />
+                                        </Border>
+                                        <Grid Margin="4" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                            <CheckBox Grid.Column="0"
+                                                      Content="Tento dekodér podporuje DCC programovanie"
+                                                      FontSize="12"
+                                                      IsChecked="{Binding SelectedLocomotive.IsDccProgrammingEnabled, Mode=TwoWay, TargetNullValue=False}"
+                                                      Margin="0,2,0,2"
+                                                      VerticalAlignment="Center" />
+                                            <Button Grid.Column="1"
+                                                    Content="Nastaviť programovacie koľaje..."
+                                                    Click="OpenProgrammingTrackSettings_Click"
+                                                    Height="24"
+                                                    Padding="8,0"
+                                                    FontSize="12"
+                                                    HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Sekcia 1: Hardvérová konfigurácia (2 panely so SharedSizeGroup) -->
+                                <Grid Grid.Row="2"
+                                      ColumnDefinitions="*,4,*">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" SharedSizeGroup="DccConfigPanelRow" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Rýchlostný profil (CV1-6) -->
+                                    <Border Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1" Background="#F2F6FA" IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                        <StackPanel>
+                                            <Border Background="#E8E8E8" Padding="6,3">
+                                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                                    <TextBlock Text="Rýchlostný profil" FontWeight="Bold" FontSize="13"  VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV1-6" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                            <Grid Classes="dccDisabledTextContent" Margin="4" RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
+                                                  ColumnDefinitions="156,58,*" ColumnSpacing="4">
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="0" Margin="5,2,0,2">
+                                                    <TextBlock Text="Minimálna rýchlosť" FontSize="12" VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV2" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <NumericUpDown x:Name="MinSpeedCvBox" Grid.Row="0" Grid.Column="1" Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255" Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}" FormatString="0" />
+                                                <Slider Grid.Row="0" Grid.Column="2" Classes="dccCompactSlider" Minimum="0" Maximum="255" Width="220" Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}" VerticalAlignment="Center" />
+
+                                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="0" Margin="5,2,0,2">
+                                                    <TextBlock Text="Stredná rýchlosť" FontSize="12"  Padding="0,0,12,0" VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV6" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1" Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255" Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}" FormatString="0" />
+                                                <Slider Grid.Row="1" Grid.Column="2" Classes="dccCompactSlider" Minimum="0" Maximum="255" Width="220" Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}" VerticalAlignment="Center" />
+
+                                                <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="0" Margin="5,2,0,2">
+                                                    <TextBlock Text="Maximálna rýchlosť" FontSize="11"  Padding="0,0,5,0" VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV5" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <NumericUpDown x:Name="MaxSpeedCvBox" Grid.Row="2" Grid.Column="1" Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255" Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}" FormatString="0" />
+                                                <Slider Grid.Row="2" Grid.Column="2" Classes="dccCompactSlider" Minimum="0" Maximum="255" Width="220" Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Dynamika jazdy (CV3, CV4) -->
+                                    <Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1" Background="#F2F6FA" IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                        <StackPanel>
+                                            <Border Background="#E8E8E8" Padding="6,3">
+                                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                                    <TextBlock Text="Dynamika jazdy" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV3, CV4" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                            <StackPanel Classes="dccDisabledTextContent" Margin="4" Spacing="4">
+                                                <Grid RowDefinitions="Auto,Auto" RowSpacing="4"
+                                                      ColumnDefinitions="156,58,*" ColumnSpacing="4">
+                                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="0" Margin="5,2,0,2">
+                                                        <TextBlock Text="Zrýchlenie" FontSize="12" VerticalAlignment="Center" />
+                                                        <Border Classes="dccCvBadge">
+                                                            <TextBlock Classes="dccCvBadgeText" Text="CV3" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <NumericUpDown x:Name="AccelerationCvBox" Grid.Row="0" Grid.Column="1" Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255" Value="{Binding SelectedLocomotive.AccelerationCv, Mode=TwoWay, TargetNullValue=0}" FormatString="0" />
+                                                    <Slider Grid.Row="0" Grid.Column="2" Classes="dccCompactSlider" Minimum="0" Maximum="255" Width="220" Value="{Binding SelectedLocomotive.AccelerationCv, Mode=TwoWay, TargetNullValue=0}" VerticalAlignment="Center" />
+
+                                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="0" Margin="5,2,0,2">
+                                                        <TextBlock Text="Brzdenie" FontSize="12"  Padding="0,0,10,0" VerticalAlignment="Center" />
+                                                        <Border Classes="dccCvBadge">
+                                                            <TextBlock Classes="dccCvBadgeText" Text="CV4" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <NumericUpDown x:Name="BrakingCvBox" Grid.Row="1" Grid.Column="1" Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255" Value="{Binding SelectedLocomotive.BrakingCv, Mode=TwoWay, TargetNullValue=0}" FormatString="0" />
+                                                    <Slider Grid.Row="1" Grid.Column="2" Classes="dccCompactSlider" Minimum="0" Maximum="255" Width="220" Value="{Binding SelectedLocomotive.BrakingCv, Mode=TwoWay, TargetNullValue=0}" VerticalAlignment="Center" />
+                                                </Grid>
+
+                                                <Border BorderBrush="#D7DEE8" BorderThickness="0,1,0,0" Margin="0,2,0,0" />
+
+                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                                                    <TextBlock Grid.Column="0" Text="Vypnúť pre meranie:" FontSize="12" Margin="5,2,0,2" VerticalAlignment="Center" />
+                                                    <ToggleSwitch x:Name="DisableDynamicsToggle"
+                                                                  Grid.Column="1"
+                                                                  OnContent="ON"
+                                                                  OffContent="OFF"
+                                                                  IsChecked="{Binding SelectedLocomotive.IsDisableDynamicsForMeasurement, Mode=TwoWay, TargetNullValue=False}" />
+                                                </Grid>
+                                                <TextBlock Text="Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow."
+                                                           FontSize="11"
+                                                           Margin="0,1,0,0"
+                                                           Foreground="#5B6575"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Sekcia 2: Softvérová automatizácia (2 panely so SharedSizeGroup) -->
+                                <Grid Grid.Row="4"
+                                      ColumnDefinitions="*,4,*">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" SharedSizeGroup="DccConfigPanelRow" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Smer a BEMF regulácia (CV29) -->
+                                    <Border Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1" Background="#F2F8F4" IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                        <StackPanel>
+                                            <Border Background="#E8E8E8" Padding="6,3">
+                                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                                    <TextBlock Text="Smer a BEMF regulácia" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" />
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV29" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                            <StackPanel Margin="9,16,4,6" Spacing="6">
+                                                <CheckBox x:Name="BemfEnabledCheckBox" Content="Regulácia záťaže (BEMF)" FontSize="12" HorizontalAlignment="Left" IsChecked="{Binding SelectedLocomotive.IsBemfEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                <CheckBox x:Name="AnalogOperationCheckBox" Content="Analógová prevádzka" FontSize="12" HorizontalAlignment="Left" IsChecked="{Binding SelectedLocomotive.IsAnalogOperationEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                <CheckBox x:Name="InvertDirectionCheckBox" Content="Invertovať smer jazdy" FontSize="12" HorizontalAlignment="Left" IsChecked="{Binding SelectedLocomotive.IsInvertDirectionEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Kompenzácia bŕzd -->
+                                    <Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1" Background="#F2F8F4" IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                        <StackPanel>
+                                            <Border Background="#E8E8E8" Padding="6,3">
+                                                <TextBlock Text="Kompenzácia bŕzd" FontWeight="Bold" FontSize="13" />
+                                            </Border>
+                                            <StackPanel Classes="dccDisabledTextContent" Margin="8,10,8,8" Spacing="14">
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Text="Korekcia bŕzd dopredu (cm):" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                                        <Slider Grid.Column="0"
+                                                                x:Name="BrakeCompensationForwardSlider"
+                                                                Classes="dccCompactSlider"
+                                                                Minimum="-50"
+                                                                Maximum="50"
+                                                                TickFrequency="1"
+                                                                IsSnapToTickEnabled="True"
+                                                                VerticalAlignment="Center"
+                                                                Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Width="56"
+                                                                   VerticalAlignment="Center"
+                                                                   HorizontalAlignment="Right"
+                                                                   TextAlignment="Right"
+                                                                   FontWeight="SemiBold"
+                                                                   Text="{Binding SelectedLocomotive.BrakeCompensationForward, StringFormat='{}{0} cm', TargetNullValue=0}" />
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Text="Korekcia bŕzd dozadu (cm):" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+                                                        <Slider Grid.Column="0"
+                                                                x:Name="BrakeCompensationBackwardSlider"
+                                                                Classes="dccCompactSlider"
+                                                                Minimum="-50"
+                                                                Maximum="50"
+                                                                TickFrequency="1"
+                                                                IsSnapToTickEnabled="True"
+                                                                VerticalAlignment="Center"
+                                                                Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Width="56"
+                                                                   VerticalAlignment="Center"
+                                                                   HorizontalAlignment="Right"
+                                                                   TextAlignment="Right"
+                                                                   FontWeight="SemiBold"
+                                                                   Text="{Binding SelectedLocomotive.BrakeCompensationBackward, StringFormat='{}{0} cm', TargetNullValue=0}" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Sekcia 3: Globálna komunikačná lišta -->
+                                <Grid Grid.Row="6" ColumnDefinitions="*,6,*,6,*" Margin="0,2,0,0">
+                                    <Button x:Name="ReadCvButton"
+                                            Grid.Column="0"
+                                            Content="Čítat všetky CV registre"
+                                            Height="35"
+                                            FontWeight="SemiBold"
+                                            FontSize="12"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
+
+                                    <Button x:Name="WriteCvButton"
+                                            Grid.Column="2"
+                                            Content="Zapísať zmeny do dekodéra"
+                                            Height="35"
+                                            FontWeight="SemiBold"
+                                            FontSize="12"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
+
+                                    <Button x:Name="FactoryCvButton"
+                                            Grid.Column="4"
+                                            Content="Obnoviť továrenské CV (CV8)"
+                                            Height="35"
+                                            FontWeight="SemiBold"
+                                            FontSize="12"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
+                                </Grid>
+
+                            </Grid>
+                        </TabItem>
+
+
+                        <TabItem Header="Funkcie">
+                            <TabItem.DataContext>
+                                <Binding Path="." />
+                            </TabItem.DataContext>
+                            <!-- TAB FUNKCIE: tabuľka vľavo, samostatný panel vpravo (editor + tlačidlá) -->
+                            <Grid ColumnDefinitions="*,5,420" RowDefinitions="*">
+                                
+                        <!-- TABUĽKA FUNKCIÍ – len zobrazenie, žiadne editory v bunkách -->
+                                <DataGrid x:Name="FunctionsGrid"
+                                          Grid.Column="0"
+                                          x:CompileBindings="False"
+                                          ItemsSource="{Binding FunctionRows}"
+                                          SelectedItem="{Binding SelectedFunctionRow, Mode=TwoWay}"
+                                          AutoGenerateColumns="False"
+                                          CanUserResizeColumns="True"
+                                          CanUserSortColumns="False"
+                                          HeadersVisibility="Column"
+                                          GridLinesVisibility="All"
+                                          BorderBrush="#C8C8C8"
+                                          BorderThickness="1"
+                                          RowHeight="22">
+
+                                    <DataGrid.Columns>
+
+                                        <DataGridTextColumn Binding="{Binding Slot}" Width="60">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="F#" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+
+                                        <!-- Funkcia: ikona + text -->
+                                        <DataGridTemplateColumn Width="130">
+                                            <DataGridTemplateColumn.Header>
+                                                <TextBlock Text="Funkcia" TextTrimming="None" />
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <Image Width="16" Height="16" Source="{Binding Icon.Icon}" />
+                                                        <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+
+                                        <!-- Typ: ikona + text -->
+                                        <DataGridTemplateColumn Width="140">
+                                            <DataGridTemplateColumn.Header>
+                                                <TextBlock Text="Typ" TextTrimming="None" />
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <Image Width="16" Height="16"
+                                                               Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-decoder.png"
+                                                               IsVisible="{Binding Type, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Dekodér'}" />
+                                                        <Image Width="16" Height="16"
+                                                               Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-sound-file.png"
+                                                               IsVisible="{Binding Type, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Zvukový súbor'}" />
+                                                        <TextBlock VerticalAlignment="Center" Text="{Binding Type}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTextColumn Binding="{Binding AltAddress}" Width="110">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock Text="Alt. adresa" TextTrimming="None" />
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+
+                                        <!-- Ovládanie: ikona + text -->
+                                        <DataGridTemplateColumn Width="120">
+                                            <DataGridTemplateColumn.Header>
+                                                <TextBlock Text="Ovládanie" TextTrimming="None" />
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <Image Width="16" Height="16"
+                                                               Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-on-off.png"
+                                                               IsVisible="{Binding Control, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Prepínač'}" />
+                                                        <Image Width="16" Height="16"
+                                                               Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-push.png"
+                                                               IsVisible="{Binding Control, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Tlačidlo'}" />
+                                                        <TextBlock VerticalAlignment="Center" Text="{Binding Control}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <GridSplitter Grid.Column="1" Width="5" Background="#E0E0E0" />
+
+                                <!-- PANEL VPRAVO: editor bindovaný na CurrentFunction (FunctionEditModel) -->
+                                <Border Grid.Column="2"
+                                        BorderBrush="#C8C8C8"
+                                        BorderThickness="1"
+                                        Padding="12"
+                                        x:CompileBindings="False">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="8">
+
+                                        <!-- Riadok 0: Slot + Funkcia (ikona) – na jednom riadku -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16"
+                                                    IsEnabled="{Binding IsFunctionEditorEnabled}">
+                                            <ComboBox Width="140"
+                                                      ItemsSource="{Binding FunctionSlotChoices}"
+                                                      SelectedItem="{Binding CurrentFunction.Slot, Mode=TwoWay}" />
+                                            <ComboBox Width="200"
+                                                      ItemsSource="{Binding FunctionIconChoices}"
+                                                      SelectedItem="{Binding CurrentFunction.Icon, Mode=TwoWay}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Image Width="20" Height="20" Source="{Binding Icon}" />
+                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                                <ComboBox.SelectionBoxItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Image Width="20" Height="20" Source="{Binding Icon}" />
+                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.SelectionBoxItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Riadok 1: Typ + Ovládanie – na jednom riadku -->
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16"
+                                                    IsEnabled="{Binding IsFunctionEditorEnabled}">
+                                            <ComboBox Width="200"
+                                                      ItemsSource="{Binding FunctionTypeChoices}"
+                                                      SelectedItem="{Binding CurrentFunction.Type, Mode=TwoWay}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-decoder.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Dekodér'}" />
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-sound-file.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Zvukový súbor'}" />
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <ComboBox Width="180"
+                                                      ItemsSource="{Binding FunctionControlChoices}"
+                                                      SelectedItem="{Binding CurrentFunction.Control, Mode=TwoWay}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-on-off.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Prepínač'}" />
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-push.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Tlačidlo'}" />
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                                <ComboBox.SelectionBoxItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-on-off.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Prepínač'}" />
+                                                            <Image Width="20" Height="20"
+                                                                   Source="avares://TrackFlow/Assets/FunctionsIcons/24/fx-push.png"
+                                                                   IsVisible="{Binding Converter={StaticResource EqualsStringConverter}, ConverterParameter='Tlačidlo'}" />
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.SelectionBoxItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Riadok 2: Alt. adresa (len Dekodér) -->
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="20"
+                                                    IsEnabled="{Binding IsFunctionEditorEnabled}"
+                                                    IsVisible="{Binding CurrentFunction.Type, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Dekodér'}">
+                                            <TextBlock VerticalAlignment="Center" FontSize="14" Text="Alt. adresa:" />
+                                            <NumericUpDown Width="300"
+                                                           Minimum="1" Maximum="10239" Increment="1"
+                                                           FormatString="0" Height="28" FontSize="14"
+                                                           Value="{Binding CurrentFunction.AltAddress, Mode=TwoWay}" />
+                                        </StackPanel>
+
+                                        <!-- Riadok 3: Zvukový súbor (len Zvukový súbor) -->
+                                        <Grid Grid.Row="3"
+                                              RowDefinitions="Auto,Auto"
+                                              ColumnDefinitions="Auto,*,Auto,Auto"
+                                              ColumnSpacing="10" RowSpacing="6"
+                                              IsEnabled="{Binding IsFunctionEditorEnabled}"
+                                              IsVisible="{Binding CurrentFunction.Type, Converter={StaticResource EqualsStringConverter}, ConverterParameter='Zvukový súbor'}">
+                                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,25,0" Text="Súbor" />
+                                            <TextBox Grid.Row="0" Grid.Column="1"
+                                                     Height="24" Width="260" FontSize="14" IsReadOnly="True"
+                                                     Text="{Binding FunctionSoundFilePath, Mode=TwoWay}" />
+                                            <Button Grid.Row="0" Grid.Column="3"
+                                                    Height="28" VerticalAlignment="Center" Padding="12,0" Margin="35,0,0,0"
+                                                    Content="Vybrať..." Click="OnBrowseSoundFileClick" />
+                                            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                                                  ColumnDefinitions="180,20,120,20,Auto"
+                                                  RowDefinitions="Auto,Auto" ColumnSpacing="0" RowSpacing="2"
+                                                  HorizontalAlignment="Left">
+                                                <Slider x:Name="PosSlider" Grid.Row="0" Grid.Column="0"
+                                                        HorizontalAlignment="Left" Width="180" Minimum="0"
+                                                        Maximum="{Binding FunctionSoundDurationSeconds}"
+                                                        Value="{Binding FunctionSoundPosition, Mode=TwoWay}" />
+                                                <Slider x:Name="VolSlider" Grid.Row="0" Grid.Column="2"
+                                                        HorizontalAlignment="Left" Width="120" Minimum="0" Maximum="10" Margin="20,0,0,0"
+                                                        Value="{Binding FunctionSoundVolume, Mode=TwoWay}" />
+                                                <ToggleButton x:Name="PlayStopButton"
+                                                              Grid.Row="0" Grid.Column="4"
+                                                              Classes="soundPlay" Height="28" Width="28" Padding="0"
+                                                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                              IsChecked="{Binding FunctionSoundIsPlaying, Mode=TwoWay}">
+                                                    <Grid Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <shapes:Path Fill="Lime" Data="M3,2 L3,16 L16,9 Z" Stretch="Uniform" />
+                                                        <shapes:Rectangle Fill="Red" Width="12" Height="12"
+                                                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </ToggleButton>
+                                                <Canvas x:Name="PosTicksCanvas" Grid.Row="1" Grid.Column="0" Width="180" Height="28" />
+                                                <Canvas x:Name="VolTicksCanvas" Grid.Row="1" Grid.Column="2" Width="120" Height="28" Margin="20,0,0,0" />
+                                            </Grid>
+                                        </Grid>
+
+                                        <!-- prázdny priestor -->
+                                        <Grid Grid.Row="4" />
+
+                                        <!-- Validačná správa funkcie -->
+                                        <TextBlock Grid.Row="5"
+                                                   VerticalAlignment="Bottom"
+                                                   Foreground="Red" FontSize="12"
+                                                   Text="{Binding FunctionValidationMessage}"
+                                                   IsVisible="{Binding FunctionValidationMessage, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}}" />
+
+                                        <!-- Tlačidlá funkcií: len Pridať a Zmazať -->
+                                        <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                            <Button Content="Pridať funkciu"
+                                                    Command="{Binding AddFunctionCommand}"
+                                                    Width="120" />
+                                            <Button Content="Zmazať funkciu"
+                                                    Command="{Binding DeleteFunctionRowCommand}"
+                                                    Width="120" />
+                                        </StackPanel>
+
+                                    </Grid>
+                                </Border>
+
+                            </Grid>
+                        </TabItem>
+                        
+                        <TabItem Header="Údržba">
+                            <Border BorderBrush="#C8C8C8" BorderThickness="1" Margin="10">
+                                <StackPanel>
+                                    <Border Background="#E8E8E8" Padding="8,4">
+                                        <TextBlock Text="Štatistika" FontWeight="Bold" FontSize="13" />
+                                    </Border>
+                                    <Border Padding="12">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                                              ColumnDefinitions="Auto,250"
+                                              ColumnSpacing="12" RowSpacing="10">
+
+                                            <!-- Row 0: Najazdené km -->
+                                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Najazdené km:" />
+                                            <TextBox Grid.Row="0" Grid.Column="1"
+                                                     IsReadOnly="True"
+                                                     Background="#F5F5F5"
+                                                     Text="{Binding TotalKm, Mode=OneWay}" />
+
+                                            <!-- Row 1: Posledná jazda -->
+                                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Posledná jazda:" />
+                                            <TextBox Grid.Row="1" Grid.Column="1"
+                                                     IsReadOnly="True"
+                                                     Background="#F5F5F5"
+                                                     Text="{Binding LastRunDateText, Mode=OneWay}" />
+
+                                            <!-- Row 2: Posledná údržba -->
+                                            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Posledná údržba:" />
+                                            <TextBox Grid.Row="2" Grid.Column="1"
+                                                     IsReadOnly="True"
+                                                     Background="#F5F5F5"
+                                                     Text="{Binding LastMaintenanceDateText, Mode=OneWay}" />
+
+                                            <!-- Row 3: Celkový čas prevádzky -->
+                                            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Celkový čas prevádzky:" />
+                                            <TextBox Grid.Row="3" Grid.Column="1"
+                                                     IsReadOnly="True"
+                                                     Background="#F5F5F5"
+                                                     Text="{Binding TotalOperationTimeText, Mode=OneWay}" />
+
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </TabItem>
+
+                    </TabControl>
+
+                </Grid>
+            </Border>
+
+        </Grid>
+
+        <DockPanel Grid.Row="1" Margin="0,10,0,0" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" Spacing="10" DockPanel.Dock="Left">
+                <Button Content="Nová" Command="{Binding AddCommand}" Width="120" />
+                <Button Content="{Binding SaveButtonText}" Command="{Binding SaveChangesCommand}" Width="140" />
+                <Button Content="Zmazať" Command="{Binding DeleteCommand}" Width="120" />
+                <Button Content="Zrušiť" Command="{Binding CancelCommand}" Width="120" />
+            </StackPanel>
+
+            <Button Content="Zavrieť" Command="{Binding CloseCommand}" Width="120" DockPanel.Dock="Right" />
+        </DockPanel>
+
+    </Grid>
+</Window>

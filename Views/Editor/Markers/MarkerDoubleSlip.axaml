@@ -1,0 +1,53 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerDoubleSlip"
+             Width="24" Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- Križovatková výhybka (Double Slip) -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+      
+        <Line x:Name="Line2"
+              StartPoint="23.8, 23.8" 
+              EndPoint="0.2, 0.2"  
+              Stroke="#DDDDDD" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"/>
+        
+    <Path x:Name="ArcRPath"
+          Stroke="#DDDDDD" 
+          StrokeThickness="2" 
+          Fill="Transparent" 
+          StrokeLineCap="Flat"
+          RenderOptions.EdgeMode="Antialias"
+          UseLayoutRounding="False"
+          Stretch="None"
+          Data=""/>
+        
+    <Path x:Name="ArcLPath"
+          Stroke="#DDDDDD" 
+          StrokeThickness="2" 
+          Fill="Transparent" 
+          StrokeLineCap="Flat"
+          RenderOptions.EdgeMode="Antialias"
+          UseLayoutRounding="False"
+          Stretch="None"
+          Data=""/> 
+        
+          
+        <Line x:Name="Line1"
+              StartPoint="12, 23.8" 
+              EndPoint="12, 0.2" 
+              Stroke="#71c5ff" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"/>
+        
+  </Canvas>
+</UserControl>
+

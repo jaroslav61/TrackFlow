@@ -1,0 +1,103 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Backstage"
+             x:Class="TrackFlow.Views.Backstage.FileBackstageView"
+             x:DataType="vm:FileBackstageViewModel"
+             x:CompileBindings="False">
+
+  <Grid ColumnDefinitions="260,*" RowDefinitions="Auto,*" Margin="12" ColumnSpacing="12" RowSpacing="10">
+    <Grid Grid.ColumnSpan="2">
+      <TextBlock FontSize="16" FontWeight="SemiBold" Text="Súbor"/>
+    </Grid>
+
+    <!-- Ľavé menu -->
+    <Border Grid.Row="1" Grid.Column="0" Background="#FFFFFF" CornerRadius="6"
+            BorderBrush="#D0D0D0" BorderThickness="1" Padding="10">
+      <StackPanel Spacing="8">
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/new.png" Width="24" Height="24"/>
+            <TextBlock Text="Nový" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="NewCommand"/>
+          </Button.Command>
+        </Button>
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/open.png" Width="24" Height="24"/>
+            <TextBlock Text="Otvoriť" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="OpenCommand"/>
+          </Button.Command>
+        </Button>
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/save.png" Width="24" Height="24"/>
+            <TextBlock Text="Uložiť" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="SaveCommand"/>
+          </Button.Command>
+        </Button>
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/save_as.png" Width="24" Height="24"/>
+            <TextBlock Text="Uložiť ako…" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="SaveAsCommand"/>
+          </Button.Command>
+        </Button>
+        <Separator/>
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/print.png" Width="24" Height="24"/>
+            <TextBlock Text="Tlačiť" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="PrintCommand"/>
+          </Button.Command>
+        </Button>
+        <Separator/>
+        <Button HorizontalAlignment="Stretch">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Image Source="/Assets/Appicons/32/setup.png" Width="24" Height="24"/>
+            <TextBlock Text="Nastavenia" Foreground="Black" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button.Command>
+            <Binding Path="SettingsCommand"/>
+          </Button.Command>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- Pravý panel: posledné súbory -->
+    <Border Grid.Row="1" Grid.Column="1" Background="#FFFFFF" CornerRadius="6"
+            BorderBrush="#D0D0D0" BorderThickness="1" Padding="10">
+      <StackPanel Spacing="8">
+        <TextBlock FontWeight="SemiBold" Text="Posledné súbory"/>
+        <DataGrid Name="RecentFilesGrid"
+                  ItemsSource="{Binding RecentFiles}" 
+                  AutoGenerateColumns="False" 
+                  MaxHeight="300"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  GridLinesVisibility="None"
+                  HeadersVisibility="Column"
+                  CanUserReorderColumns="False"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="False"
+                  DoubleTapped="OnRecentFileDoubleTapped">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Názov" Binding="{Binding FileName}" Width="*" IsReadOnly="True"/>
+            <DataGridTextColumn Header="Veľkosť" Binding="{Binding FileSize}" Width="Auto" IsReadOnly="True"/>
+            <DataGridTextColumn Header="Dátum zmeny" Binding="{Binding LastModified}" Width="Auto" IsReadOnly="True"/>
+          </DataGrid.Columns>
+        </DataGrid>
+      </StackPanel>
+    </Border>
+
+  </Grid>
+</UserControl>

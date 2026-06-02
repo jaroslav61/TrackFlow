@@ -1,0 +1,35 @@
+﻿<Project>
+  <!--
+    TrackFlow – globálne build pravidlá.
+    Cieľ: zabrániť tomu, aby `dotnet build/test/publish` vytváral výstupy
+    kdekoľvek mimo štandardného `bin\` (napr. do `artifacts\verify-build\`).
+    Toto rieši regresiu, keď manuálne príkazy s `-o ...` alebo
+    `-p:OutDir=...` zaplnili repo o 2,8 GB.
+  -->
+
+  <PropertyGroup>
+    <!-- Štandardný layout: bin\<Config>\<TFM>\ a obj\<Config>\<TFM>\ -->
+    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <!--
+    Tvrdá poistka: ak niekto spustí `dotnet build -o X` alebo
+    `-p:OutDir=X` / `-p:OutputPath=X`, kde X nie je pod `bin\`,
+    build padne s jasnou hláškou ešte pred kompiláciou.
+    Povolené je len: prázdne (default) alebo cesta začínajúca sa "bin\".
+  -->
+  <Target Name="_TrackFlowGuardOutputPath" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <_TrackFlowResolvedOut Condition=" '$(OutDir)' != '' ">$(OutDir)</_TrackFlowResolvedOut>
+      <_TrackFlowResolvedOut Condition=" '$(_TrackFlowResolvedOut)' == '' AND '$(OutputPath)' != '' ">$(OutputPath)</_TrackFlowResolvedOut>
+    </PropertyGroup>
+
+    <Error
+      Condition=" '$(_TrackFlowResolvedOut)' != '' AND
+                  !$([System.String]::new('$(_TrackFlowResolvedOut)').Replace('/', '\').ToLowerInvariant().Contains('\bin\')) AND
+                  !$([System.String]::new('$(_TrackFlowResolvedOut)').Replace('/', '\').ToLowerInvariant().StartsWith('bin\')) "
+      Text="TrackFlow: build output '$(_TrackFlowResolvedOut)' je mimo 'bin\'. Povolené je iba 'bin\...'. (Zakázané: -o artifacts\..., -p:OutDir=..., -p:OutputPath=...)" />
+  </Target>
+</Project>
+

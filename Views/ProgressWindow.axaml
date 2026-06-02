@@ -1,0 +1,12 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TrackFlow.Views.ProgressWindow"
+        Width="400" Height="100" Title="Načítavanie projektu">
+    <Border Padding="10">
+        <Grid RowDefinitions="Auto,*">
+            <TextBlock Text="Načítavanie projektu..." FontSize="14" FontWeight="Normal"/>
+            <ProgressBar Name="ProgressBar" Grid.Row="1" IsIndeterminate="True" Height="20" Margin="0,10,0,0"/>
+        </Grid>
+    </Border>
+</Window>
+

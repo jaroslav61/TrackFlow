@@ -1,0 +1,32 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerCross90"
+             Width="24" Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+    
+    <!-- Križovatka 90°: vertikálna + horizontálna koľaj -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+      
+      <Line x:Name="Line1"
+            StartPoint="12, 0.2" 
+            EndPoint="12,23.8"
+            Stroke="#71c5ff" 
+            StrokeThickness="2" 
+            StrokeLineCap="Flat"/>
+      
+      <Line x:Name="Line2"
+          StartPoint="0.2, 12" 
+          EndPoint="23.8 ,12"
+          Stroke="#71c5ff" 
+          StrokeThickness="2" 
+          StrokeLineCap="Flat"/>
+  </Canvas>
+</UserControl>
+

@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:vm="clr-namespace:TrackFlow.ViewModels.SmartStrips"
+			 xmlns:m="clr-namespace:TrackFlow.Models"
+			 xmlns:view="clr-namespace:TrackFlow.Views.SmartStrips"
+			 xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
+			 xmlns:shared="clr-namespace:TrackFlow.Views.Shared;assembly=TrackFlow"
+			 xmlns:behaviors="clr-namespace:TrackFlow.Behaviors;assembly=TrackFlow"
+			 mc:Ignorable="d"
+			 x:DataType="vm:SmartStripsViewModel"
+			 x:Class="TrackFlow.Views.SmartStrips.SmartStripsView"
+			 x:Name="Root">
+
+	<Design.DataContext>
+		<vm:SmartStripsViewModel />
+	</Design.DataContext>
+
+	<Grid RowDefinitions="Auto,Auto" Background="#F2F2F2" VerticalAlignment="Bottom">
+
+		<!-- Horný pás: Koľajisko -->
+		<Border Grid.Row="0" Background="#4A5664" BorderBrush="#B5B5B5" BorderThickness="1" Padding="6" MaxHeight="78" MinHeight="78">
+			<StackPanel>
+				<StackPanel Margin="0,0,0,0" Spacing="4">
+					<TextBlock Text="Lokomotívy a Vlaky"
+							   Foreground="White"
+							   FontSize="12"
+							   FontWeight="SemiBold"/>
+					<Border Height="1"
+							HorizontalAlignment="Stretch"
+							Background="#8099A3AE" />
+				</StackPanel>
+
+				<!-- ItemsControl namiesto ListBox: žiadna selection logika, žiadne :selected / :pointerover / :pressed
+				     vizuálne efekty (vrátane zmeny opacity). Aktivácia sa rieši v VehicleStripItem.OnPointerPressed
+				     pri dvojkliku cez SmartStripsViewModel.ItemPressedCommand. -->
+				<ItemsControl x:Name="locosList"
+							  ItemsSource="{Binding Locomotives}"
+							  Background="Transparent">
+
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" />
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="m:Locomotive">
+							<!-- DragDropBehavior NIE je tu - drag lokomotív sa riadi v VehicleStripItem.OnPointerMoved
+							     aby sa zabránilo opacity zmene pri každom PointerPressed. -->
+							<shared:VehicleStripItem IconName="{Binding IconName}" Title="{Binding Name}" IsLoco="True" />
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<TextBlock Text="Depo lokomotív je prázdne"
+						   Foreground="White"
+						   FontStyle="Italic"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   Margin="0,8,0,0"
+						   IsVisible="{Binding !Locomotives.Count, FallbackValue=False}" />
+
+			</StackPanel>
+		</Border>
+
+		<!-- Spodný pás: Sklad/Depo -->
+		<Border Grid.Row="1" Background="#4A5664" BorderBrush="#B5B5B5" BorderThickness="1,0,1,1" Padding="6" MaxHeight="78" MinHeight="78">
+			<StackPanel>
+				<StackPanel Margin="0,0,0,4" Spacing="4">
+					<TextBlock Text="Vagóny"
+							   Foreground="White"
+							   FontSize="12"
+							   FontWeight="SemiBold"/>
+					<Border Height="1"
+							HorizontalAlignment="Stretch"
+							Background="#8099A3AE" />
+				</StackPanel>
+
+				<ItemsControl ItemsSource="{Binding DepotLocomotives}">
+				</ItemsControl>
+
+				<ItemsControl x:Name="depotsItems" ItemsSource="{Binding DepotWagons}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" />
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="m:Wagon">
+							<shared:VehicleStripItem IconName="{Binding IconName}"
+													 Title="{Binding Name}"
+													 behaviors:DragDropBehavior.IsDragSource="True"
+													 behaviors:DragDropBehavior.DragFormat="trackflow/wagon" />
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<!-- Placeholder when depot is empty -->
+				<TextBlock Text="Depo vagónov je prázdne"
+						   Foreground="White"
+						   FontStyle="Italic"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   Margin="0,8,0,0"
+						   IsVisible="{Binding IsDepotEmpty}" />
+			</StackPanel>
+		</Border>
+
+	</Grid>
+</UserControl>

@@ -1,0 +1,63 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerBridge90"
+             Width="24" 
+             Height="24" 
+             Padding="0" 
+             ClipToBounds="False"
+             HorizontalAlignment="Left" 
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+
+    <Canvas Width="24" 
+            Height="24" 
+            UseLayoutRounding="False" 
+            ClipToBounds="False">
+    
+        <Line x:Name="CrossTrackTop"
+              StartPoint="12,0.2" 
+              EndPoint="12,8" 
+              Stroke="#71c5ff" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"/>
+    
+        <Line x:Name="CrossTrackMiddle"
+              StartPoint="12,8" 
+              EndPoint="12,16"
+              Stroke="#71c5ff" 
+              Opacity="0.1"
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"
+              Tag="NoOutline"/>
+    
+        <Line x:Name="CrossTrackBottom"
+              StartPoint="12,16" 
+              EndPoint="12,23.8" 
+              Stroke="#71c5ff" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"/>
+       
+        <Line x:Name="TrackLine"
+              StartPoint="0.2,12" 
+              EndPoint="23.8,12" 
+              Stroke="#71c5ff" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"/>
+    
+        <Line x:Name="Bridge1Line"
+              StartPoint="2,8.5" 
+              EndPoint="22,8.5" 
+              Stroke="#ff0000" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat" 
+              Tag="NoOutline"/>
+        
+        <Line x:Name="Bridge2Line"
+              StartPoint="2, 15.5" 
+              EndPoint="22, 15.5" 
+              Stroke="#ff0000" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"
+              Tag="NoOutline"/>
+    </Canvas>
+</UserControl>

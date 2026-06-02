@@ -1,0 +1,14 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:backstage="clr-namespace:TrackFlow.Views.Backstage"
+        x:Class="TrackFlow.Views.Backstage.FileBackstageWindow"
+        Title="Súbor"
+        Width="760" Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Border Background="#F2F2F2" BorderBrush="#C8C8C8" BorderThickness="1" CornerRadius="6" Margin="12">
+    <backstage:FileBackstageView/>
+  </Border>
+
+</Window>

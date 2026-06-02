@@ -1,0 +1,25 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerTrackSegment"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- Priama koľaj: (-12,0)→(12,0), stred=(12,12) -->
+  <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+      
+      <Line x:Name="TrackLine" 
+            StartPoint="0,12" 
+            EndPoint="24,12"
+            Stroke="#71c5ff" 
+            StrokeThickness="2" 
+            StrokeLineCap="Flat"/>
+  </Canvas>
+</UserControl>
+

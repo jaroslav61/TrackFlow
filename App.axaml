@@ -1,0 +1,31 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.App"
+             xmlns:local="clr-namespace:TrackFlow"
+             xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
+             RequestedThemeVariant="Default">
+
+    <Application.Resources>
+        <conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
+        <conv:DecoderModeNameConverter x:Key="DecoderModeNameConverter" />
+        <conv:DecoderModeDescriptionConverter x:Key="DecoderModeDescriptionConverter" />
+        <conv:DecoderModeBackgroundConverter x:Key="DecoderModeBackgroundConverter" />
+        <conv:DecoderModeBorderConverter x:Key="DecoderModeBorderConverter" />
+        <conv:DecoderModeTextConverter x:Key="DecoderModeTextConverter" />
+        <conv:BoolToColorConverter x:Key="BoolToColorConverter" />
+        <conv:BoolToStringConverter x:Key="BoolToStringConverter" />
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme/>
+        <!-- DataGrid: nutné štýly, inak sa DataGrid nevykreslí -->
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        <StyleInclude Source="avares://TrackFlow/Styles/Controls.axaml"/> 
+        <StyleInclude Source="avares://TrackFlow/Styles/DataGrid.axaml"/> 
+        <StyleInclude Source="avares://TrackFlow/Styles/Tabs.axaml"/>
+    </Application.Styles>
+</Application>

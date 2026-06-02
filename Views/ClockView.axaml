@@ -1,0 +1,232 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+        x:Class="TrackFlow.Views.ClockView"
+        x:DataType="vm:ClockViewModel"
+        Title="Modelové hodiny"
+        Width="150"
+        Height="170"
+        MinWidth="150"
+        MinHeight="170"
+        CanResize="False"
+        Topmost="True"
+        SystemDecorations="None"
+        WindowStartupLocation="CenterOwner"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent">
+
+  <Window.Styles>
+    <Style Selector="Button.clockButton">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#32CD32"/>
+      <Setter Property="BorderBrush" Value="#32CD32"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="8,3"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="MinHeight" Value="22"/>
+    </Style>
+    <Style Selector="Button.clockButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#1A3A1A"/>
+      <Setter Property="BorderBrush" Value="#5CFF6A"/>
+      <Setter Property="TextBlock.Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.clockButton:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="#0D250D"/>
+      <Setter Property="BorderBrush" Value="#32CD32"/>
+      <Setter Property="TextBlock.Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.closeButton">
+      <Setter Property="Background" Value="#151515"/>
+      <Setter Property="Foreground" Value="#5CFF6A"/>
+      <Setter Property="BorderBrush" Value="#5CFF6A"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="9"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Effect">
+        <DropShadowEffect Color="#32CD32" BlurRadius="8" OffsetX="0" OffsetY="0" Opacity="0.45"/>
+      </Setter>
+    </Style>
+    <Style Selector="Button.closeButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#3A1A1A"/>
+      <Setter Property="BorderBrush" Value="#FF6A6A"/>
+      <Setter Property="TextBlock.Foreground" Value="#FF6A6A"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.clockNumber">
+      <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="Foreground" Value="#E8FFE8"/>
+      <Setter Property="Effect">
+        <DropShadowEffect Color="#32CD32" BlurRadius="9" OffsetX="0" OffsetY="0" Opacity="0.95"/>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
+  <Grid Background="Transparent" PointerPressed="OnWindowPointerPressed">
+    <Border Width="150" Height="170" CornerRadius="9" BorderBrush="#333333" BorderThickness="1" ClipToBounds="True">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Offset="0" Color="#202020"/>
+          <GradientStop Offset="0.52" Color="#111111"/>
+          <GradientStop Offset="1" Color="#050505"/>
+        </LinearGradientBrush>
+      </Border.Background>
+
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+      <Canvas Width="140" Height="140">
+        <!-- Neon halo ako na dashboarde -->
+        <Ellipse Canvas.Left="5" Canvas.Top="5" Width="130" Height="130" Stroke="#32CD32" StrokeThickness="18" Opacity="0.23" Fill="Transparent">
+          <Ellipse.Effect>
+            <BlurEffect Radius="15"/>
+          </Ellipse.Effect>
+        </Ellipse>
+        <Ellipse Canvas.Left="10" Canvas.Top="10" Width="120" Height="120" Stroke="#32CD32" StrokeThickness="6" Opacity="0.55" Fill="Transparent">
+          <Ellipse.Effect>
+            <DropShadowEffect Color="#32CD32" BlurRadius="25" OffsetX="0" OffsetY="0" Opacity="0.95"/>
+          </Ellipse.Effect>
+        </Ellipse>
+
+        <!-- Tmavý ciferník s jemným radiálnym gradientom -->
+        <Ellipse Canvas.Left="12" Canvas.Top="12" Width="116" Height="116" Stroke="#1DFF37" StrokeThickness="1.8">
+          <Ellipse.Fill>
+            <RadialGradientBrush>
+              <GradientStop Offset="0" Color="#252A25"/>
+              <GradientStop Offset="0.62" Color="#101510"/>
+              <GradientStop Offset="1" Color="#030503"/>
+            </RadialGradientBrush>
+          </Ellipse.Fill>
+          <Ellipse.Effect>
+            <DropShadowEffect Color="#32CD32" BlurRadius="12" OffsetX="0" OffsetY="0" Opacity="0.85"/>
+          </Ellipse.Effect>
+        </Ellipse>
+
+        <!-- 60 minútových čiarok - rovnomerne rozložených -->
+        <Line StartPoint="70.0,22.0" EndPoint="70.0,12.0" Stroke="#D8FFE1" StrokeThickness="2.4" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="75.3,18.9" EndPoint="76.1,12.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="80.5,19.6" EndPoint="81.9,13.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="85.6,20.9" EndPoint="87.5,14.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="90.5,22.9" EndPoint="92.8,17.2" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="93.3,28.7" EndPoint="97.7,20.7" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="99.5,28.5" EndPoint="102.4,23.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="103.4,32.1" EndPoint="106.9,27.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="107.0,36.1" EndPoint="111.0,32.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="110.2,40.6" EndPoint="114.6,37.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="111.3,48.0" EndPoint="118.0,42.3" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="115.5,50.6" EndPoint="120.1,48.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="117.4,55.4" EndPoint="122.3,53.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="118.8,60.3" EndPoint="124.0,59.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="119.7,65.3" EndPoint="125.1,64.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="118.0,70.0" EndPoint="128.0,70.0" Stroke="#D8FFE1" StrokeThickness="2.4" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="119.7,74.7" EndPoint="125.1,75.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="118.8,79.7" EndPoint="124.0,81.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="117.4,84.6" EndPoint="122.3,86.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="115.5,89.4" EndPoint="120.1,91.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="111.3,92.0" EndPoint="118.0,97.7" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="110.2,99.4" EndPoint="114.6,102.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="107.0,103.9" EndPoint="111.0,107.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="103.4,107.9" EndPoint="106.9,112.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="99.5,111.5" EndPoint="102.4,116.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="93.3,111.3" EndPoint="97.7,119.3" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="90.5,117.1" EndPoint="92.8,122.8" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="85.6,119.1" EndPoint="87.5,125.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="80.5,120.4" EndPoint="81.9,127.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="75.3,121.1" EndPoint="76.1,127.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="70.0,118.0" EndPoint="70.0,128.0" Stroke="#D8FFE1" StrokeThickness="2.4" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="64.7,121.1" EndPoint="63.9,127.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="59.5,120.4" EndPoint="58.1,127.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="54.4,119.1" EndPoint="52.5,125.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="49.5,117.1" EndPoint="47.2,122.8" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="46.7,111.3" EndPoint="42.3,119.3" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="40.5,111.5" EndPoint="37.6,116.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="36.6,107.9" EndPoint="33.1,112.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="33.0,103.9" EndPoint="29.0,107.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="29.8,99.4" EndPoint="25.4,102.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="28.7,92.0" EndPoint="22.0,97.7" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="24.5,89.4" EndPoint="19.9,91.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="22.6,84.6" EndPoint="17.7,86.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="21.2,79.7" EndPoint="16.0,81.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="20.3,74.7" EndPoint="14.9,75.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="22.0,70.0" EndPoint="12.0,70.0" Stroke="#D8FFE1" StrokeThickness="2.4" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="20.3,65.3" EndPoint="14.9,64.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="21.2,60.3" EndPoint="16.0,59.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="22.6,55.4" EndPoint="17.7,53.6" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="24.5,50.6" EndPoint="19.9,48.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="28.7,48.0" EndPoint="22.0,42.3" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="29.8,40.6" EndPoint="25.4,37.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="33.0,36.1" EndPoint="29.0,32.4" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="36.6,32.1" EndPoint="33.1,27.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="40.5,28.5" EndPoint="37.6,23.5" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="46.7,28.7" EndPoint="42.3,20.7" Stroke="#BFFFC7" StrokeThickness="1.7" Opacity="0.9" StrokeLineCap="Square"/>
+        <Line StartPoint="49.5,22.9" EndPoint="47.2,17.2" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="54.4,20.9" EndPoint="52.5,14.7" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="59.5,19.6" EndPoint="58.1,13.0" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+        <Line StartPoint="64.7,18.9" EndPoint="63.9,12.3" Stroke="#5CFF6A" StrokeThickness="0.8" Opacity="0.9"/>
+
+        <!-- Číslá: čistý moderný font + glow -->
+        <TextBlock Classes="clockNumber" Canvas.Left="65" Canvas.Top="23" Text="12"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="87" Canvas.Top="28" Text="1"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="104" Canvas.Top="44" Text="2"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="109" Canvas.Top="62" Text="3"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="103" Canvas.Top="81" Text="4"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="89" Canvas.Top="98" Text="5"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="68" Canvas.Top="103" Text="6"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="47" Canvas.Top="98" Text="7"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="32" Canvas.Top="81" Text="8"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="26" Canvas.Top="62" Text="9"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="29" Canvas.Top="45" Text="10"/>
+        <TextBlock Classes="clockNumber" Canvas.Left="43" Canvas.Top="28" Text="11"/>
+
+        <!-- Ručičky: zelený glow podklad + ostré strieborné popredie -->
+        <Line StartPoint="{Binding CenterPoint}" EndPoint="{Binding HourHandEnd}" Stroke="#32CD32" StrokeThickness="7" StrokeLineCap="Square" Opacity="0.42">
+          <Line.Effect><BlurEffect Radius="8"/></Line.Effect>
+        </Line>
+        <Line StartPoint="{Binding CenterPoint}" EndPoint="{Binding MinuteHandEnd}" Stroke="#32CD32" StrokeThickness="6" StrokeLineCap="Square" Opacity="0.36">
+          <Line.Effect><BlurEffect Radius="8"/></Line.Effect>
+        </Line>
+        <Line StartPoint="{Binding CenterPoint}" EndPoint="{Binding HourHandEnd}" Stroke="#E5E7EB" StrokeThickness="4.8" StrokeLineCap="Square"/>
+        <Line StartPoint="{Binding CenterPoint}" EndPoint="{Binding MinuteHandEnd}" Stroke="#F8FAFC" StrokeThickness="3.4" StrokeLineCap="Square"/>
+        <Line StartPoint="{Binding CenterPoint}" EndPoint="{Binding SecondHandEnd}" Stroke="#FFD400" StrokeThickness="1.4" StrokeLineCap="Square">
+          <Line.Effect><DropShadowEffect Color="#FFD400" BlurRadius="12" OffsetX="0" OffsetY="0" Opacity="0.9"/></Line.Effect>
+        </Line>
+        <Ellipse Canvas.Left="62" Canvas.Top="62" Width="16" Height="16" Fill="#32CD32" Opacity="0.55">
+          <Ellipse.Effect><BlurEffect Radius="9"/></Ellipse.Effect>
+        </Ellipse>
+        <Ellipse Canvas.Left="65" Canvas.Top="65" Width="10" Height="10" Fill="#151515" Stroke="#32CD32" StrokeThickness="1.8"/>
+      </Canvas>
+
+      <!-- Spodná časť - jednoduchý štýl ako dashboard -->
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+        <TextBlock Text="{Binding SimulationSpeedFactorText}"
+                   Foreground="#32CD32"
+                   FontFamily="Segoe UI, Inter, Arial"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center"/>
+        <Button Classes="clockButton"
+                Content="{Binding PauseResumeText}"
+                Command="{Binding TogglePauseCommand}"/>
+      </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Button Classes="closeButton"
+            Content="×"
+            Width="18"
+            Height="18"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,3,3,0"
+            Click="OnCloseClick"/>
+  </Grid>
+</Window>
+

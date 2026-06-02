@@ -1,0 +1,130 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Settings"
+        x:Class="TrackFlow.Views.Settings.DccCentralEditWindow"
+        x:DataType="vm:DccCentralEditViewModel"
+        Title="DCC centrála"
+        WindowStartupLocation="CenterOwner"
+        Width="450"
+        CanResize="False"
+        SizeToContent="Height"
+        ShowInTaskbar="False">
+
+  <Grid RowDefinitions="Auto,Auto" Margin="14,14,14,14">
+
+    <!-- Formulárové riadky -->
+    <Grid Grid.Row="0"
+          RowDefinitions="Auto,Auto,Auto"
+          ColumnDefinitions="100,*"
+          RowSpacing="10"
+          ColumnSpacing="10"
+          Margin="0,6,0,10">
+
+      <!--
+        Riadok 0: Typ centrály
+        Label zarovnaný Top+Margin 7px (= stred 30px ToggleButton).
+        StackPanel v Column 1 obsahuje button aj TreeView panel:
+          • keď IsTypeDropDownOpen=false → Border je Collapsed → Row 0 = 30px
+          • keď IsTypeDropDownOpen=true  → Border je Visible  → Row 0 rastie, okno SizeToContent
+      -->
+      <TextBlock Grid.Row="0" Grid.Column="0"
+                 VerticalAlignment="Top"
+                 Margin="0,7,0,0"
+                 Text="Typ centrály"/>
+
+      <StackPanel Grid.Row="0" Grid.Column="1" Spacing="0">
+
+        <ToggleButton x:Name="CentralTypeDropdownButton"
+                      IsChecked="{Binding IsTypeDropDownOpen, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
+                      Padding="10,0,6,0"
+                      Height="30">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding SelectedNode.Name, FallbackValue='-- Vyberte typ DCC centrály --', TargetNullValue='-- Vyberte typ DCC centrály --'}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       FontSize="13"/>
+            <TextBlock Grid.Column="1" Text="▾" FontSize="14"
+                       VerticalAlignment="Center" Margin="6,0,2,0" Opacity="0.7"/>
+          </Grid>
+        </ToggleButton>
+
+        <!--
+          Dropdown panel – v ROVNAKOM vizuálnom strome ako zvyšok formulára.
+          Žiadny Popup → žiadne DataContext / compiled-binding problémy.
+          IsVisible=false → Collapsed → nulová výška, žiadna medzera.
+        -->
+        <Border x:Name="CentralTypeOverlay"
+                IsVisible="{Binding IsTypeDropDownOpen}"
+                Background="{DynamicResource ComboBoxDropDownBackground}"
+                BorderBrush="{DynamicResource ComboBoxDropDownBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="0,0,4,4"
+                MaxHeight="300"
+                Padding="0,4,0,4">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+            <TreeView x:Name="CentralTreeView"
+                      ItemsSource="{Binding TreeNodes}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Padding="2,0">
+              <TreeView.Styles>
+                <Style Selector="TreeViewItem">
+                  <Setter Property="IsExpanded" Value="False"/>
+                  <Setter Property="Padding" Value="4,1,4,1"/>
+                </Style>
+              </TreeView.Styles>
+              <TreeView.ItemTemplate>
+                <TreeDataTemplate x:DataType="vm:DccCentralTreeNode"
+                                  ItemsSource="{Binding Children}">
+                  <TextBlock Text="{Binding Name}"
+                             FontWeight="{Binding FontWeight}"
+                             Opacity="{Binding Opacity}"
+                             FontSize="12"
+                             Padding="0,2,0,2"/>
+                </TreeDataTemplate>
+              </TreeView.ItemTemplate>
+            </TreeView>
+          </ScrollViewer>
+        </Border>
+
+      </StackPanel>
+
+      <!-- Riadok 1: Sieťové nastavenie -->
+      <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Host"
+                 IsVisible="{Binding UsesNetworkSettings}"/>
+      <TextBox Grid.Row="1" Grid.Column="1"
+               Text="{Binding Host}"
+               IsVisible="{Binding UsesNetworkSettings}"/>
+
+      <!-- Riadok 1: Sériové nastavenie (alternatíva k Host) -->
+      <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="COM port"
+                 IsVisible="{Binding UsesSerialSettings}"/>
+      <ComboBox Grid.Row="1" Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                ItemsSource="{Binding AvailablePorts}"
+                SelectedItem="{Binding SerialPort}"
+                IsDropDownOpen="{Binding IsComPortDropDownOpen, Mode=TwoWay}"
+                PlaceholderText="Vyber COM port"
+                IsVisible="{Binding UsesSerialSettings}"/>
+
+      <!-- Riadok 2: Správanie po štarte -->
+      <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Po štarte"/>
+      <ComboBox Grid.Row="2" Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                ItemsSource="{Binding StartupBehaviorOptions}"
+                SelectedItem="{Binding SelectedStartupBehavior}"/>
+
+    </Grid>
+
+    <!-- Tlačidlá -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Zrušiť" Command="{Binding CancelCommand}" MinWidth="90"/>
+      <Button Content="OK"     Command="{Binding OkCommand}"     MinWidth="90"/>
+    </StackPanel>
+
+  </Grid>
+</Window>

@@ -1,0 +1,72 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+		<!-- Produkuj reference assembly (obj\...\ref\TrackFlow.dll) aj pre WinExe,
+		     aby ho mohol testovací projekt referencovať bez rebuildu bin\. -->
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<UseWindowsForms>true</UseWindowsForms>
+		<!-- Globálne vyhoď stromy ktoré nemajú byť v projekte
+		     (build artefakty, testy, archív, dočasné výstupy). -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**;Artifacts\**;TrackFlow.Tests\**;_archived\**;logs\**</DefaultItemExcludes>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Sprístupní internal API testovaciemu projektu (napr. Z21Client.SetHardwareTypeForTest). -->
+		<InternalsVisibleTo Include="TrackFlow.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.3.9" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.9" />
+		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+		<PackageReference Include="Avalonia.Diagnostics" Version="11.3.9">
+			<IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+		<PackageReference Include="ReactiveUI" Version="20.1.1" />
+		<PackageReference Include="System.IO.Ports" Version="9.0.8" />
+		<PackageReference Include="Neumorphism.Avalonia" Version="0.11.2" />
+		<PackageReference Include="LibVLCSharp" Version="3.8.5" />
+		<PackageReference Include="Serilog" Version="4.3.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.20" />
+                <PackageReference Version="11.3.0" Include="Avalonia.Svg.Skia" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaXaml Update="Cab\CabStripView.axaml">
+			<Generator>AvaloniaXamlGenerator</Generator>
+		</AvaloniaXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Assets\LocoIcons\" />
+	  <Folder Include="Assets\CarIcons\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <AvaloniaResource Update="Assets\LocoIcons\loco1_40.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </AvaloniaResource>
+	  <AvaloniaResource Update="Assets\LocoIcons\loco2_40.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </AvaloniaResource>
+	  <AvaloniaResource Update="Assets\LocoIcons\loco3_40.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </AvaloniaResource>
+	  <AvaloniaResource Update="Assets\LocoIcons\loco4_40.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </AvaloniaResource>
+	</ItemGroup>
+</Project>

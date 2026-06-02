@@ -1,0 +1,59 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerTurnoutR"
+             Width="24" 
+             Height="24"
+             Padding="0"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             ClipToBounds="False"
+             UseLayoutRounding="False">
+    
+    
+    <!-- Vrstvenie: Neaktívna vetva vzadu (outline+farba), aktívna vetva vpredu (outline+farba) -->
+    <Canvas Width="24" 
+          Height="24"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+        
+        <!-- 1. NEAKTÍVNA VETVA (oblúk) - Vzadu -->
+        <Path x:Name="CurvePathOutline"
+              Stroke="Black" 
+              StrokeThickness="3.5" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Data=""/>
+          
+        <Path x:Name="CurvePath"
+              Stroke="#FFFFFF" 
+              StrokeThickness="2" 
+              Fill="Transparent"
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"
+              Data=""/>
+        
+        <!-- 2. AKTÍVNA VETVA (priama) - Vpredu -->
+        <Line x:Name="StraightLineOutline"
+              StartPoint="12, 23.8" 
+              EndPoint="12, 0.2"
+              Stroke="Black" 
+              StrokeThickness="3.5" 
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"/>
+        
+        <Line x:Name="StraightLine"
+              StartPoint="12, 23.8" 
+              EndPoint="12, 0.2"
+              Stroke="#71c5ff" 
+              StrokeThickness="2" 
+              StrokeLineCap="Flat"
+              RenderOptions.EdgeMode="Antialias"
+              UseLayoutRounding="False"/>
+          
+        
+  </Canvas>
+</UserControl>

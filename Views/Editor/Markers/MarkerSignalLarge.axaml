@@ -1,0 +1,68 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerSignalLarge"
+             Width="24"
+             Height="48"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- 5-stavové návestidlo pre editor: 1×2 bunky (24×48px), marker (18×48px) centovaný horizontálne -->
+  <Canvas Width="24" Height="48" 
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+    <!-- Marker (18×48px) centovaný horizontálne: Canvas.Left = (24-18)/2 = 3, Canvas.Top = 0 -->
+    <Canvas Canvas.Left="3" 
+            Canvas.Top="0" 
+            Width="18" 
+            Height="48" 
+            UseLayoutRounding="False"
+            ClipToBounds="True">
+      <!-- Čierne pozadie -->
+      <Rectangle Canvas.Left="0" Canvas.Top="0"
+                 Width="18" Height="48"
+                 Fill="#111111"
+                 RadiusX="2" RadiusY="2"/>
+
+      <!-- Svetilá zhora dole: žltá - zelená - červená - biela - žltá -->
+      
+      <!-- Svetlo 1 – Žltá (horné) -->
+      <Ellipse Canvas.Left="6" Canvas.Top="2"
+               Width="6" Height="6"
+               Fill="#FFFF00"
+               Stroke="#CCCC00"
+               StrokeThickness="0.5"/>
+
+      <!-- Svetlo 2 – Zelená -->
+      <Ellipse Canvas.Left="6" Canvas.Top="11"
+               Width="6" Height="6"
+               Fill="#00AA00"
+               Stroke="#006600"
+               StrokeThickness="0.5"/>
+
+      <!-- Svetlo 3 – Červená (stred) -->
+      <Ellipse Canvas.Left="6" Canvas.Top="20"
+               Width="6" Height="6"
+               Fill="#DD0000"
+               Stroke="#AA0000"
+               StrokeThickness="0.5"/>
+
+      <!-- Svetlo 4 – Biela -->
+      <Ellipse Canvas.Left="6" Canvas.Top="29"
+               Width="6" Height="6"
+               Fill="#FFFFFF"
+               Stroke="#CCCCCC"
+               StrokeThickness="0.5"/>
+
+      <!-- Svetlo 5 – Žltá (spodné) -->
+      <Ellipse Canvas.Left="6" Canvas.Top="38"
+               Width="6" Height="6"
+               Fill="#FFFF00"
+               Stroke="#CCCC00"
+               StrokeThickness="0.5"/>
+    </Canvas>
+  </Canvas>
+</UserControl>
+
+

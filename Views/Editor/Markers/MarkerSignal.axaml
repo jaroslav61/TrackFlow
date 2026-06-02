@@ -1,0 +1,19 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerSignal"
+             Width="24"
+             Height="48"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- Runtime marker pre editor/operation. Geometria (telo + svetlá) sa stavia
+       v MarkerSignal.axaml.cs podľa _angle a _signCount – žiadny RenderTransform,
+       bbox markera vždy presne sedí so selection rámčekom (ako pri markeri Block). -->
+  <Canvas x:Name="MainCanvas"
+          Width="24"
+          Height="48"
+          UseLayoutRounding="False"
+          ClipToBounds="False"/>
+</UserControl>

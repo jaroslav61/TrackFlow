@@ -1,0 +1,442 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Settings"
+        x:Class="TrackFlow.Views.Settings.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Nastavenia"
+        WindowStartupLocation="CenterOwner"
+        Width="700"
+        Height="520"
+        MinWidth="620"
+        MinHeight="460">
+
+  <Grid RowDefinitions="*,Auto" Margin="12">
+
+    <TabControl x:Name="SettingsTabs"
+                Grid.Row="0" Classes="tc-tabs"
+                SelectedIndex="{Binding SelectedSettingsTabIndex, Mode=TwoWay}">
+
+      <!-- Nová záložka: Všeobecne -->
+      <TabItem Header="Všeobecné">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*"
+                ColumnDefinitions="260,*"
+                ColumnSpacing="10"
+                RowSpacing="10"
+                Margin="10,10,10,10">
+
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Pri spustení otvoriť posledný projekt"/>
+            <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding OpenLastProjectOnStartup}"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Počet viditeľných vagónov vo vlaku"/>
+            <ComboBox Grid.Row="1" Grid.Column="1" SelectedIndex="{Binding VisibleWagonsInTrain}">
+              <ComboBoxItem Content="Všetky"/>
+              <ComboBoxItem Content="1"/>
+              <ComboBoxItem Content="2"/>
+              <ComboBoxItem Content="3"/>
+              <ComboBoxItem Content="4"/>
+            </ComboBox>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Dočasné prevádzkové hlášky"/>
+            <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding EnableTransientRouteMessages}"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Zobrazovať telemetrické údaje centrrály"/>
+            <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding ShowTelemetryInStatusBar}"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="TTL úspech (ms)"/>
+            <NumericUpDown Grid.Row="4" Grid.Column="1"
+                           IsEnabled="{Binding EnableTransientRouteMessages}"
+                           Minimum="0"
+                           Maximum="15000"
+                           Value="{Binding RouteMessageTtlSuccessMs}"/>
+
+            <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="TTL info / upozornenie (ms)"/>
+            <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+              <NumericUpDown Grid.Column="0"
+                             IsEnabled="{Binding EnableTransientRouteMessages}"
+                             Minimum="0"
+                             Maximum="15000"
+                             Value="{Binding RouteMessageTtlInfoMs}"/>
+              <NumericUpDown Grid.Column="1"
+                             IsEnabled="{Binding EnableTransientRouteMessages}"
+                             Minimum="0"
+                             Maximum="15000"
+                             Value="{Binding RouteMessageTtlWarningMs}"/>
+            </Grid>
+
+          </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="DCC pripojenie">
+        <Grid RowDefinitions="Auto,12,*" Margin="10">
+
+          <!-- Horný panel: Pripojenie k DCC centrále -->
+          <Border Grid.Row="0"
+                  BorderBrush="#C8C8C8"
+                  BorderThickness="1"
+                  Background="#FFFFFF">
+            <Grid RowDefinitions="Auto,*">
+              <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
+                <TextBlock Text="Pripojenie k DCC centrále"
+                           FontWeight="Bold"
+                           FontSize="13" />
+              </Border>
+
+              <Grid Grid.Row="1"
+                    Margin="8,8,8,8"
+                    ColumnDefinitions="310,8,Auto,16,*"
+                    MinHeight="100">
+
+                <!-- Stĺpec 1: Zoznam centrál (užší, 2-stĺpcový template) -->
+                <ListBox Grid.Column="0"
+                         x:Name="CentralsListBox"
+                         Height="140"
+                         BorderBrush="#C8C8C8"
+                         BorderThickness="1"
+                         ItemsSource="{Binding ConfiguredCentrals}"
+                         SelectedItem="{Binding SelectedConfiguredCentral, Mode=TwoWay}">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                      <Setter Property="MinHeight" Value="24"/>
+                      <Setter Property="Height" Value="26"/>
+                      <Setter Property="Padding" Value="4,0"/>
+                      <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ConfiguredDccCentralItem">
+                      <Grid ColumnDefinitions="Auto,15,165,*" VerticalAlignment="Center">
+                        <CheckBox Grid.Column="0"
+                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,6,0"/>
+
+                        <Border Grid.Column="1"
+                                Width="10" Height="10"
+                                CornerRadius="5"
+                                Background="{Binding StateDotColor}"
+                                VerticalAlignment="Center"
+                                ToolTip.Tip="{Binding StateTooltip}"/>
+
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding NameText}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding ConnectionText}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   Margin="8,0,4,0"
+                                   Foreground="#444"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Stĺpec 2: Tlačidlá Pridať / Zmeniť / Zmazať -->
+                <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
+                  <Button Content="Pridať"
+                          Command="{Binding AddCentralCommand}"
+                          MinWidth="70"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"/>
+                  <Button Content="Zmeniť"
+                          Command="{Binding EditCentralCommand}"
+                          MinWidth="70"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"/>
+                  <Button Content="Zmazať"
+                          Command="{Binding DeleteCentralCommand}"
+                          MinWidth="70"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Stĺpec 3: Testovanie komunikácie -->
+                <Border Grid.Column="4"
+                        BorderBrush="#C8C8C8"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="#F8FBFF"
+                        Height="140"
+                        VerticalAlignment="Top">
+                  <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0"
+                            Background="#E8E8E8"
+                            Padding="8,4">
+                      <TextBlock Text="Testovanie komunikácie"
+                                 FontWeight="Bold"
+                                 FontSize="13" />
+                    </Border>
+
+                    <Grid Grid.Row="1"
+                          RowDefinitions="Auto,*"
+                          Margin="10,10,10,10">
+
+                      <Button Grid.Row="0"
+                              HorizontalAlignment="Center"
+                              HorizontalContentAlignment="Center"
+                              MinWidth="180"
+                              Height="32"
+                              Margin="0,0,0,8"
+                              IsEnabled="{Binding TestHandler.IsTestButtonEnabled}"
+                              Command="{Binding TestHandler.TestCommand}"
+                              CommandParameter="{Binding SelectedLocomotiveForDccTest}"
+                              Content="Test (Čítanie CV1)..." />
+
+                      <StackPanel Grid.Row="1"
+                                  Spacing="8"
+                                  VerticalAlignment="Top"
+                                  HorizontalAlignment="Center">
+
+                        <TextBlock HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Foreground="#B91C1C"
+                                   FontStyle="Italic"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="340"
+                                   Text="{Binding TestHandler.DisabledConnectionHint}"
+                                   IsVisible="{Binding TestHandler.HasDisabledTestHint}" />
+
+                        <Border Padding="10,6"
+                                Background="{Binding TestHandler.TestResultBackground}"
+                                BorderBrush="{Binding TestHandler.TestResultBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                IsVisible="{Binding TestHandler.HasTestResult}">
+                          <TextBlock Text="{Binding TestHandler.TestResult}"
+                                     HorizontalAlignment="Center"
+                                     TextAlignment="Center"
+                                     TextWrapping="Wrap" />
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                  </Grid>
+                </Border>
+
+              </Grid>
+            </Grid>
+          </Border>
+
+          <!-- Dolná sekcia: programovanie + režim konfigurácie -->
+          <Grid Grid.Row="2"
+                ColumnDefinitions="*,14,*">
+
+            <!-- Ľavý panel: Konfigurácia programovacej koľaje -->
+            <Border Grid.Column="0"
+                    Background="#F2F6FA"
+                    BorderBrush="#C8D5CC"
+                    BorderThickness="1"
+                    IsEnabled="{Binding HasSelectedCentral}">
+              <Grid RowDefinitions="Auto,*">
+
+                <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
+                  <TextBlock Text="Konfigurácia programovacej koľaje"
+                             FontWeight="Bold"
+                             FontSize="13" />
+                </Border>
+
+                <StackPanel Grid.Row="1"
+                            Spacing="4"
+                            Margin="12,10,12,12">
+                  <RadioButton GroupName="ProgrammingMode"
+                               Content="Programovacia koľaj (Service Track)"
+                               IsChecked="{Binding TestHandler.IsServiceTrackProgrammingMode, Mode=TwoWay}" />
+                  <RadioButton GroupName="ProgrammingMode"
+                               Content="Na hlavnej trati (POM - Program on Main)"
+                               IsChecked="{Binding TestHandler.IsPomProgrammingMode, Mode=TwoWay}" />
+                  <Border IsVisible="{Binding IsZ21Selected}"
+                          Background="#FEF3C7"
+                          BorderBrush="#FCD34D"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Padding="6,4"
+                          Margin="0,2,0,0">
+                    <TextBlock Text="z21 start: Na koľaji smie byť len jedna lokomotíva"
+                               TextWrapping="Wrap"
+                               FontSize="12" />
+                  </Border>
+                  <Border IsVisible="{Binding TestHandler.IsServiceTrackUnavailable}"
+                          Background="#FEE2E2"
+                          BorderBrush="#FCA5A5"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Padding="6,4"
+                          Margin="0,2,0,0">
+                    <TextBlock Text="{Binding TestHandler.ServiceTrackDisabledTooltip}"
+                               TextWrapping="Wrap"
+                               FontSize="12" />
+                  </Border>
+                  <StackPanel Orientation="Horizontal"
+                              Spacing="6"
+                              Margin="0,5,0,0"
+                              IsVisible="{Binding TestHandler.IsPomProgrammingMode}">
+                    <TextBlock Text="Adresa lokomotívy (POM):"  VerticalAlignment="Center"/>
+                    <NumericUpDown Width="120" Minimum="1" Maximum="9999" Increment="1"
+                                   Value="{Binding TestHandler.TestLocoAddress, Mode=TwoWay}" />
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <!-- Pravý panel: Režim a správanie konfigurácie -->
+            <Border Grid.Column="2"
+                    Background="#F2F6FA"
+                    BorderBrush="#C8D5CC"
+                    BorderThickness="1">
+              <Grid RowDefinitions="Auto,*">
+                <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
+                  <TextBlock Text="Režim a správanie konfigurácie"
+                             FontWeight="Bold"
+                             FontSize="13" />
+                </Border>
+
+                <StackPanel Grid.Row="1"
+                            Margin="16,14,16,16"
+                            Spacing="10">
+                  <CheckBox Content="Automatické pripojenie"
+                            IsChecked="{Binding AutoConnect}"
+                            IsEnabled="{Binding HasSelectedCentral}"/>
+
+                  <CheckBox Content="Použiť nastavenia DCC iba pre tento projekt"
+                            IsEnabled="{Binding HasProject}"
+                            IsChecked="{Binding UseProjectForDcc}">
+                    <ToolTip.Tip>
+                      <StackPanel Spacing="5" Width="350">
+                        <TextBlock Text="[ Zaškrtnuté - Projektový režim ]" FontWeight="Bold" Foreground="#27ae60"/>
+                        <TextBlock Text="Zoznam DCC centrál a ich nastavenia (IP adresy, COM porty) sa uložia priamo do súboru tohto projektu. Každé koľajisko tak môže mať svoj vlastný nezávislý hardvér. Zmeny neovplyvnia iné projekty."
+                                   TextWrapping="Wrap"
+                                   FontSize="12"/>
+                        <Separator Margin="0,3"/>
+                        <TextBlock Text="[ Odškrtnuté - Globálny režim ]" FontWeight="Bold" Foreground="#7f8c8d"/>
+                        <TextBlock Text="Použijú sa spoločné globálne nastavenia aplikácie. Ideálne, ak používate rovnakú centrálu na testovanie všetkých plánov alebo s programom iba začínate."
+                                   TextWrapping="Wrap"
+                                   FontSize="12"/>
+                      </StackPanel>
+                    </ToolTip.Tip>
+                  </CheckBox>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </Grid>
+
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Jazyk">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <Grid RowDefinitions="Auto,*"
+                ColumnDefinitions="180,*"
+                ColumnSpacing="10"
+                RowSpacing="10"
+                Margin="10,10,10,10">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Jazyk"/>
+          <ComboBox Grid.Row="0" Grid.Column="1" SelectedItem="{Binding Language}">
+            <ComboBoxItem Content="sk-SK"/>
+            <ComboBoxItem Content="cs-CZ"/>
+            <ComboBoxItem Content="en-US"/>
+          </ComboBox>
+
+      </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Mierka">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <Grid RowDefinitions="Auto,Auto,Auto,*"
+                ColumnDefinitions="180,*"
+                ColumnSpacing="10"
+                RowSpacing="10"
+                Margin="10,10,10,10">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Použiť pre tento projekt"/>
+          <CheckBox Grid.Row="0" Grid.Column="1"
+                    IsEnabled="{Binding HasProject}"
+                    IsChecked="{Binding UseProjectForScale}"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Mierka"/>
+          <ComboBox Grid.Row="1" Grid.Column="1"
+                    ItemsSource="{Binding ScaleItems}"
+                    SelectedItem="{Binding SelectedScaleItem, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Display}"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+
+          <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Zrýchlenie simulácie"/>
+          <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <NumericUpDown Width="120"
+                           IsEnabled="{Binding HasOpenProject}"
+                           Minimum="1"
+                           Maximum="5"
+                           Increment="0.1"
+                           FormatString="F1"
+                           Value="{Binding SimulationSpeedFactor, Mode=TwoWay}"/>
+            <TextBlock VerticalAlignment="Center" Text="×"/>
+            <TextBlock VerticalAlignment="Center" Opacity="0.75" Text="1.0 až 5.0"/>
+          </StackPanel>
+
+          </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Trasy">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <Grid RowDefinitions="Auto,Auto,Auto,*"
+                ColumnDefinitions="160,120, 160, 120"
+                ColumnSpacing="10"
+                RowSpacing="10"
+                Margin="10,10,10,10">
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                       Text="Nastavenia sa ukladajú do otvoreného projektu."
+                       Opacity="0.8"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Max. počet prvkov trasy:"/>
+            <NumericUpDown Grid.Row="1" Grid.Column="1"
+                           IsEnabled="{Binding HasProject}"
+                           Minimum="1"
+                           Maximum="200"
+                           Value="{Binding MaxPathElements}"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="Max. počet výhybiek v trase:" Margin="20,0,0,0"/>
+            <NumericUpDown Grid.Row="1" Grid.Column="3"
+                           IsEnabled="{Binding HasProject}"
+                           Minimum="0"
+                           Maximum="50"
+                           Value="{Binding MaxTurnoutsInPath}"/>
+
+          </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Farby">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <Grid RowDefinitions="Auto,*"
+                ColumnDefinitions="180,*"
+                ColumnSpacing="10"
+                RowSpacing="10"
+                Margin="10,10,10,10">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Accent"/>
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AccentColor}"/>
+
+          </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+    </TabControl>
+
+    <DockPanel Grid.Row="1" Margin="0,12,0,0" LastChildFill="False">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Spacing="8">
+        <Button Content="Zrušiť" Command="{Binding CancelCommand}" MinWidth="110"/>
+        <Button Content="Uložiť" Command="{Binding SaveCommand}" MinWidth="110"/>
+      </StackPanel>
+    </DockPanel>
+
+  </Grid>
+</Window>

@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerText"
+             Width="24"
+             Height="12"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <!-- Textový marker: obdĺžnik s textom "abc" -->
+  <Canvas Width="24"
+          Height="12"
+          UseLayoutRounding="False" 
+          ClipToBounds="False">
+    <Rectangle Canvas.Left="0" Canvas.Top="0" 
+               Width="24" Height="12"
+               Fill="#F5F5F5" 
+               Stroke="#333" 
+               StrokeThickness="1" 
+               RadiusX="3" 
+               RadiusY="3"/>
+    <TextBlock Canvas.Left="12" Canvas.Top="6"
+               Text="abc"
+               FontSize="9"
+               FontWeight="Normal"
+               Foreground="#333"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               TextAlignment="Center">
+      <TextBlock.RenderTransform>
+        <TranslateTransform X="-8" Y="-6"/>
+      </TextBlock.RenderTransform>
+    </TextBlock>
+  </Canvas>
+</UserControl>
+
+
+

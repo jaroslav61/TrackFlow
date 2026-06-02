@@ -1,0 +1,425 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels.Editor"
+        xmlns:conv="clr-namespace:TrackFlow.Converters"
+        x:Class="TrackFlow.Views.Editor.BlockPropertiesWindow"
+        x:DataType="vm:BlockPropertiesViewModel"
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        Width="590" Height="720"
+        CanResize="False">
+
+  <Window.Styles>
+    <Style Selector="HeaderedContentControl.gb">
+      <Setter Property="Margin" Value="0,8,0,0"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3"
+                    Margin="0,9,0,0" Padding="8,8,8,8">
+              <ContentPresenter Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"/>
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="8,1,0,0" Padding="4,0"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+              <ContentPresenter Content="{TemplateBinding Header}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"/>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    
+    <Style Selector="Button.marker-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <Style Selector="Button.marker-btn /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.marker-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.marker-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Opacity" Value="0.7"/> 
+    </Style>
+    
+    <!-- Disabled stav pre marker tlačidlá -->
+    <Style Selector="Button.marker-btn:disabled">
+      <Setter Property="Opacity" Value="0.35"/>
+    </Style>
+    <Style Selector="Button.marker-btn:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+  </Window.Styles>
+
+  <Window.Resources>
+    <conv:BoolToOpacityConverter x:Key="BoolToOpacity"/>
+    <conv:ObjectNullToBoolConverter x:Key="ObjectNullToBool"/>
+  </Window.Resources>
+
+  <Grid RowDefinitions="*,Auto">
+    <TabControl Grid.Row="0" Margin="8,8,8,0" Classes="tc-tabs">
+
+      <TabItem Header="Všeobecné">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Vlastnosti bloku" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto"
+                    RowSpacing="6" ColumnSpacing="8" Margin="0,12,0,2">
+                <TextBlock Grid.Row="0" Text="Názov:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                         Text="{Binding BlockName}" Height="26" Padding="6,2" VerticalContentAlignment="Center"/>
+                <TextBlock Grid.Row="1" Text="Dĺžka bloku:" VerticalAlignment="Center" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LengthCm}"
+                               Minimum="1" Maximum="99999" FormatString="0"
+                               Width="150" Height="26" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,0,290,0"
+                           Text="cm" VerticalAlignment="Center"/>
+              </Grid>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Signál a rýchlostné obmedzenia" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Spacing="8" Margin="0,12,0,2">
+                <CheckBox IsChecked="{Binding RequestYellow}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="14" Height="14" Fill="Yellow" Stroke="#B8860B" StrokeThickness="1" VerticalAlignment="Center"/>
+                    <TextBlock Text="Vyžiadať žltú" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </CheckBox>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Ellipse Width="14" Height="14" Fill="Lime" Stroke="#2E7D32" StrokeThickness="1" VerticalAlignment="Center"/>
+                  <TextBlock Text="Maximálna:" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding MaxSpeedKmh}" Minimum="0" Maximum="999" FormatString="0" Width="120" Height="26"/>
+                  <TextBlock Text="km/h" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                  <Ellipse Width="14" Height="14" Fill="Yellow" Stroke="#B8860B" StrokeThickness="1" VerticalAlignment="Center"/>
+                  <TextBlock Text="Obmedzená:" VerticalAlignment="Center"/>
+                  <NumericUpDown Value="{Binding ResSpeedKmh}" Minimum="0" Maximum="999" FormatString="0" Width="120" Height="26"/>
+                  <TextBlock Text="km/h" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Použitie" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,2">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,12,0,2" VerticalAlignment="Center">
+                  <TextBlock Text="Smer:" VerticalAlignment="Center"/>
+                  <CheckBox IsChecked="{Binding AllowBackward}" VerticalAlignment="Center">
+                    <TextBlock Text="◄" Foreground="Lime" FontSize="14" VerticalAlignment="Center"/>
+                  </CheckBox>
+                  <CheckBox IsChecked="{Binding AllowForward}" VerticalAlignment="Center">
+                    <TextBlock Text="►" Foreground="Lime" FontSize="14" VerticalAlignment="Center"/>
+                  </CheckBox>
+                </StackPanel>
+                <CheckBox Grid.Column="2" IsChecked="{Binding CriticalSection}" Content="Kritický úsek" VerticalAlignment="Center"/>
+              </Grid>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Dĺžka vlaku" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,2">
+                <TextBlock Text="Max. dĺžka vlaku:" VerticalAlignment="Center"/>
+                <NumericUpDown Value="{Binding MaxTrainLengthCm}" Minimum="0" Maximum="99999" FormatString="0" Width="150" Height="26"/>
+                <TextBlock Text="cm" VerticalAlignment="Center"/>
+              </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Classes="gb">
+              <HeaderedContentControl.Header>
+                <TextBlock Text="Návestidlá (Smerové priradenie)" FontSize="12" FontWeight="Bold"/>
+              </HeaderedContentControl.Header>
+              <StackPanel Margin="0,12,0,2" Spacing="6">
+                <Grid ColumnDefinitions="Auto,200,Auto,200" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                  <!-- Stĺpec 1: Doľava, Doprava -->
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="Doľava:" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="0" Grid.Column="1" Width="200" ItemsSource="{Binding DirectionalSignalItems}" SelectedItem="{Binding SelectedSignalLeft}" Height="26">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DirectionalSignalOption">
+                        <TextBlock Text="{Binding DisplayName}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="Doprava:" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="1" Grid.Column="1" Width="200" ItemsSource="{Binding DirectionalSignalItems}" SelectedItem="{Binding SelectedSignalRight}" Height="26">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DirectionalSignalOption">
+                        <TextBlock Text="{Binding DisplayName}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+
+                  <!-- Stĺpec 2: Nahor, Nadol -->
+                  <TextBlock Grid.Row="0" Grid.Column="2" Text="Nahor:" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                  <ComboBox Grid.Row="0" Grid.Column="3" Width="200" ItemsSource="{Binding DirectionalSignalItems}" SelectedItem="{Binding SelectedSignalUp}" Height="26">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DirectionalSignalOption">
+                        <TextBlock Text="{Binding DisplayName}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+
+                  <TextBlock Grid.Row="1" Grid.Column="2" Text="Nadol:" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                  <ComboBox Grid.Row="1" Grid.Column="3" Width="200" ItemsSource="{Binding DirectionalSignalItems}" SelectedItem="{Binding SelectedSignalDown}" Height="26">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DirectionalSignalOption">
+                        <TextBlock Text="{Binding DisplayName}"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </Grid>
+
+                <Border Background="#FFF9E3" BorderBrush="#E0C37A" BorderThickness="1" CornerRadius="3" Padding="8,6" IsVisible="{Binding HasSignalDirectionWarning}">
+                  <TextBlock Text="{Binding SignalDirectionWarning}" Foreground="#7A4E00" TextWrapping="Wrap" FontSize="11"/>
+                </Border>
+              </StackPanel>
+            </HeaderedContentControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Editor bloku">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="4,4,4,8">
+
+            <HeaderedContentControl Classes="gb" Header="Blok">
+              <Canvas Name="DiagramCanvas" Width="540" Height="210" HorizontalAlignment="Center" Margin="0,36,0,8" Background="Transparent" PointerPressed="DiagramCanvas_PointerPressed">
+                <Canvas Name="UpperScaleCanvas" Canvas.Left="60" Canvas.Top="0" Opacity="{Binding AllowForward, Converter={StaticResource BoolToOpacity}}"/>
+                <Rectangle Name="BlockForward" Canvas.Left="60" Canvas.Top="0" Width="420" Height="90" 
+                           Fill="{Binding BlockFillBrush}" Stroke="#333" StrokeThickness="1.5" 
+                           Opacity="{Binding AllowForward, Converter={StaticResource BoolToOpacity}}"/>
+                <Rectangle Name="BlockBackward" Canvas.Left="60" Canvas.Top="90" Width="420" Height="90" 
+                           Fill="{Binding BlockFillBrush}" Stroke="#333" StrokeThickness="1.5" 
+                           Opacity="{Binding AllowBackward, Converter={StaticResource BoolToOpacity}}"/>
+                <Canvas Name="LowerScaleCanvas" Canvas.Left="60" Canvas.Top="150" Opacity="{Binding AllowBackward, Converter={StaticResource BoolToOpacity}}"/>
+              </Canvas>
+            </HeaderedContentControl>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <StackPanel Grid.Column="0">
+                <HeaderedContentControl Classes="gb" Header="Indikátory">
+                  <StackPanel Spacing="5" Margin="0,12,0,2">
+                    <ComboBox Name="IndicatorTypeComboBox" 
+                              Height="26" 
+                              HorizontalAlignment="Stretch" 
+                              PlaceholderText="--- Vyberte typ indikátora ---"
+                              IsEnabled="{Binding AreIndicatorsEnabled}"
+                              SelectionChanged="IndicatorTypeComboBox_SelectionChanged">
+                      <ComboBoxItem Tag="Contact">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Image Source="avares://TrackFlow/Assets/Appicons/16/cont_ind.png" Width="16" Height="16" VerticalAlignment="Center"/>
+                          <TextBlock Text="Nový kontaktný indikátor" VerticalAlignment="Center"/>
+                        </StackPanel>
+                      </ComboBoxItem>
+                      <ComboBoxItem Tag="Flagman">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Image Source="/Assets/Appicons/16/flag.png" Width="16" Height="16" VerticalAlignment="Center"/>
+                          <TextBlock Text="Nový Flagman" VerticalAlignment="Center"/>
+                        </StackPanel>
+                      </ComboBoxItem>
+                      <ComboBoxItem Tag="Virtual">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Image Source="/Assets/Appicons/16/virt_cont.png" Width="16" Height="16" VerticalAlignment="Center"/>
+                          <TextBlock Text="Nový virtuálny kontakt" VerticalAlignment="Center"/>
+                        </StackPanel>
+                      </ComboBoxItem>
+                    </ComboBox>
+                  </StackPanel>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Classes="gb" Header="Typ signálu">
+                  <StackPanel Spacing="5" Margin="0,12,0,2">
+                    <ComboBox ItemsSource="{Binding SignalTypeItems}" 
+                              SelectedItem="{Binding SelectedSignalType}" 
+                              Height="26" 
+                              HorizontalAlignment="Stretch" 
+                              PlaceholderText="--- Vyberte typ signálu ---"
+                              IsEnabled="{Binding AreSignalAndShuntingEnabled}"/>
+                  </StackPanel>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Classes="gb" Header="Posun">
+                  <CheckBox IsChecked="{Binding AllowShunting}" 
+                            Margin="0,14,0,2"
+                            IsEnabled="{Binding AreSignalAndShuntingEnabled}">
+                    <TextBlock Text="Povoliť posun v obsadenom bloku" TextWrapping="Wrap" FontSize="11"/>
+                  </CheckBox>
+                </HeaderedContentControl>
+              </StackPanel>
+
+              <HeaderedContentControl Classes="gb" Grid.Column="1">
+                <HeaderedContentControl.Header>
+                  <TextBlock Text="Markery" FontSize="12" FontWeight="Normal"/>
+                </HeaderedContentControl.Header>
+                
+                <StackPanel Margin="0,12,0,2" Spacing="10">
+                  
+                  <StackPanel Orientation="Horizontal" Spacing="30" HorizontalAlignment="Center" Margin="0,10,0,5">
+                    <!-- Distance Fwd (modrá) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="FwdDistance"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#0078D7" Stroke="Black" StrokeThickness="2" 
+                              Data="M 3,0 L 28,0 L 34,10 L 28,20 L 3,20 A 3,3 0 0 1 0,17 L 0,3 A 3,3 0 0 1 3,0 Z"/>
+                        <TextBlock Text="R" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="10" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Braking Fwd (zelená) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="FwdBraking"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#36b958" Stroke="Black" StrokeThickness="2"  
+                              Data="M 3,0 L 28,0 L 34,10 L 28,20 L 3,20 A 3,3 0 0 1 0,17 L 0,3 A 3,3 0 0 1 3,0 Z"/>
+                        <TextBlock Text="B" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="10" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Stop Fwd (červená) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="FwdStop"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="Red" Stroke="Black" StrokeThickness="2" 
+                              Data="M 3,0 L 28,0 L 34,10 L 28,20 L 3,20 A 3,3 0 0 1 0,17 L 0,3 A 3,3 0 0 1 3,0 Z"/>
+                        <TextBlock Text="S" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="10" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Akcia Fwd (šeda) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="FwdAction"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#646464" Stroke="Black" StrokeThickness="2" 
+                              Data="M 3,0 L 28,0 L 34,10 L 28,20 L 3,20 A 3,3 0 0 1 0,17 L 0,3 A 3,3 0 0 1 3,0 Z"/>
+                        <TextBlock Text="A" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="10" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                  </StackPanel>
+
+                  <StackPanel Orientation="Horizontal" Spacing="30" HorizontalAlignment="Center" Margin="0,0,0,5">
+                    <!-- Distance Bwd (modrá) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="BwdDistance"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#0078D7" Stroke="Black" StrokeThickness="2" 
+                              Data="M 6,0 L 31,0 A 3,3 0 0 1 34,3 L 34,17 A 3,3 0 0 1 31,20 L 6,20 L 0,10 Z"/>
+                        <TextBlock Text="R" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="10" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Braking Bwd (zelená) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="BwdBraking"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#36b958" Stroke="Black" StrokeThickness="2" 
+                              Data="M 6,0 L 31,0 A 3,3 0 0 1 34,3 L 34,17 A 3,3 0 0 1 31,20 L 6,20 L 0,10 Z"/>
+                        <TextBlock Text="B" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="15" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Stop Bwd (červená) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="BwdStop"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="Red" Stroke="Black" StrokeThickness="2" 
+                              Data="M 6,0 L 31,0 A 3,3 0 0 1 34,3 L 34,17 A 3,3 0 0 1 31,20 L 6,20 L 0,10 Z"/>
+                        <TextBlock Text="S" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="15" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                    <!-- Akcia Bwd (Šeda) -->
+                    <Button Classes="marker-btn" Width="38" Height="22"
+                            Command="{Binding AddMarkerToSelectedIndicatorCommand}" CommandParameter="BwdAction"
+                            IsEnabled="{Binding AreMarkersEnabled}">
+                      <Canvas Width="35" Height="20">
+                        <Path Fill="#646464" Stroke="Black" StrokeThickness="2" 
+                              Data="M 6,0 L 31,0 A 3,3 0 0 1 34,3 L 34,17 A 3,3 0 0 1 31,20 L 6,20 L 0,10 Z"/>
+                        <TextBlock Text="A" Foreground="White" FontSize="11" FontWeight="Normal" Canvas.Left="15" Canvas.Top="2"/>
+                      </Canvas>
+                    </Button>
+                  </StackPanel>
+
+                  <StackPanel Spacing="6">
+                    <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3" Padding="8,4,8,6">
+                      <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+      
+                        <StackPanel Grid.Column="0" Spacing="2">
+                          <TextBlock Text="Vzdialenosť" FontSize="12" FontWeight="SemiBold"/>
+                          <Grid ColumnDefinitions="*, Auto" ColumnSpacing="4">
+                            <NumericUpDown Name="MarkerPositionSpinner"
+                                           Value="{Binding SelectedMarkerPositionCm}" 
+                                           FormatString="0" Minimum="0" Height="26" VerticalContentAlignment="Center"
+                                           IsEnabled="{Binding AreMarkerPropertiesEnabled}"
+                                           LostFocus="MarkerPositionSpinner_LostFocus"/>
+                            <TextBlock Grid.Column="1" Text="cm" VerticalAlignment="Center" FontSize="11"/>
+                          </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="2">
+                          <TextBlock Text="Dojazd" FontSize="12" FontWeight="SemiBold"/>
+                          <Grid ColumnDefinitions="*, Auto" ColumnSpacing="4">
+                            <NumericUpDown Name="MarkerEndSpinner"
+                                           Value="{Binding SelectedMarkerEndCm}" 
+                                           FormatString="0" Minimum="0" Height="26" VerticalContentAlignment="Center"
+                                           IsEnabled="{Binding AreMarkerPropertiesEnabled}"
+                                           LostFocus="MarkerEndSpinner_LostFocus"/>
+                            <TextBlock Grid.Column="1" Text="cm" VerticalAlignment="Center" FontSize="11"/>
+                          </Grid>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+
+                    <Border BorderBrush="#C0C0C0" BorderThickness="1" CornerRadius="3" Padding="8,4,8,6">
+                      <ComboBox ItemsSource="{Binding StopPositionItems}" 
+                                SelectedItem="{Binding SelectedMarkerStopPosition}" 
+                                Height="26" HorizontalAlignment="Stretch"
+                                PlaceholderText="--- Pozícia vlaku ---"
+                                IsEnabled="{Binding AreMarkerPropertiesEnabled}"/>
+                    </Border>
+                    
+                    <Button Content="Odstrániť marker" 
+                            Command="{Binding DeleteSelectedMarkerCommand}" 
+                            Background="#C62828" Foreground="White" 
+                            HorizontalAlignment="Stretch" Height="28"
+                            IsEnabled="{Binding AreMarkerPropertiesEnabled}"/>
+                  </StackPanel>
+                </StackPanel>
+              </HeaderedContentControl>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Vlaky">
+        <Grid><TextBlock Text="Žiadne vlaky priradené k tomuto bloku." HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#888888" FontSize="12"/></Grid>
+      </TabItem>
+    </TabControl>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,4,12,10" Spacing="8">
+      <Button Content="Uložiť" Command="{Binding SaveCommand}" Width="80" Height="28" IsDefault="True"/>
+      <Button Content="Zrušiť" Command="{Binding CancelCommand}" Width="80" Height="28" IsCancel="True"/>
+    </StackPanel>
+  </Grid>
+</Window>

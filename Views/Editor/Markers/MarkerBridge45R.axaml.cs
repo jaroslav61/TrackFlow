@@ -1,0 +1,182 @@
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Markup.Xaml;
+
+namespace TrackFlow.Views.Editor.Markers;
+
+public partial class MarkerBridge45R : UserControl, IMarkerAngle
+{
+    public MarkerBridge45R()
+    {
+        AvaloniaXamlLoader.Load(this);
+        UpdateGeometry(0);
+    }
+    
+    public void SetAngle(int angle)
+    {
+        angle = ((angle % 360) + 360) % 360;
+        UpdateGeometry(angle);
+    }
+
+    private void UpdateGeometry(int angle)
+    {
+        var CrossTrackTop = this.FindControl<Line>("CrossTrackTop");
+        var CrossTrackMiddle = this.FindControl<Line>("CrossTrackMiddle");
+        var CrossTrackBottom = this.FindControl<Line>("CrossTrackBottom");
+        var TrackLine = this.FindControl<Line>("TrackLine");
+        var Bridge1Line = this.FindControl<Line>("Bridge1Line");
+        var Bridge2Line = this.FindControl<Line>("Bridge2Line");
+       
+        if (CrossTrackTop == null || CrossTrackMiddle == null || CrossTrackBottom == null || 
+            TrackLine == null || Bridge1Line == null || Bridge2Line == null ) return;
+
+        switch (angle)
+        {
+            case 0:
+            case 360:
+                // POPOD: Šikmá koľaj (vpravo hore -> vľavo dole)
+                CrossTrackTop.StartPoint = new Point(23.8, 0.2);
+                CrossTrackTop.EndPoint = new Point(15, 9);
+                CrossTrackMiddle.StartPoint = new Point(15, 9);
+                CrossTrackMiddle.EndPoint = new Point(9, 15);
+                CrossTrackBottom.StartPoint = new Point(9, 15);
+                CrossTrackBottom.EndPoint = new Point(0.2, 23.8);
+                // CEZ: Vodorovná koľaj (cez most)
+                TrackLine.StartPoint = new Point(0.2, 12);
+                TrackLine.EndPoint = new Point(23.8, 12);
+                // Nosníky (vodorovné)
+                Bridge1Line.StartPoint = new Point(2, 8.5);
+                Bridge1Line.EndPoint = new Point(22, 8.5);
+                Bridge2Line.StartPoint = new Point(2, 15.5);
+                Bridge2Line.EndPoint = new Point(22, 15.5);
+                break;
+            
+            case 45:
+                // POPOD: Vodorovná koľaj (rozdelená na 3 časti)
+                CrossTrackTop.StartPoint = new Point(0.2, 12);
+                CrossTrackTop.EndPoint = new Point(8, 12);
+                CrossTrackMiddle.StartPoint = new Point(8, 12);
+                CrossTrackMiddle.EndPoint = new Point(16, 12);
+                CrossTrackBottom.StartPoint = new Point(16, 12);
+                CrossTrackBottom.EndPoint = new Point(23.8, 12);
+                // CEZ: Šikmá koľaj (vľavo hore -> vpravo dole)
+                TrackLine.StartPoint = new Point(0.2, 0.2);
+                TrackLine.EndPoint = new Point(23.8, 23.8);
+                // Nosníky (šikmé)
+                Bridge1Line.StartPoint = new Point(6.8, 2.2);
+                Bridge1Line.EndPoint = new Point(21.5, 17.2);
+                Bridge2Line.StartPoint = new Point(2.2, 6.8);
+                Bridge2Line.EndPoint = new Point(17.2, 21.5);
+                break;
+            
+            case 90:
+                // POPOD: Šikmá koľaj (vľavo hore -> vpravo dole)
+                CrossTrackTop.StartPoint = new Point(0.2, 0.2);
+                CrossTrackTop.EndPoint = new Point(9, 9);
+                CrossTrackMiddle.StartPoint = new Point(9, 9);
+                CrossTrackMiddle.EndPoint = new Point(15, 15);
+                CrossTrackBottom.StartPoint = new Point(15, 15);
+                CrossTrackBottom.EndPoint = new Point(23.8, 23.8);
+                // CEZ: Zvislá koľaj (cez most)
+                TrackLine.StartPoint = new Point(12, 0.2);
+                TrackLine.EndPoint = new Point(12, 23.8);
+                // Nosníky (zvislé)
+                Bridge1Line.StartPoint = new Point(8.5, 2);
+                Bridge1Line.EndPoint = new Point(8.5, 22);
+                Bridge2Line.StartPoint = new Point(15.5, 2);
+                Bridge2Line.EndPoint = new Point(15.5, 22);
+                break;
+            
+            case 135:
+                // POPOD: Zvislá koľaj (rozdelená na 3 časti)
+                CrossTrackTop.StartPoint = new Point(12, 23.8);
+                CrossTrackTop.EndPoint = new Point(12, 16);
+                CrossTrackMiddle.StartPoint = new Point(12, 16);
+                CrossTrackMiddle.EndPoint = new Point(12, 8);
+                CrossTrackBottom.StartPoint = new Point(12, 8);
+                CrossTrackBottom.EndPoint = new Point(12, 0.2);
+                // CEZ: Šikmá koľaj (vpravo hore -> vľavo dole)
+                TrackLine.StartPoint = new Point(23.8, 0.2);
+                TrackLine.EndPoint = new Point(0.2, 23.8);
+                // Nosníky (šikmé)
+                Bridge1Line.StartPoint = new Point(21.5, 7);
+                Bridge1Line.EndPoint = new Point(7, 21.5);
+                Bridge2Line.StartPoint = new Point(17, 2.5);
+                Bridge2Line.EndPoint = new Point(2, 17.5);
+                break;
+            
+            case 180:
+                // POPOD: Šikmá koľaj (vľavo dole -> vpravo hore)
+                CrossTrackTop.StartPoint = new Point(0.2, 23.8);
+                CrossTrackTop.EndPoint = new Point(9, 15);
+                CrossTrackMiddle.StartPoint = new Point(9, 15);
+                CrossTrackMiddle.EndPoint = new Point(15, 9);
+                CrossTrackBottom.StartPoint = new Point(15, 9);
+                CrossTrackBottom.EndPoint = new Point(23.8, 0.2);
+                // CEZ: Vodorovná koľaj (cez most - sprava doľava)
+                TrackLine.StartPoint = new Point(23.8, 12);
+                TrackLine.EndPoint = new Point(0.2, 12);
+                // Nosníky (vodorovné)
+                Bridge1Line.StartPoint = new Point(22, 15.5);
+                Bridge1Line.EndPoint = new Point(2, 15.5);
+                Bridge2Line.StartPoint = new Point(22, 8.5);
+                Bridge2Line.EndPoint = new Point(2, 8.5);
+                break;
+            
+            case 225:
+                // POPOD: Vodorovná koľaj (sprava doľava)
+                CrossTrackTop.StartPoint = new Point(23.8, 12);
+                CrossTrackTop.EndPoint = new Point(16, 12);
+                CrossTrackMiddle.StartPoint = new Point(16, 12);
+                CrossTrackMiddle.EndPoint = new Point(8, 12);
+                CrossTrackBottom.StartPoint = new Point(8, 12);
+                CrossTrackBottom.EndPoint = new Point(0.2, 12);
+                // CEZ: Šikmá koľaj (vpravo dole -> vľavo hore)
+                TrackLine.StartPoint = new Point(23.8, 23.8);
+                TrackLine.EndPoint = new Point(0.2, 0.2);
+                // Nosníky (šikmé)
+                Bridge1Line.StartPoint = new Point(17, 22);
+                Bridge1Line.EndPoint = new Point(2, 7);
+                Bridge2Line.StartPoint = new Point(22, 17);
+                Bridge2Line.EndPoint = new Point(7, 2);
+                break;
+            
+            case 270:
+                // POPOD: Šikmá koľaj (vpravo dole -> vľavo hore)
+                CrossTrackTop.StartPoint = new Point(23.8, 23.8);
+                CrossTrackTop.EndPoint = new Point(15, 15);
+                CrossTrackMiddle.StartPoint = new Point(15, 15);
+                CrossTrackMiddle.EndPoint = new Point(9, 9);
+                CrossTrackBottom.StartPoint = new Point(9, 9);
+                CrossTrackBottom.EndPoint = new Point(0.2, 0.2);
+                // CEZ: Zvislá koľaj (cez most - zdola nahor)
+                TrackLine.StartPoint = new Point(12, 23.8);
+                TrackLine.EndPoint = new Point(12, 0.2);
+                // Nosníky (zvislé)
+                Bridge1Line.StartPoint = new Point(15.5, 22);
+                Bridge1Line.EndPoint = new Point(15.5, 2);
+                Bridge2Line.StartPoint = new Point(8.5, 22);
+                Bridge2Line.EndPoint = new Point(8.5, 2);
+                break;
+            
+            case 315:
+                // POPOD: Zvislá koľaj (rozdelená na 3 časti)
+                CrossTrackTop.StartPoint = new Point(12, 0.2);
+                CrossTrackTop.EndPoint = new Point(12, 8);
+                CrossTrackMiddle.StartPoint = new Point(12, 8);
+                CrossTrackMiddle.EndPoint = new Point(12, 16);
+                CrossTrackBottom.StartPoint = new Point(12, 16);
+                CrossTrackBottom.EndPoint = new Point(12, 23.8);
+                // CEZ: Šikmá koľaj (vľavo dole -> vpravo hore)
+                TrackLine.StartPoint = new Point(0.2, 23.8);
+                TrackLine.EndPoint = new Point(23.8, 0.2);
+                // Nosníky (šikmé)
+                Bridge1Line.StartPoint = new Point(2, 17);
+                Bridge1Line.EndPoint = new Point(17, 2);
+                Bridge2Line.StartPoint = new Point(7, 22); 
+                Bridge2Line.EndPoint = new Point(22, 7); 
+                break;
+        }
+    }
+}

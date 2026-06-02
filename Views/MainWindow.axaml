@@ -1,0 +1,181 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TrackFlow.ViewModels"
+        xmlns:ribbon="clr-namespace:TrackFlow.Ribbon"
+        xmlns:cab="clr-namespace:TrackFlow.Cab"
+        xmlns:smart="clr-namespace:TrackFlow.Views.SmartStrips"
+        xmlns:views="clr-namespace:TrackFlow.Views"
+        xmlns:m="clr-namespace:TrackFlow.Models"
+	x:Class="TrackFlow.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		x:Name="RootWindow"
+		Title="{Binding WindowTitle}"
+		WindowStartupLocation="CenterScreen"
+		Width="1600"
+		Height="1000"
+		MinWidth="1200"
+		MinHeight="800">
+
+  <Window.KeyBindings>
+    <!-- Globálne Undo/Redo (Editor režim): CanExecute rieši MainWindowViewModel -->
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+  </Window.KeyBindings>
+
+
+	<Window.Styles>
+		<Style Selector="TabControl.tc-tabs">
+			<Setter Property="FontSize" Value="11"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs /template/ TabStrip">
+			<Setter Property="Margin" Value="6,4,6,0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem">
+			<Setter Property="Padding" Value="8,2"/>
+			<Setter Property="Margin" Value="0,0,4,0"/>
+			<Setter Property="MinHeight" Value="22"/>
+			<Setter Property="Background" Value="#E9E9E9"/>
+			<Setter Property="BorderBrush" Value="#B5B5B5"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="2,2,0,0"/>
+			<Setter Property="FontSize" Value="11"/>
+
+			<Setter Property="FontWeight" Value="Normal"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem TextBlock">
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="FontWeight" Value="Normal"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem:selected">
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="BorderThickness" Value="1,1,1,0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs TabItem:not(:selected)">
+			<Setter Property="Margin" Value="0,2,4,0"/>
+		</Style>
+
+		<Style Selector="TabControl.tc-tabs /template/ ContentPresenter">
+			<Setter Property="Margin" Value="6,0,6,6"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="BorderBrush" Value="#B5B5B5"/>
+			<Setter Property="BorderThickness" Value="1"/>
+		</Style>
+	</Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+
+        <!-- ── Rýchly panel nástrojov (Quick Access Toolbar) ── -->
+        <Border Grid.Row="0"
+                Background="#E8E8E8"
+                BorderBrush="#C8C8C8"
+                BorderThickness="0,0,0,1"
+                Height="24"
+                Padding="4,0">
+            <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+
+                <!-- Diagnostika -->
+                <Button Command="{Binding OpenDoctorWindowCommand}"
+                        Width="22" Height="20"
+                        Padding="2"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip.Tip="Otvoriť okno diagnostiky (Doktor)"
+                        Cursor="Hand">
+                    <TextBlock Text="✚" FontSize="13" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
+
+                <!-- Modelové hodiny / Fast Clock -->
+                <Button Command="{Binding OpenClockWindowCommand}"
+                        Width="22" Height="20"
+                        Padding="2"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip.Tip="Otvoriť modelové hodiny (Fast Clock)"
+                        Cursor="Hand">
+                    <TextBlock Text="🕒" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
+
+                <!-- Oddeľovač -->
+                <Border Width="1" Height="14" Background="#BBBBBB" Margin="2,0"/>
+
+                <!-- Nastavenia -->
+                <Button Command="{Binding OpenSettingsCommand}"
+                        Width="22" Height="20"
+                        Padding="2"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip.Tip="Nastavenia"
+                        Cursor="Hand">
+                    <Image Width="16" Height="16" Source="avares://TrackFlow/Assets/Appicons/16/prop.png"/>
+                </Button>
+
+                <!-- DCC Pripojiť / Odpojiť -->
+                <Button Command="{Binding ToggleConnectCommand}"
+                        Width="22" Height="20"
+                        Padding="2"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip.Tip="Pripojiť / Odpojiť DCC centrálu"
+                        Cursor="Hand">
+                    <Image Width="16" Height="16" Source="avares://TrackFlow/Assets/Appicons/16/plug.png"/>
+                </Button>
+
+                <!-- Oddeľovač -->
+                <Border Width="1" Height="14" Background="#BBBBBB" Margin="2,0"/>
+
+                <!-- Uložiť projekt -->
+                <Button Command="{Binding SaveProjectCommand}"
+                        Width="22" Height="20"
+                        Padding="2"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip.Tip="Uložiť projekt"
+                        Cursor="Hand">
+                    <TextBlock Text="💾" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Button>
+
+            </StackPanel>
+        </Border>
+
+        <!-- pás s ponukami -->
+        <Grid Grid.Row="1">
+            <ribbon:MainRibbonView />
+        </Grid>
+
+        <!-- hlavná časť: karty + dynamický pravý stĺpec s panelom -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+            <views:MainTabsView Grid.Column="0" DataContext="{Binding Tabs}" />
+
+            <!-- Stĺpec panela: zobrazuje sa len v Operation režime; v Editor režime nemá zmysel,
+                 lebo lokomotívy sa neovládajú. Source je SmartStrips.ActiveLocomotives,
+                 ktorá sa automaticky synchronizuje pri prepnutí do Operation režimu. -->
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding SmartStrips.ActiveLocomotives}"
+                          IsVisible="{Binding IsOperationMode}"
+                          Margin="10,0,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <!-- Orientácia vertikálna; MaxHeight zabezpečuje zalomenie po približne 3 panele -->
+                        <WrapPanel Orientation="Vertical" MaxHeight="960" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="m:Locomotive">
+                        <views:LocoDashboardView DataContext="{Binding}" Margin="0,10,10,0" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+
+        <smart:SmartStripsView Grid.Row="3" Height="170" DataContext="{Binding SmartStrips}"/>
+
+
+        <views:StatusBarView Grid.Row="5" DataContext="{Binding StatusBar}"/>
+
+    </Grid>
+</Window>

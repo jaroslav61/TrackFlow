@@ -1,0 +1,20 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TrackFlow.Views.Editor.Markers.MarkerSignalRibbon"
+             Width="9"
+             Height="24"
+             Padding="0"
+             ClipToBounds="False"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             UseLayoutRounding="False">
+  <Canvas Width="9" Height="24" UseLayoutRounding="False" ClipToBounds="False">
+    <Rectangle Canvas.Left="0" Canvas.Top="0" Width="9" Height="24" Fill="#111111" RadiusX="3" RadiusY="3"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="1" Width="3" Height="3" Fill="#FFFF00"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="5.5" Width="3" Height="3" Fill="#00ff44"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="10" Width="3" Height="3" Fill="#ff0000"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="14.5" Width="3" Height="3" Fill="#FFFFFF"/>
+    <Ellipse Canvas.Left="3" Canvas.Top="19" Width="3" Height="3" Fill="#FFFF00"/>
+  </Canvas>
+</UserControl>
+

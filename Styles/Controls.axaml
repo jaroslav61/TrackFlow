@@ -1,0 +1,120 @@
+﻿<Styles xmlns="https://github.com/avaloniaui">
+
+    <Style Selector="TextBox">
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="NumericUpDown">
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Vnútorný TextBox NumericUpDown nesmie dediť fixnú výšku 15 px -->
+    <Style Selector="NumericUpDown TextBox">
+        <Setter Property="Height" Value="NaN"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ButtonSpinner: tlačidlá ▲▼ pod sebou (vertikálny stack) -->
+    <Style Selector="ButtonSpinner">
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Grid ColumnDefinitions="*,28">
+
+                        <!-- Vstupná časť (TextBox) -->
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Grid.Column="0"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Padding="{TemplateBinding Padding}"/>
+
+                        <!-- Spinner tlačidlá – vertikálne -->
+                        <Grid Grid.Column="1" RowDefinitions="*,*">
+
+                            <RepeatButton Name="PART_IncreaseButton"
+                                          Grid.Row="0"
+                                          Padding="0" MinWidth="0" MinHeight="0"
+                                          Focusable="False" IsTabStop="False"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center">
+                                <!-- Šípka nahor ∧ -->
+                                <Path Data="M 0 4 L 3.5 1 L 7 4"
+                                      Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                      StrokeThickness="1.5"
+                                      StrokeLineCap="Round"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </RepeatButton>
+
+                            <RepeatButton Name="PART_DecreaseButton"
+                                          Grid.Row="1"
+                                          Padding="0" MinWidth="0" MinHeight="0"
+                                          Focusable="False" IsTabStop="False"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center">
+                                <!-- Šípka nadol ∨ -->
+                                <Path Data="M 0 1 L 3.5 4 L 7 1"
+                                      Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                      StrokeThickness="1.5"
+                                      StrokeLineCap="Round"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </RepeatButton>
+
+                        </Grid>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Štýl pre tlačidlo Play/Stop zvukového prehrávača -->
+    <Style Selector="ToggleButton.soundPlay">
+        <Setter Property="Background" Value="#2A2A2A"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="ToggleButton.soundPlay:checked">
+        <Setter Property="Background" Value="#1A3A1A"/>
+        <Setter Property="BorderBrush" Value="#00AA00"/>
+    </Style>
+    <Style Selector="ToggleButton.soundPlay:pointerover">
+        <Setter Property="Background" Value="#3A3A3A"/>
+    </Style>
+
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="#f7f26a"/>
+        <Setter Property="BorderBrush" Value="#B8860B"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+</Styles>
