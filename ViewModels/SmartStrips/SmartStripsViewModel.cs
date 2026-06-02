@@ -441,7 +441,7 @@ public partial class SmartStripsViewModel : ObservableObject
     /// <summary>
     /// Synchronizuje aktívne lokomotívy podľa aktuálneho režimu aplikácie.
     /// V režime Prevádzka (Operation) sa automaticky aktivujú všetky lokomotívy umiestnené v blokoch.
-    /// V režime Editor sa všetky lokomotívy deaktivujú (Dashboard sa skryje, opacity sa zníži).
+    /// V režime Editor sa Dashboard skryje, ale ručne aktivované lokomotívy ostávajú aktívne.
     /// </summary>
     public void SyncActiveLocomotivesWithMode(AppMode mode)
     {
@@ -487,9 +487,8 @@ public partial class SmartStripsViewModel : ObservableObject
         }
         else // AppMode.Editor
         {
-            // V editore: deaktivovať Dashboard (ActiveLocomotives), ale lokomotívy priradené
-            // do bloku ostávajú aktívne (IsActive = true, IsPlacedOnTrack = true) → opacity 100.
-            // Lokomotívy BEZ bloku sa deaktivujú → opacity nízka.
+            // V editore: deaktivovať Dashboard (ActiveLocomotives), ale zachovať ručne
+            // aktivovaný stav IsActive. Lokomotívy priradené do bloku ostávajú aktívne.
 
             // Najprv zistiť, ktoré loky sú priradené v blokoch
             var assignedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -513,10 +512,10 @@ public partial class SmartStripsViewModel : ObservableObject
                 }
             }
 
-            // Loky bez bloku deaktivovať
+            // Loky bez bloku odznačiť ako "na koľajisku", ale nemeniť IsActive.
+            // Týmto sa zachová ručné zvýraznenie/opacita po návrate z Prevádzky do Editu.
             foreach (var loco in Locomotives.Where(l => !assignedIds.Contains(l.Code)))
             {
-                loco.IsActive = false;
                 loco.IsPlacedOnTrack = false;
                 loco.AssignedBlockId = null;
             }
