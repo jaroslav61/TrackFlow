@@ -172,6 +172,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public Func<Task>? ShowTrainsDialogAsync { get; set; }
     public Func<Task>? ShowRoutesManagerDialogAsync { get; set; }
 
+    /// <summary>
+    /// Udalosť volaná po spracovaní DCC spätnej väzby, ktorá zmenila stav BlockElement-ov
+    /// (napr. IsActive na BlockIndicator-och). View sem napojí LocomotivesWindowViewModel.RefreshCalibrationIndicatorStates.
+    /// </summary>
+    public event Action<IReadOnlyList<Models.Layout.BlockElement>>? LayoutBlocksChangedByFeedback;
+
     // View sem pripojí aktualizáciu hintu (VM nevie nič o View)
     public Action? RequestProjectHintUpdate { get; set; }
 
@@ -1318,6 +1324,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         foreach (var block in changedBlocks.OfType<BlockElement>())
             Tabs.LayoutEditor.RequestBlockRepaint?.Invoke(block);
+
+        LayoutBlocksChangedByFeedback?.Invoke(changedBlocks.OfType<BlockElement>().ToList());
 
         _ = ReconcileExternalOccupancyFromFeedbackAsync();
     }

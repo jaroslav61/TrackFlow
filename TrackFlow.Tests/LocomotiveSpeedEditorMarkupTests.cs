@@ -34,7 +34,7 @@ public class LocomotiveSpeedEditorMarkupTests
     public void LocomotivesWindow_EditorLokomotivNeobsahujeNahratieVlastnehoObrazkaAMaPrazdnuDccKonfiguracnuZalozkuMedziRychlostouAFunkciami()
     {
         var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotivesWindow.axaml"));
-        var dccTabStart = xaml.IndexOf("<TabItem Header=\"DCC konfigurácia\">", StringComparison.Ordinal);
+        var dccTabStart = xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal);
         var functionsTabStart = xaml.IndexOf("<TabItem Header=\"Funkcie\">", StringComparison.Ordinal);
         var dccTab = xaml.Substring(dccTabStart, functionsTabStart - dccTabStart);
         var tabControlStart = xaml.IndexOf("<TabControl", StringComparison.Ordinal);
@@ -69,7 +69,7 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Contains("Text=\"{Binding AddressKindText}\"", topPanel, StringComparison.Ordinal);
         Assert.Contains("Foreground=\"#5B6575\"", topPanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ToolTip.Tip=\"Tlačidlo sa aktivuje po pripojení centrály, ktorá podporuje service-track programovanie CV registrov.\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("<TabItem Header=\"DCC konfigurácia\">", xaml, StringComparison.Ordinal);
+        Assert.Contains("<TabItem Header=\"Dekodér (CV)\">", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("ScrollViewer", dccTab, StringComparison.Ordinal);
         Assert.DoesNotContain("VerticalScrollBarVisibility", dccTab, StringComparison.Ordinal);
         Assert.Contains("x:CompileBindings=\"False\"", dccTab, StringComparison.Ordinal);
@@ -134,8 +134,8 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("<ComboBoxItem Content=\"DCC 28\"", dccTab, StringComparison.Ordinal);
         Assert.DoesNotContain("<ComboBoxItem Content=\"DCC 128\"", dccTab, StringComparison.Ordinal);
         Assert.Contains("Text=\"Kompenzácia bŕzd\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Korekcia bŕzd dopredu (cm):\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Korekcia bŕzd dozadu (cm):\"", dccTab, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Korekcia bŕzd dopredu (mm):\"", dccTab, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Korekcia bŕzd dozadu (mm):\"", dccTab, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"BrakeCompensationForwardSlider\"", dccTab, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"BrakeCompensationBackwardSlider\"", dccTab, StringComparison.Ordinal);
         Assert.DoesNotContain("BrakeCorrectionBox", dccTab, StringComparison.Ordinal);
@@ -185,9 +185,9 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("Text=\"Dekodér: 0\"", dccTab, StringComparison.Ordinal);
 
         Assert.True(
-            xaml.IndexOf("<TabItem Header=\"Rýchlosť\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"DCC konfigurácia\">", StringComparison.Ordinal)
-            && xaml.IndexOf("<TabItem Header=\"DCC konfigurácia\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"Funkcie\">", StringComparison.Ordinal),
-            "Záložka DCC konfigurácia má byť medzi Rýchlosť a Funkcie.");
+            xaml.IndexOf("<TabItem Header=\"Rýchlosť\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal)
+            && xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"Funkcie\">", StringComparison.Ordinal),
+            "Záložka Dekodér (CV) má byť medzi Rýchlosť a Funkcie.");
         Assert.Equal(1, CountOccurrences(xaml, "Text=\"Krok dekodéra:\""));
 
         Assert.Contains("<Style Selector=\"Slider.dccCompactSlider\">", xaml, StringComparison.Ordinal);
@@ -221,7 +221,8 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Contains("Content=\"Kalibrácia rýchlosti...\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding SpeedEditor.SelectedProfileDisplayName}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,*\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinHeight=\"220\"\r\n                                                        ClipToBounds=\"True\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MinHeight=\"220\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ClipToBounds=\"True\"", xaml, StringComparison.Ordinal);
         Assert.Contains("<Grid RowDefinitions=\"*,Auto\" RowSpacing=\"6\" ClipToBounds=\"True\">", xaml, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding SpeedEditor.IsForwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding SpeedEditor.IsBackwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
@@ -327,6 +328,17 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Contains("Profil dopredu", xaml, StringComparison.Ordinal);
         Assert.Contains("Profil dozadu", xaml, StringComparison.Ordinal);
         Assert.Contains("Obidva profily", xaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LocomotiveCalibrationWindow_KalibracneComboBoxyPouzivajuSelectionTemplateSIkonou()
+    {
+        var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotiveCalibrationWindow.axaml"));
+
+        Assert.Contains("Kalibračné bloky", xaml, StringComparison.Ordinal);
+        Assert.Equal(4, CountOccurrences(xaml, "<ComboBox.ItemTemplate>"));
+        Assert.Equal(3, CountOccurrences(xaml, "<ComboBox.SelectionBoxItemTemplate>"));
+        Assert.True(CountOccurrences(xaml, "Source=\"{Binding IconImage}\"") >= 6);
     }
 
     [Fact]
@@ -572,6 +584,43 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Equal("Automatické meranie kompletného rýchlostného profilu (detektory obsadenia)", viewModel.SelectedCalibrationMethodTooltip);
         Assert.True(viewModel.IsBlockConfigurationEnabled);
 
+        Assert.True(viewModel.IsStartBlockEnabled);
+        Assert.True(viewModel.IsMiddleBlockEnabled);
+        Assert.True(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[1];
+        Assert.True(viewModel.IsStartBlockEnabled);
+        Assert.False(viewModel.IsMiddleBlockEnabled);
+        Assert.True(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[2];
+        Assert.True(viewModel.IsStartBlockEnabled);
+        Assert.True(viewModel.IsMiddleBlockEnabled);
+        Assert.True(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[3];
+        Assert.True(viewModel.IsStartBlockEnabled);
+        Assert.False(viewModel.IsMiddleBlockEnabled);
+        Assert.True(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[4];
+        Assert.False(viewModel.IsStartBlockEnabled);
+        Assert.True(viewModel.IsMiddleBlockEnabled);
+        Assert.False(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[5];
+        Assert.True(viewModel.IsStartBlockEnabled);
+        Assert.False(viewModel.IsMiddleBlockEnabled);
+        Assert.False(viewModel.IsEndBlockEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[6];
+        Assert.False(viewModel.IsStartBlockEnabled);
+        Assert.False(viewModel.IsMiddleBlockEnabled);
+        Assert.False(viewModel.IsEndBlockEnabled);
+        Assert.False(viewModel.IsBlockConfigurationEnabled);
+
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[0];
+
         Assert.Empty(viewModel.StartBlockOptions);
         Assert.Null(viewModel.SelectedStartBlock);
         Assert.Empty(viewModel.SpeedProfileRows);
@@ -608,6 +657,63 @@ public class LocomotiveSpeedEditorMarkupTests
         viewModel.PauseSecondsText = "2.5";
         Assert.Equal("2.5", viewModel.PauseSecondsText);
         Assert.Equal(2.5, viewModel.PauseSeconds);
+
+        viewModel.RunoutDistanceMmText = "12,345abc";
+        Assert.Equal("12.34", viewModel.RunoutDistanceMmText);
+        Assert.Equal(12.34, viewModel.RunoutDistanceMm);
+
+        viewModel.RunoutDistanceMmText = "8";
+        Assert.Equal("8.00", viewModel.RunoutDistanceMmText);
+        Assert.Equal(8.0, viewModel.RunoutDistanceMm);
+    }
+
+    [Fact]
+    public void SpeedEditor_PrepnutieMetodyVycistiVybrateBlockyKtoreSuDisabled()
+    {
+        var viewModel = new LocomotiveSpeedEditorViewModel();
+        viewModel.SyncProjectIndicators(new[]
+        {
+            "Stanica / Blok 1",
+            "Stanica / Blok 2",
+            "Stanica / Blok 3"
+        });
+
+        // Metóda 1: všetky Enabled – vyberieme hodnoty do všetkých troch
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[0];
+        viewModel.SelectedStartBlock = viewModel.StartBlockOptions[0];
+        viewModel.SelectedMiddleBlock = viewModel.MiddleBlockOptions[1];
+        viewModel.SelectedEndBlock = viewModel.EndBlockOptions[2];
+
+        Assert.NotNull(viewModel.SelectedStartBlock);
+        Assert.NotNull(viewModel.SelectedMiddleBlock);
+        Assert.NotNull(viewModel.SelectedEndBlock);
+
+        // Metóda 2: Stred Disabled → SelectedMiddleBlock sa musí vyčistiť
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[1];
+        Assert.NotNull(viewModel.SelectedStartBlock);
+        Assert.Null(viewModel.SelectedMiddleBlock);
+        Assert.NotNull(viewModel.SelectedEndBlock);
+
+        // Metóda 5: Štart a Koniec Disabled → musia sa vyčistiť
+        viewModel.SelectedStartBlock = viewModel.StartBlockOptions[0];
+        viewModel.SelectedEndBlock = viewModel.EndBlockOptions[2];
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[4];
+        Assert.Null(viewModel.SelectedStartBlock);
+        Assert.Null(viewModel.SelectedEndBlock);
+
+        // Metóda 6: Stred a Koniec Disabled
+        viewModel.SelectedMiddleBlock = viewModel.MiddleBlockOptions[0];
+        viewModel.SelectedEndBlock = viewModel.EndBlockOptions[2];
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[5];
+        Assert.Null(viewModel.SelectedMiddleBlock);
+        Assert.Null(viewModel.SelectedEndBlock);
+
+        // Metóda 7: všetky Disabled → všetky sa vyčistia
+        viewModel.SelectedStartBlock = viewModel.StartBlockOptions[0];
+        viewModel.SelectedMethod = viewModel.CalibrationMethods[6];
+        Assert.Null(viewModel.SelectedStartBlock);
+        Assert.Null(viewModel.SelectedMiddleBlock);
+        Assert.Null(viewModel.SelectedEndBlock);
     }
 
     [Fact]
@@ -668,8 +774,8 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.StartsWith("Dopredu:", viewModel.ForwardStop10Text, StringComparison.Ordinal);
         Assert.StartsWith("Dozadu:", viewModel.BackwardStop10Text, StringComparison.Ordinal);
         Assert.StartsWith("Analýza:", viewModel.AnalysisSummaryText, StringComparison.Ordinal);
-        Assert.StartsWith("Odporúčanie AI:", viewModel.AiRecommendationText, StringComparison.Ordinal);
-        Assert.Equal("Stav AI diagnostiky: OK", viewModel.EngineStatusText);
+        Assert.StartsWith("Odporúčanie:", viewModel.AiRecommendationText, StringComparison.Ordinal);
+        Assert.Equal("Stav diagnostiky: OK", viewModel.EngineStatusText);
         Assert.Equal(AiDiagnosticSeverity.Ok, viewModel.EngineStatusSeverity);
         Assert.Equal(AiDiagnosticProblemType.Stable, viewModel.EngineStatusProblemType);
         Assert.Equal(AiDiagnosticCauseType.Stable, viewModel.EngineStatusCauseType);
@@ -754,9 +860,9 @@ public class LocomotiveSpeedEditorMarkupTests
     }
 
     [Theory]
-    [InlineData(25.0, 24.0, "Stav AI diagnostiky: OK", AiDiagnosticSeverity.Ok, "●", "#E4F8E8", "#B7E4C0", "#166534")]
-    [InlineData(25.0, 21.5, "Stav AI diagnostiky: Upozornenie", AiDiagnosticSeverity.Warning, "⚠", "#FFF4E5", "#F7C97D", "#9A5B00")]
-    [InlineData(25.0, 19.0, "Stav AI diagnostiky: Zlé", AiDiagnosticSeverity.Error, "⛔", "#FDEAEA", "#F1A8A8", "#991B1B")]
+    [InlineData(25.0, 24.0, "Stav diagnostiky: OK", AiDiagnosticSeverity.Ok, "●", "#E4F8E8", "#B7E4C0", "#166534")]
+    [InlineData(25.0, 21.5, "Stav diagnostiky: Upozornenie", AiDiagnosticSeverity.Warning, "⚠", "#FFF4E5", "#F7C97D", "#9A5B00")]
+    [InlineData(25.0, 19.0, "Stav diagnostiky: Zlé", AiDiagnosticSeverity.Error, "⛔", "#FDEAEA", "#F1A8A8", "#991B1B")]
     public void SpeedEditor_AiDiagnostikaPrepinaFarbyATvarIkonyPodlaZavaznosti(
         double forwardSpeed,
         double backwardSpeed,
@@ -797,7 +903,7 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Equal(expectedBorderBrush, viewModel.EngineStatusBorderBrush);
         Assert.Equal(expectedForeground, viewModel.EngineStatusForeground);
         Assert.StartsWith("Analýza:", viewModel.AnalysisSummaryText, StringComparison.Ordinal);
-        Assert.StartsWith("Odporúčanie AI:", viewModel.AiRecommendationText, StringComparison.Ordinal);
+        Assert.StartsWith("Odporúčanie:", viewModel.AiRecommendationText, StringComparison.Ordinal);
         Assert.False(string.IsNullOrWhiteSpace(viewModel.RecommendedCvTweaksText));
         Assert.True(Enum.IsDefined(viewModel.EngineStatusCauseType));
     }
@@ -822,7 +928,7 @@ public class LocomotiveSpeedEditorMarkupTests
             .ToArray();
 
         Assert.True(analysisVariants.Length >= 2, $"Očakávali sa aspoň 2 varianty textu Analýza, získané: {string.Join(" | ", analysisVariants)}");
-        Assert.True(recommendationVariants.Length >= 2, $"Očakávali sa aspoň 2 varianty textu Odporúčanie AI, získané: {string.Join(" | ", recommendationVariants)}");
+        Assert.True(recommendationVariants.Length >= 2, $"Očakávali sa aspoň 2 varianty textu Odporúčanie, získané: {string.Join(" | ", recommendationVariants)}");
         Assert.True(tweakVariants.Length >= 2, $"Očakávali sa aspoň 2 varianty textu odporúčaných úprav, získané: {string.Join(" | ", tweakVariants)}");
     }
 
@@ -997,15 +1103,48 @@ public class LocomotiveSpeedEditorMarkupTests
             "Kontakt 1",
             "Kontakt 2"
         }, viewModel.SpeedEditor.StartBlockOptions.Select(option => option.DisplayName));
+        Assert.Equal(new[] { "⚑", "●", "●" }, viewModel.SpeedEditor.StartBlockOptions.Select(option => option.IconGlyph));
         Assert.Equal(new[]
         {
-            "avares://TrackFlow/Assets/Appicons/16/flag.png",
-            "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
-            "avares://TrackFlow/Assets/Appicons/16/cont_ind.png"
+            "avares://TrackFlow/Assets/Appicons/16/flag_d.png",
+            "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png",
+            "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png"
         }, viewModel.SpeedEditor.StartBlockOptions.Select(option => option.IconPath));
         Assert.Equal(viewModel.SpeedEditor.StartBlockOptions.Select(option => option.DisplayName), viewModel.SpeedEditor.MiddleBlockOptions.Select(option => option.DisplayName));
         Assert.Equal(viewModel.SpeedEditor.StartBlockOptions.Select(option => option.DisplayName), viewModel.SpeedEditor.EndBlockOptions.Select(option => option.DisplayName));
         Assert.Null(viewModel.SpeedEditor.SelectedStartBlock);
+    }
+
+    [Fact]
+    public void SpeedEditor_SyncIndicatorActiveStatesPrepinaIkonuPodlaFeedbacku()
+    {
+        const string activeIcon = "avares://TrackFlow/Assets/Appicons/16/cont_ind.png";
+        const string inactiveIcon = "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png";
+        var indicatorId = Guid.NewGuid();
+
+        var viewModel = new LocomotiveSpeedEditorViewModel();
+        viewModel.SyncProjectIndicators(new[]
+        {
+            new CalibrationIndicatorOption("Kontakt 1", "●", activeIcon, inactiveIcon, isActive: false, indicatorId: indicatorId)
+        });
+
+        Assert.Equal(inactiveIcon, viewModel.StartBlockOptions.Single().IconPath);
+
+        var block = new BlockElement();
+        block.Indicators.Add(new BlockIndicator
+        {
+            Id = indicatorId,
+            Name = "Kontakt 1",
+            Type = BlockIndicatorType.Contact,
+            IsActive = true
+        });
+
+        viewModel.SyncIndicatorActiveStates(new[] { block });
+        Assert.Equal(activeIcon, viewModel.StartBlockOptions.Single().IconPath);
+
+        block.Indicators[0].IsActive = false;
+        viewModel.SyncIndicatorActiveStates(new[] { block });
+        Assert.Equal(inactiveIcon, viewModel.StartBlockOptions.Single().IconPath);
     }
 
     [Fact]

@@ -763,11 +763,29 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 indicators.AddRange(elementSnapshot
                     .OfType<BlockElement>()
                     .Where(static block => !string.IsNullOrWhiteSpace(block.Label))
-                    .Select(static block => new CalibrationIndicatorOption(block.Label.Trim(), "□", "avares://TrackFlow/Assets/Appicons/16/cont_ind.png")));
+                    .Select(static block => new CalibrationIndicatorOption(
+                        block.Label.Trim(), "□",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png",
+                        block.IsOccupied)));
             }
         }
 
         SpeedEditor.SyncProjectIndicators(indicators);
+    }
+
+    /// <summary>
+    /// Aktualizuje ikony aktívny/neaktívny v existujúcich CalibrationIndicatorOption objektoch
+    /// bez prestavby celého zoznamu. Volajte po každej DCC spätnej väzbe, ktorá zmenila
+    /// stav BlockIndicator-ov v layoute.
+    /// </summary>
+    public void RefreshCalibrationIndicatorStates()
+    {
+        var elements = _speedCalibrationLayoutElements ?? _settings.CurrentProject?.Layout?.Elements;
+        if (elements == null)
+            return;
+
+        SpeedEditor.SyncIndicatorActiveStates(elements.OfType<BlockElement>());
     }
 
     private static CalibrationIndicatorOption BuildCalibrationIndicatorOption(BlockElement block, BlockIndicator indicator)
@@ -786,14 +804,21 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             BlockIndicatorType.Virtual => "◇",
             _ => "●"
         };
-        var iconPath = indicator.Type switch
+        var (activeIconPath, inactiveIconPath) = indicator.Type switch
         {
-            BlockIndicatorType.Flagman => "avares://TrackFlow/Assets/Appicons/16/flag.png",
-            BlockIndicatorType.Virtual => "avares://TrackFlow/Assets/Appicons/16/virt_cont.png",
-            _ => "avares://TrackFlow/Assets/Appicons/16/cont_ind.png"
+            BlockIndicatorType.Flagman => (
+                "avares://TrackFlow/Assets/Appicons/16/flag.png",
+                "avares://TrackFlow/Assets/Appicons/16/flag_d.png"),
+            BlockIndicatorType.Virtual => (
+                "avares://TrackFlow/Assets/Appicons/16/virt_cont.png",
+                "avares://TrackFlow/Assets/Appicons/16/virt_cont_d.png"),
+            _ => (
+                "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png")
         };
 
-        return new CalibrationIndicatorOption(string.IsNullOrWhiteSpace(indicatorLabel) ? blockLabel : indicatorLabel, icon, iconPath);
+        var label = string.IsNullOrWhiteSpace(indicatorLabel) ? blockLabel : indicatorLabel;
+        return new CalibrationIndicatorOption(label, icon, activeIconPath, inactiveIconPath, indicator.IsActive, indicator.Id);
     }
 
     private static CalibrationIndicatorOption BuildCalibrationSensorOption(SensorElement sensor)
@@ -802,7 +827,10 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             ? $"Senzor {sensor.SensorAddress}"
             : sensor.Label.Trim();
 
-        return new CalibrationIndicatorOption(sensorLabel, "◆", "avares://TrackFlow/Assets/Appicons/16/sim_cont.png");
+        // Senzory nemajú osobitnú disabled ikonu, použijeme rovnakú pre oba stavy.
+        return new CalibrationIndicatorOption(sensorLabel, "◆",
+            "avares://TrackFlow/Assets/Appicons/16/sim_cont.png",
+            "avares://TrackFlow/Assets/Appicons/16/sim_cont.png");
     }
 
     private static string NormalizeCalibrationIndicatorName(string name)

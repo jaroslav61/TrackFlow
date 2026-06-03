@@ -1,5 +1,6 @@
 ﻿using TrackFlow.Models.Layout;
 using System;
+using System.Linq;
 using TrackFlow.Services;
 using TrackFlow.ViewModels.Editor;
 using Xunit;
@@ -263,6 +264,45 @@ public class TurnoutPropertiesViewModelTests
 
         // Aktuálna výhybka sa má ignorovať, teda 50 môže zostať vybraná.
         Assert.Equal(50, vm.DccAddress);
+    }
+
+    [Fact]
+    public void Sensors_ReflectLiveIsActiveState_AndRefreshUpdatesIcons()
+    {
+        var layoutVm = CreateLayoutVm();
+        var block = new BlockElement { Label = "B1" };
+        var contact = new BlockIndicator
+        {
+            Id = Guid.NewGuid(),
+            Name = "Kontakt A",
+            Type = BlockIndicatorType.Contact,
+            IsActive = false
+        };
+        var flagman = new BlockIndicator
+        {
+            Id = Guid.NewGuid(),
+            Name = "Flagman A",
+            Type = BlockIndicatorType.Flagman,
+            IsActive = true
+        };
+        block.Indicators.Add(contact);
+        block.Indicators.Add(flagman);
+        layoutVm.Elements.Add(block);
+
+        var vm = new TurnoutPropertiesViewModel(new TurnoutElement(), layoutVm, null);
+
+        var contactItem = vm.AvailableSensors.Single(item => item.Id == contact.Id.ToString());
+        var flagmanItem = vm.AvailableSensors.Single(item => item.Id == flagman.Id.ToString());
+
+        Assert.Equal("avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png", contactItem.IconPath);
+        Assert.Equal("avares://TrackFlow/Assets/Appicons/16/flag.png", flagmanItem.IconPath);
+
+        contact.IsActive = true;
+        flagman.IsActive = false;
+        vm.RefreshSensorStates();
+
+        Assert.Equal("avares://TrackFlow/Assets/Appicons/16/cont_ind.png", contactItem.IconPath);
+        Assert.Equal("avares://TrackFlow/Assets/Appicons/16/flag_d.png", flagmanItem.IconPath);
     }
 
     [Fact]

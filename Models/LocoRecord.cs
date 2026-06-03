@@ -90,7 +90,7 @@ public sealed class LocoRecord : ObservableObject
     private string? _dccSystemName;
     private Guid? _assignedCentralProfileId;
 
-    // DCC konfigurácia viazaná priamo na profil lokomotívy (záložka „DCC konfigurácia")
+    // DCC konfigurácia viazaná priamo na profil lokomotívy (záložka „Dekodér (CV)")
     private bool _isDccProgrammingEnabled;
     private int _minSpeedCv;
     private int _midSpeedCv;
@@ -99,8 +99,8 @@ public sealed class LocoRecord : ObservableObject
     private int _brakingCv;
     private bool _isDisableDynamicsForMeasurement;
     private int _brakeCorrection;
-    private int _brakeCompensationForward;
-    private int _brakeCompensationBackward;
+    private double _brakeCompensationForward;
+    private double _brakeCompensationBackward;
     private int _cv29Value;
     private bool _isBemfEnabled;
     private bool _isAnalogOperationEnabled;
@@ -284,7 +284,7 @@ public sealed class LocoRecord : ObservableObject
                 return;
 
             // Legacy value drives both directions when old data/API sets only BrakeCorrection.
-            var mirroredDirectional = Math.Clamp(coerced, -50, 50);
+            var mirroredDirectional = Math.Clamp((double)coerced, -50.0, 50.0);
             if (_brakeCompensationForward != mirroredDirectional)
             {
                 _brakeCompensationForward = mirroredDirectional;
@@ -299,24 +299,26 @@ public sealed class LocoRecord : ObservableObject
         }
     }
 
-    public int BrakeCompensationForward
+    public double BrakeCompensationForward
     {
         get => _brakeCompensationForward;
         set
         {
-            if (!SetProperty(ref _brakeCompensationForward, Math.Clamp(value, -50, 50)))
+            var coerced = Math.Clamp(value, -50.0, 50.0);
+            if (!SetProperty(ref _brakeCompensationForward, coerced))
                 return;
 
             SyncLegacyBrakeCorrectionFromDirectional();
         }
     }
 
-    public int BrakeCompensationBackward
+    public double BrakeCompensationBackward
     {
         get => _brakeCompensationBackward;
         set
         {
-            if (!SetProperty(ref _brakeCompensationBackward, Math.Clamp(value, -50, 50)))
+            var coerced = Math.Clamp(value, -50.0, 50.0);
+            if (!SetProperty(ref _brakeCompensationBackward, coerced))
                 return;
 
             SyncLegacyBrakeCorrectionFromDirectional();
@@ -366,7 +368,7 @@ public sealed class LocoRecord : ObservableObject
 
     private void SyncLegacyBrakeCorrectionFromDirectional()
     {
-        var legacy = Math.Clamp((int)Math.Round((_brakeCompensationForward + _brakeCompensationBackward) / 2.0), -100, 100);
+        var legacy = Math.Clamp((int)Math.Round((_brakeCompensationForward + _brakeCompensationBackward) / 2.0, MidpointRounding.AwayFromZero), -100, 100);
         if (_brakeCorrection == legacy)
             return;
 

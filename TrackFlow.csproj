@@ -52,7 +52,13 @@
 
 	<ItemGroup>
 	  <Folder Include="Assets\LocoIcons\" />
-	  <Folder Include="Assets\CarIcons\" />
+	  <Folder Include="Assets\Appicons\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="Assets\Appicons\**\*.*">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 	<ItemGroup>

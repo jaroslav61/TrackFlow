@@ -23,12 +23,35 @@ public sealed class DccSystemItem
 }
 
 /// <summary>Helper trieda pre položku indikátora v ListBox.</summary>
-public sealed class SensorItem
+public sealed class SensorItem : ObservableObject
 {
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
-    public string IconPath { get; init; } = "";
-    public bool IsSelected { get; set; }
+    public string ActiveIconPath { get; init; } = "";
+    public string InactiveIconPath { get; init; } = "";
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
+
+    private bool _isActive;
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            if (!SetProperty(ref _isActive, value))
+                return;
+
+            OnPropertyChanged(nameof(IconPath));
+            OnPropertyChanged(nameof(Icon));
+        }
+    }
+
+    public string IconPath => IsActive ? ActiveIconPath : InactiveIconPath;
     
     /// <summary>Ikona načítaná ako IImage pre Avalonia binding.</summary>
     public IImage? Icon => LoadIcon(IconPath);
@@ -279,12 +302,20 @@ public partial class TurnoutPropertiesViewModel : ObservableObject
             foreach (var indicator in blockElement.Indicators)
             {
                 // Ikona neaktívneho indikátora (s _d.png koncovkou)
-                string iconPath = indicator.Type switch
+                var (activeIconPath, inactiveIconPath) = indicator.Type switch
                 {
-                    BlockIndicatorType.Contact => "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png",
-                    BlockIndicatorType.Flagman => "avares://TrackFlow/Assets/Appicons/16/flag_d.png",
-                    BlockIndicatorType.Virtual => "avares://TrackFlow/Assets/Appicons/16/virt_cont_d.png",
-                    _ => "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png"
+                    BlockIndicatorType.Contact => (
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png"),
+                    BlockIndicatorType.Flagman => (
+                        "avares://TrackFlow/Assets/Appicons/16/flag.png",
+                        "avares://TrackFlow/Assets/Appicons/16/flag_d.png"),
+                    BlockIndicatorType.Virtual => (
+                        "avares://TrackFlow/Assets/Appicons/16/virt_cont.png",
+                        "avares://TrackFlow/Assets/Appicons/16/virt_cont_d.png"),
+                    _ => (
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png")
                 };
                 
                 // Použij Id indikátora namiesto SensorElement.Id
@@ -292,10 +323,29 @@ public partial class TurnoutPropertiesViewModel : ObservableObject
                 {
                     Id = indicator.Id.ToString(), // Guid -> string
                     Name = indicator.Name,
-                    IconPath = iconPath,
+                    ActiveIconPath = activeIconPath,
+                    InactiveIconPath = inactiveIconPath,
+                    IsActive = indicator.IsActive,
                     IsSelected = _turnout.DetectorLinkIds.Contains(indicator.Id.ToString())
                 });
             }
+        }
+    }
+
+    public void RefreshSensorStates()
+    {
+        if (_layoutVm == null || AvailableSensors.Count == 0)
+            return;
+
+        var activeById = _layoutVm.Elements
+            .OfType<BlockElement>()
+            .SelectMany(static block => block.Indicators)
+            .ToDictionary(static indicator => indicator.Id.ToString(), static indicator => indicator.IsActive, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sensor in AvailableSensors)
+        {
+            if (activeById.TryGetValue(sensor.Id, out var isActive))
+                sensor.IsActive = isActive;
         }
     }
 

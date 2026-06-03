@@ -26,6 +26,26 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-03 22:45
+===================
+  **Oblasť:** TrackFlow.Views.Library.LocomotivesWindow (XAML)
+  **Zmena:** 🟩 Kompletná reorganizácia a očistenie záložky Dekodér (CV). Úplné odstránenie duplicitného bloku pre kompenzáciu bŕzd a roztiahnutie panela pre CV29 (Smer a BEMF regulácia) cez celú šírku spodného riadku pomocou Grid.ColumnSpan="3".
+  **Dôvod:** Kompenzácia bŕzd bola pôvodne umiestnená v záložke DCC konfigurácie, čo nedávalo zmysel, pretože ide o čisto softvérovú korekciu aplikácie TrackFlow nezávislú od toho, či dekodér podporuje DCC programovanie alebo beží v analógu. Duplicita prvkov naviac hrozila prepisovaním hodnôt.
+  **Riešenie:** Starý panel kompenzácie bŕzd bol zo záložky dekodéra kompletne vymazaný. Uvoľnené miesto v mriežke bolo kompenzované úpravou zostávajúceho panela Smer a BEMF regulácia, ktorý teraz využíva celú šírku spodného riadku, čím sa zachovala vizuálna symetria layoutu.
+  **Výsledok:** Čisté hardvérové prostredie v záložke dekodéra. Všetky CV registre (CV1-6, CV3, CV4, CV29) sú teraz logicky pokope a správne reagujú na spoločné zamknutie cez vrchný checkbox podpory programovania.
+
+## 2026-06-03 22:40
+===================
+  **Oblasť:** TrackFlow.Views.Library.LocomotivesWindow (XAML), Styles (Slider.dccCompactSlider)
+  **Zmena:** 🟩 Prerobenie spodnej časti záložky Rýchlosť – presun panelov, zmena jednotiek z cm na mm, integrácia priamych vstupných polí (TextBox) a úprava mierky tickov na slideri.
+  **Dôvod:** Kompenzácia bŕzd musela byť dostupná vždy, preto bola presunutá k nameraným profilom rýchlosti. Pôvodné zobrazenie dvoch stĺpcov vedľa seba v odhade brzdnej dráhy orezávalo texty a pretekalo vertikálne von z Borderu, pričom orientačné rysky (ticks) pod sliderom viseli vo vzduchu. Prechod z centimetrov na milimetre vyžadoval zmenu krokovania po 1 mm.
+  **Riešenie:** 
+    • Nadpis "Kompenzácia bŕzd" bol odstránený, čím sa uvoľnilo cca 20px vertikálneho miesta.
+    • Box Odhad brzdnej dráhy bol upravený do jedného čistého stĺpca pod seba s nastavením Width="240" a hodnotami v kurzíve (FontStyle="Italic"), čím sa uvoľnil priestor pre vizuálny separátor.
+    • Box Kompenzácia bŕzd bol presunutý vedľa neho do stĺpca s pevnou šírkou, čím obidva panely dokonale lícujú s diagnostikou nad nimi.
+    • Do oboch riadkov korekcií (vpred/vzad) boli pridané kompaktné TextBoxy so štýlom speedCompactTextBox viazané cez obojsmerný binding (TwoWay) priamo na hodnoty sliderov.
+    • V šablóne Slider.dccCompactSlider bola výška mriežky upravená na 16,10 a pomocou záporného marginu Margin="6,-4,6,0" boli ticky vytiahnuté priamo k osi slidera. Orientačné dieliky boli zväčšené (bežné na 3px, štvrťové na 5px a stredová nula na 7px). Slidery boli nastavené na rozsah -500 až 500 s krokovaním SmallChange="1" a IsSnapToTickEnabled="True".
+  **Výsledok:** Stopercentne zarovnaný, kompaktný a moderný vzhľad celej záložky. Užívateľ má možnosť buď pohodlne ťahať slider presne po 1 mm, alebo hodnotu rýchlo a bezpečne vpísať z klávesnice bez otravného triafania desatinných čiarok.
 
 ## 2026-06-01 13:02
 ===================
@@ -40,7 +60,6 @@
    • Po spresnení regresného testu cielené testy `LocomotiveSpeedEditorMarkupTests` → **105 / 105 passed, 0 regresií**.
    • Opakovaný beh `--no-build` potvrdil rovnaký výsledok.
    • Rozšírený rez `LocomotiveSpeedEditorMarkupTests|OperationViewInteractionMarkupTests|UtilityWindowAsyncVoidMarkupTests` → **116 / 116 passed, 0 regresií**.
-
 
 ## 2026-06-01 12:48
 ===================

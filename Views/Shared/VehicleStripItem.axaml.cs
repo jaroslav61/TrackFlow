@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -984,12 +985,22 @@ public partial class VehicleStripItem : UserControl, INotifyPropertyChanged
 
             if (param is Locomotive)
             {
-                var dlg = new TrackFlow.Views.Library.LocomotivesWindow
+                var locoVm = new TrackFlow.ViewModels.Library.LocomotivesWindowViewModel(resolvedMainVm.SettingsManager, resolvedMainVm.LayoutEditor.Elements, resolvedMainVm.Dcc);
+                var dlg = new TrackFlow.Views.Library.LocomotivesWindow { DataContext = locoVm };
+
+                void OnFeedbackBlocksChanged(IReadOnlyList<TrackFlow.Models.Layout.BlockElement> _)
+                    => locoVm.RefreshCalibrationIndicatorStates();
+
+                resolvedMainVm.LayoutBlocksChangedByFeedback += OnFeedbackBlocksChanged;
+                try
                 {
-                    DataContext = new TrackFlow.ViewModels.Library.LocomotivesWindowViewModel(resolvedMainVm.SettingsManager, resolvedMainVm.LayoutEditor.Elements, resolvedMainVm.Dcc)
-                };
-                if (owner != null) await dlg.ShowDialog(owner);
-                else dlg.Show();
+                    if (owner != null) await dlg.ShowDialog(owner);
+                    else dlg.Show();
+                }
+                finally
+                {
+                    resolvedMainVm.LayoutBlocksChangedByFeedback -= OnFeedbackBlocksChanged;
+                }
                 return;
             }
 

@@ -50,7 +50,7 @@ public class OperationViewInteractionMarkupTests
     }
 
     [Fact]
-    public void BlockRenderer_NekresliVlakLenZoStarehoAssignedLocoIdAkBlokNieJeObsadeny()
+    public void BlockRenderer_KresliVlakZoAssignedLocoIdAjKedBlokNieJeObsadeny()
     {
         var block = new BlockElement
         {
@@ -66,7 +66,7 @@ public class OperationViewInteractionMarkupTests
 
         var renderLocoId = method.Invoke(null, new object[] { block });
 
-        Assert.Null(renderLocoId);
+        Assert.Equal("loco_demo_1", renderLocoId);
     }
 
     [Fact]

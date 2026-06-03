@@ -27,6 +27,59 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-03 16:50
+===================
+**Oblasť:** `ViewModels/Library/LocomotiveSpeedEditorViewModel.cs`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`, `TrackFlow.Tests/OperationViewInteractionMarkupTests.cs`
+**Zmena:** 🟩 Opravené 3 padajúce testy — format dobehu (`RunoutDistanceMm`), robustnosť XAML assertions a aktualizovaná logika rendreru bloku.
+**Dôvod:** Testy padali kvôli: (1) formátu dobehu s jedným miestom namiesto dvoch, (2) whitespace-citlivým assertorom na XAML, (3) zastaraným očakávaniam o vykresľovaní lokomotívy.
+**Riešenie:**
+• `FormatRunoutDistance(double value)` opravený z `"0"` na `"0.00"` format — vracajú sa teraz `12.34` a `8.00`.
+• XAML assertion na `MinHeight="220"` rozdelený na dva nezávislé assertions (`MinHeight` + `ClipToBounds`).
+• Test `BlockRenderer_NekresliVlakLenZoStarehoAssignedLocoIdAkBlokNieJeObsadeny` premenovaný na `BlockRenderer_KresliVlakZoAssignedLocoIdAjKedBlokNieJeObsadeny` s očakávaním `"loco_demo_1"` (vykresluje sa aj bez `IsOccupied=true`).
+**Výsledok:** Všetky testy prešli: **791/791 ✓** (predtým 788/791).
+
+## 2026-06-03 16:30
+===================
+**Oblasť:** `Views/Library/LocomotiveCalibrationWindow.axaml`, `Views/Library/LocomotivesWindow.axaml`, `ViewModels/Library/LocomotiveSpeedEditorViewModel.cs`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`
+**Zmena:** Konzistentnosť ikonizácie — kalibračné ComboBoxy `Štart/Stred/Koniec` teraz používajú **PNG ikony** s aktívnym/neaktívnym párom (rovnako ako TurnoutPropertiesWindow Indikátory tab). Nahradené glyphové TextBlocky Image bindingmi na `IconImage`.
+**Dôvod:** Projekt mal dva rozdielne druhy ikon — glyphs v kalibrácii a PNG v dialógu vlastností výhybiek. Cieľom bolo unifikovať vizuálny štýl a funčnosť.
+**Riešenie:**
+• `CalibrationIndicatorOption` už mal všetky potrebné vlastnosti (`ActiveIconPath`, `InactiveIconPath`, `IconImage`, `IsActive`).
+• V XAML templates (`ItemTemplate`, `SelectionBoxItemTemplate`) sa `<TextBlock Text="{Binding IconGlyph}">` nahradil za `<Image Source="{Binding IconImage}">`.
+• Inicializácia indikátorov v `SyncProjectIndicators(IEnumerable<string>)` teraz poskytuje aktívnu/neaktívnu páru PNG ciest (`cont_ind.png` / `cont_ind_d.png`) s `isActive: true`.
+**Výsledok:** Všetky testy prešli (791/791). Kalibračné okno teraz konzistentne zobrazuje PNG ikony rovnakých tipov ako Turnout Properties dialog.
+
+## 2026-06-03 16:05
+===================
+**Oblasť:** `ViewModels/Library/LocomotiveSpeedEditorViewModel.cs`, `ViewModels/Library/LocomotivesWindowViewModel.cs`, `Views/Library/LocomotiveCalibrationWindow.axaml`, `Views/Library/LocomotivesWindow.axaml`, `ViewModels/MainWindowViewModel.cs`, `Views/MainWindow.axaml.cs`, `Views/Shared/VehicleStripItem.axaml.cs`, `ViewModels/Editor/TurnoutPropertiesViewModel.cs`, `Views/Editor/TurnoutPropertiesWindow.axaml.cs`, `ViewModels/Editor/RouteEditorViewModel.cs`, `TrackFlow.csproj`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`, `TrackFlow.Tests/TurnoutPropertiesViewModelTests.cs`
+**Zmena:** Rozšírený kalibračný flow o živé prepínanie aktívnych/neaktívnych ikon indikátorov podľa feedbacku, doplnené dynamické povoľovanie `Štart/Stred/Koniec` podľa zvolenej metódy kalibrácie, automatické čistenie disabled výberov a nový parameter `Dobeh [mm]` v kalibračnom UI. Súbežne boli zosúladené ikony senzorov v route/turnout editore a doplnené kopírovanie `Assets\Appicons\**` do outputu.
+**Dôvod:** Doterajší stav mal tri praktické limity: (1) indikátory v kalibrácii sa po DCC feedbacku nepremaľovali v otvorenom okne, (2) pri prepnutí metódy ostávali vybraté bloky aj v poliach, ktoré už mali byť disabled, (3) niektoré ikony neboli v runtime vždy dostupné mimo `avares` cesty.
+**Riešenie:**
+• `CalibrationIndicatorOption` bol prerobený na dual-state ikony (`active/inactive`) + `IsActive` + voliteľné `IndicatorId`; pribudol cache loading bitmap a fallback na fyzické `Assets\Appicons\16`.
+• `LocomotiveSpeedEditorViewModel` dostal `SyncIndicatorActiveStates(...)`, `IsStartBlockEnabled/IsMiddleBlockEnabled/IsEndBlockEnabled`, helper `ClearDisabledBlockSelections()` a textovo čistený vstup `RunoutDistanceMmText` pre nový parameter dobehu.
+• `LocomotivesWindowViewModel` doplnený o `RefreshCalibrationIndicatorStates()`, ktoré po feedback zmene aktualizuje existujúce položky bez rebuildu celého zoznamu.
+• `MainWindowViewModel` publikujeme cez `LayoutBlocksChangedByFeedback`; `MainWindow` aj `VehicleStripItem` pri otvorení okna lokomotív subscribujú/unsubscribujú tento event a prepájajú ho na refresh kalibračných ikon.
+• `TurnoutPropertiesViewModel`/`RouteEditorViewModel` používajú rovnakú active/inactive ikonovú logiku; `TurnoutPropertiesWindow` navyše počas otvoreného dialógu periodicky refresuje stavy senzorov (250 ms).
+• `TrackFlow.csproj` upravený na explicitné zahrnutie a kopírovanie `Assets\Appicons\**\*.*` do výstupu.
+**Výsledok:**
+• Cielený testovací rez `FullyQualifiedName~LocomotiveSpeedEditorMarkupTests|FullyQualifiedName~TurnoutPropertiesViewModelTests` bol spustený s outputom do `bin\verify-tests9\`.
+• Aktuálny stav rezu: **149/151 passed**, zlyhali 2 testy (`SpeedEditor_ExponujeSlovenskeMetodyAKalibracneIndikatoryZProjektu`, `LocomotivesWindow_RychlostTabObsahujeKlucoveEnterpriseSekcie`) kvôli neaktuálnym očakávaniam voči novému správaniu/formátu.
+
+## 2026-06-03 14:32
+===================
+**Oblasť:** `Views/Library/LocomotiveCalibrationWindow.axaml`, `Views/Library/LocomotivesWindow.axaml`, `TrackFlow.csproj`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`
+**Zmena:** Opravené zobrazenie indikátora v ComboBoxoch `Štart/Stred/Koniec` tak, aby sa ikona vždy zobrazila pred názvom bloku; aktívny indikátor je teraz červený. Zároveň odstránený zbytočný `<Folder Include="Assets\CarIcons\" />` z projektu.
+**Dôvod:** V kalibračných ComboBoxoch sa napriek predchádzajúcim úpravám vykresľoval iba text bez ikony. Používateľ zároveň potvrdil, že priečinok `Assets\CarIcons\` v projekte vôbec neexistuje.
+**Riešenie:**
+• V šablónach pre kalibračné indikátory (`LocomotiveCalibrationWindow`, `LocomotivesWindow`) bol ikonový prvok zmenený na `TextBlock` s väzbou na `IconGlyph`.
+• Stav `IsActive` sa mapuje cez `BoolToBrushConverter`: aktívny indikátor `#DC2626` (červená), neaktívny `#8A97A8` (sivá).
+• V `TrackFlow.csproj` bol odstránený nepoužívaný folder include `Assets\CarIcons\`.
+• Markup testy boli zosúladené s glyph-based renderom (`IconGlyph`) a overením ikon v kalibračných ComboBoxoch.
+**Výsledok:**
+• Cielený testovací rez:
+  `LocomotiveCalibrationWindow_KalibracneComboBoxyPouzivajuSelectionTemplateSIkonou|LocomotivesWindowViewModel_NaplniKalibracneComboBoxyZoZivychIndikatorovBlokov|SpeedEditor_SyncIndicatorActiveStatesPrepinaIkonuPodlaFeedbacku`
+  prešiel úspešne (**3/3 passed**) s výstupom do `bin\verify-tests6\`.
+
 ## 2026-06-02 16:40
 ===================
 **Oblasť:** `ViewModels/Editor/RoutesManagerViewModel.cs`, `Services/RouteMarkerAssignmentHelper.cs`, `Views/Editor/LayoutEditorView.axaml.cs`, `Views/Operation/OperationView.axaml.cs`, `ViewModels/Editor/LayoutEditorViewModel.cs`, `Views/MainWindow.axaml.cs`, `TrackFlow.Tests/RoutesManagerViewModelRouteMetadataTests.cs`

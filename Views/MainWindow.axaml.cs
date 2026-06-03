@@ -190,14 +190,28 @@ public partial class MainWindow : Window
             // vždy na UI threade
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
+                var locoVm = _vm == null
+                    ? null
+                    : new LocomotivesWindowViewModel(_vm.SettingsManager, _vm.LayoutEditor.Elements, _vm.Dcc);
 
-                var dlg = new LocomotivesWindow
-                    {
-                        DataContext = _vm == null ? null : new LocomotivesWindowViewModel(_vm.SettingsManager, _vm.LayoutEditor.Elements, _vm.Dcc)
-                    }
-                    ;
+                // Napojíme live aktualizáciu ikon aktívny/neaktívny indikátor v kalibračných comboboxoch.
+                void OnFeedbackBlocksChanged(IReadOnlyList<TrackFlow.Models.Layout.BlockElement> _)
+                    => locoVm?.RefreshCalibrationIndicatorStates();
 
-                await dlg.ShowDialog(this);
+                if (_vm != null && locoVm != null)
+                    _vm.LayoutBlocksChangedByFeedback += OnFeedbackBlocksChanged;
+
+                var dlg = new LocomotivesWindow { DataContext = locoVm };
+
+                try
+                {
+                    await dlg.ShowDialog(this);
+                }
+                finally
+                {
+                    if (_vm != null)
+                        _vm.LayoutBlocksChangedByFeedback -= OnFeedbackBlocksChanged;
+                }
             });
         }
         catch (Exception)

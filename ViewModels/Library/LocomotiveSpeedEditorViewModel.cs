@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -16,6 +17,7 @@ using ReactiveUI;
 using Serilog;
 using TrackFlow.Models;
 using TrackFlow.Models.Calibration;
+using TrackFlow.Models.Layout;
 using TrackFlow.Services;
 using TrackFlow.ViewModels.Calibration;
 
@@ -73,13 +75,15 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private string _selectedMaxModelSpeed = "120 km/h";
     private CalibrationMethodItemViewModel? _selectedMethod;
     private double _pauseSeconds = 5.0;
-    private string _pauseSecondsText = "5.0";
+    private string _pauseSecondsText = "5";
+    private double _runoutDistanceMm;
+    private string _runoutDistanceMmText = "0";
     private double _calibrationProgress;
     private string _calibrationStatusText = "Pripravené na kalibráciu.";
     private string _selectedLocomotiveDisplayName = string.Empty;
     private IImage? _selectedLocomotiveImage;
     private double _currentSpeedKmh;
-    private string _engineStatusText = "Stav AI diagnostiky: OK";
+    private string _engineStatusText = "Stav diagnostiky: OK";
     private AiDiagnosticSeverity _engineStatusSeverity = AiDiagnosticSeverity.Ok;
     private AiDiagnosticProblemType _engineStatusProblemType = AiDiagnosticProblemType.Stable;
     private AiDiagnosticCauseType _engineStatusCauseType = AiDiagnosticCauseType.Stable;
@@ -435,6 +439,47 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
+    public double RunoutDistanceMm
+    {
+        get => _runoutDistanceMm;
+        set
+        {
+            var normalized = Math.Round(Math.Clamp(value, 0.0, 999.99), 2, MidpointRounding.AwayFromZero);
+            if (Math.Abs(_runoutDistanceMm - normalized) < 0.001)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _runoutDistanceMm, normalized);
+
+            var formatted = FormatRunoutDistance(normalized);
+            if (!string.Equals(_runoutDistanceMmText, formatted, StringComparison.Ordinal))
+                this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, formatted, nameof(RunoutDistanceMmText));
+        }
+    }
+
+    public string RunoutDistanceMmText
+    {
+        get => _runoutDistanceMmText;
+        set
+        {
+            var normalizedText = NormalizeRunoutDistanceText(value);
+            if (string.Equals(_runoutDistanceMmText, normalizedText, StringComparison.Ordinal))
+                return;
+
+            this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, normalizedText);
+
+            if (TryParseRunoutDistance(normalizedText, out var parsed))
+            {
+                var clamped = Math.Round(Math.Clamp(parsed, 0.0, 999.99), 2, MidpointRounding.AwayFromZero);
+                if (Math.Abs(_runoutDistanceMm - clamped) >= 0.001)
+                    this.RaiseAndSetIfChanged(ref _runoutDistanceMm, clamped, nameof(RunoutDistanceMm));
+
+                var formatted = FormatRunoutDistance(clamped);
+                if (!string.Equals(_runoutDistanceMmText, formatted, StringComparison.Ordinal))
+                    this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, formatted);
+            }
+        }
+    }
+
     public double CalibrationProgress
     {
         get => _calibrationProgress;
@@ -506,6 +551,12 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     public bool IsBlockConfigurationEnabled => !IsExternalDeviceMethod;
 
+    public bool IsStartBlockEnabled => GetBlockSelectionEnabledState().StartEnabled;
+
+    public bool IsMiddleBlockEnabled => GetBlockSelectionEnabledState().MiddleEnabled;
+
+    public bool IsEndBlockEnabled => GetBlockSelectionEnabledState().EndEnabled;
+
     public string SelectedCalibrationMethodTooltip
         => SelectedMethod?.Description ?? string.Empty;
 
@@ -543,6 +594,11 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(IsBlockOccupancyMethod));
             this.RaisePropertyChanged(nameof(IsExternalDeviceMethod));
             this.RaisePropertyChanged(nameof(IsBlockConfigurationEnabled));
+            this.RaisePropertyChanged(nameof(IsStartBlockEnabled));
+            this.RaisePropertyChanged(nameof(IsMiddleBlockEnabled));
+            this.RaisePropertyChanged(nameof(IsEndBlockEnabled));
+
+            ClearDisabledBlockSelections();
 
             UpdateCalibrationStatus(GetCalibrationMethodStatus(value));
         }
@@ -1106,7 +1162,12 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             .Select(static indicator => indicator.Trim())
             .Distinct(StringComparer.CurrentCultureIgnoreCase)
             .OrderBy(static indicator => indicator, StringComparer.CurrentCultureIgnoreCase)
-            .Select(static indicator => new CalibrationIndicatorOption(indicator, "●", "avares://TrackFlow/Assets/Appicons/16/cont_ind.png"))
+            .Select(static indicator => new CalibrationIndicatorOption(
+                indicator,
+                "●",
+                "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png",
+                isActive: true))
             .ToList();
 
         SyncProjectIndicators(options);
@@ -1134,6 +1195,41 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             SelectedEndBlock = null;
 
         RefreshBlockSelections();
+    }
+
+    /// <summary>
+    /// Aktualizuje IsActive na existujúcich CalibrationIndicatorOption objektoch podľa aktuálneho
+    /// runtime stavu BlockIndicator-ov z layoutu. Volaním tejto metódy sa ikona v comboboxe
+    /// okamžite zmení bez nutnosti prestavby celého zoznamu.
+    /// </summary>
+    public void SyncIndicatorActiveStates(IEnumerable<TrackFlow.Models.Layout.BlockElement> blocks)
+    {
+        // Zostavíme slovník: IndicatorId → IsActive (pre presné párovanie podľa Guid).
+        var byId = new Dictionary<Guid, bool>();
+        // Záložný slovník: DisplayName (normalized) → IsActive (pre párovanie podľa mena).
+        var byName = new Dictionary<string, bool>(StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (var block in blocks)
+        {
+            foreach (var indicator in block.Indicators)
+            {
+                byId[indicator.Id] = indicator.IsActive;
+                if (!string.IsNullOrWhiteSpace(indicator.Name))
+                    byName[indicator.Name.Trim()] = indicator.IsActive;
+            }
+        }
+
+        foreach (var option in _allIndicators)
+        {
+            bool? resolved = null;
+            if (option.IndicatorId.HasValue && byId.TryGetValue(option.IndicatorId.Value, out var activeById))
+                resolved = activeById;
+            else if (!string.IsNullOrWhiteSpace(option.DisplayName) && byName.TryGetValue(option.DisplayName, out var activeByName))
+                resolved = activeByName;
+
+            if (resolved.HasValue)
+                option.IsActive = resolved.Value;
+        }
     }
 
     private static CalibrationMeasurementPointViewModel CreatePoint(int step, string direction, double timeSeconds, double rawSpeedKmh, double calculatedSpeedKmh, string status, bool isManual = false)
@@ -1658,19 +1754,19 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         {
             severity = AiDiagnosticSeverity.Ok;
             SetEngineStatusSeverity(severity);
-            EngineStatusText = "Stav AI diagnostiky: OK";
+            EngineStatusText = "Stav diagnostiky: OK";
         }
         else if (averageDifference <= 4.0 && (!maxDeviation.HasValue || maxDeviation.Value.Difference <= 4.0))
         {
             severity = AiDiagnosticSeverity.Warning;
             SetEngineStatusSeverity(severity);
-            EngineStatusText = "Stav AI diagnostiky: Upozornenie";
+            EngineStatusText = "Stav diagnostiky: Upozornenie";
         }
         else
         {
             severity = AiDiagnosticSeverity.Error;
             SetEngineStatusSeverity(severity);
-            EngineStatusText = "Stav AI diagnostiky: Zlé";
+            EngineStatusText = "Stav diagnostiky: Zlé";
         }
 
         int? maxDeviationStep = maxDeviation.HasValue ? maxDeviation.Value.Step : null;
@@ -1874,9 +1970,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static string BuildEngineStatusText(AiDiagnosticSeverity severity)
         => severity switch
         {
-            AiDiagnosticSeverity.Ok => "Stav AI diagnostiky: OK",
-            AiDiagnosticSeverity.Warning => "Stav AI diagnostiky: Upozornenie",
-            _ => "Stav AI diagnostiky: Zlé"
+            AiDiagnosticSeverity.Ok => "Stav diagnostiky: OK",
+            AiDiagnosticSeverity.Warning => "Stav diagnostiky: Upozornenie",
+            _ => "Stav diagnostiky: Zlé"
         };
 
     private static AiDiagnosticProblemType DetermineDiagnosticProblemType(
@@ -1978,7 +2074,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var suggestedPauseText = $"{pauseSeconds + 1.0:0.0}s";
 
         return BuildCompositeMessage(
-            "Odporúčanie AI:",
+            "Odporúčanie:",
             SelectRandom(GetRecommendationLeadVariants(severity), randomizeSelections),
             SelectRandom(GetRecommendationProblemVariants(problemType, targetStepText), randomizeSelections),
             SelectRandom(GetRecommendationCauseVariants(causeType), randomizeSelections),
@@ -2178,10 +2274,10 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             {
                 "Aktuálny profil môžete považovať za pripravený na prevádzku.",
                 "Nie je nutný veľký zásah; stačí bežná overovacia jazda.",
-                "Profil vyzerá zdravo a potrebuje už len finálne potvrdenie.",
+                "Profil vyzerá zdravo a potrebuje už len finálne potvrdiť.",
                 "AI nežiada zásadnú korekciu, skôr len bežné overenie.",
                 "Výsledok je možné ponechať s minimálnou ďalšou kontrolou.",
-                "V tejto chvíli stačí už len potvrdiť správanie v reálnej jazde."
+                "V tejto chvíli stačí už len potvrdiť správanie v reálnom jazde."
             },
             AiDiagnosticSeverity.Warning => new[]
             {
@@ -2195,7 +2291,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             _ => new[]
             {
                 "Tu už treba výraznejší zásah a nové overenie.",
-                "AI odporúča vrátiť sa k meraniu a postihnutú oblasť prekalibrovať.",
+                "AI odporúča vrátiť sa k meraniu a postihnutú oblasť prekalibrácia.",
                 "Profil ešte nie je vhodný na finálne uloženie bez ďalšej úpravy.",
                 "Potrebné je nové cielené meranie a následné opätovné overenie.",
                 "Najbezpečnejší postup je prekalibrácia problémovej časti profilu.",
@@ -2271,7 +2367,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 "Pred ďalším ladením CV overte spriahadlá, prevody a prípadné trenie pohonu.",
                 "AI odporúča mechanickú kontrolu ešte pred agresívnejším zásahom do CV.",
                 "Najprv odstráňte mechanický odpor, až potom dolaďujte CV mapu.",
-                "Skúste potvrdiť, či problém nevzniká trením alebo odporom v mechanike.",
+                "Skúste potvrdiť, či problém nevzniká trením alebo odporu v mechanike.",
                 "Ak mechanický odpor zostane, samotná úprava CV nemusí stačiť."
             },
             AiDiagnosticCauseType.StartupCvTuning => new[]
@@ -2304,11 +2400,11 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             _ => new[]
             {
                 "Pozornosť venujte tomu, či problém nevzniká iba v jednom smere jazdy.",
-                "AI odporúča porovnať smer dopredu a dozadu oddelene a hľadať slabší smer.",
-                "Pred úpravou CV si overte, či jeden smer nereaguje citeľne horšie než druhý.",
-                "Najprv potvrďte, že ide o problém iba v jednom smere, a podľa toho voľte zásah.",
-                "Ak je slabší len jeden smer, dolaďujte a kontrolujte práve jeho.",
-                "Pri ďalšom meraní oddeľte oba smery, aby sa potvrdilo jednostranné správanie."
+                "Vzorec odchýlky naznačuje, že slabší je len jeden smer a nie celý profil.",
+                "Krivka vyzerá tak, ako keď problém vzniká iba v jednom smere jazdy.",
+                "Najpravdepodobnejšie nejde o obojstrannú chybu, ale o problém len v jednom smere.",
+                "AI odhaduje, že jeden smer je citeľne slabší alebo ťažší než druhý.",
+                "Podpis merania ukazuje skôr na jednostranný problém než na globálnu chybu oboch smerov."
             }
         };
 
@@ -2321,7 +2417,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 "Jedno kontrolné kolo navyše bude už len poistka správneho výsledku.",
                 "Ak sa profil správa rovnako aj na koľajisku, môžete ho pokojne ponechať.",
                 "Overenie s dlhšou pauzou nie je nutné, ale môže poslúžiť ako finálna kontrola.",
-                "Výsledok postačí potvrdiť jednou pokojnú jazdou bez ďalšej veľkej zmeny.",
+                "Výsledok postačí potvrdiť jednou pokojnou jazdou bez ďalšej veľkej zmeny.",
                 "Stačí už len finálny check bez agresívnych zásahov."
             },
             AiDiagnosticSeverity.Warning => new[]
@@ -2410,18 +2506,18 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             {
                 "Dolaďte vyhladenie stredného pásma cez CV3 alebo CV4 a sledujte plynulosť prechodu medzi bodmi.",
                 "Upravte strednú časť krivky jemným zásahom do CV3/CV4 namiesto zásahu do maxima.",
-                "Najväčší prínos prinesie hladší priebeh stredného pásma a pokojnejší prechod medzi krokmi.",
+                "Najväčší prínos prinesie hladší priebeh stredného pásma a pokojnejší prechod medzi bodmi.",
                 "Skúste jemne vyhladiť strednú časť mapy CV a až potom znovu merať.",
                 "Ak ostáva problém v strede, dolaďujte stredné pásmo a nie rozjazd ani CV5.",
                 "Stredná časť krivky si pýta vyhladenie skôr než zvýšenie alebo zníženie maxima."
             },
             AiDiagnosticCauseType.TopCurveInstability => new[]
             {
-                "Zamerajte sa na hornú časť krivky a jemne upravte CV5 pre pokojnejšiu vysokú rýchlosť.",
+                "Najväčší zmysel má zásah do vrcholu krivky a do CV5.",
+                "AI odporúča stabilizovať hornú časť krivky skôr než meniť rozjazd.",
                 "Skúste znížiť agresivitu vrcholu krivky cez CV5 a potom znovu overte vysokú rýchlosť.",
-                "Hornú časť profilu dolaďte cez CV5 tak, aby vysoká rýchlosť prestala kolísať.",
+                "Horná časť profilu dolaďte cez CV5 tak, aby vysoká rýchlosť prestala kolísať.",
                 "Najväčší efekt má jemná korekcia CV5 a stabilizácia vrcholu krivky.",
-                "AI odporúča krotiť hornú časť mapy, nie rozjazd ani stredné pásmo.",
                 "Vysokú rýchlosť dolaďte po malých krokoch cez CV5 a priebežne overujte."
             },
             _ => new[]
@@ -2431,7 +2527,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 "Najprv potvrďte, ktorý smer je horší, a potom dolaďujte CV podľa neho.",
                 "Pri jednostrannom probléme je lepšie cieliť na slabší smer než prepisovať obidva rovnako.",
                 "Dolaďujte a kontrolujte najmä smer, ktorý zaostáva alebo pôsobí ťažšie.",
-                "Jednostranný problém si pýta oddelený pohľad na dopredný a spätný smer."
+                "Jednostranný problém si pýta oddelený pohľad na dopredu a spätný smer."
             }
         };
 
@@ -2604,7 +2700,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static double CalculateVerticalAxisLabelLeft(string text)
         => -4;
 
-    private static IEnumerable<CurveMarkerViewModel> BuildCurveMarkers(IEnumerable<CalibrationMeasurementPointViewModel> points, string accent, bool isBackward, int maxStep, double maxSpeed)
+    private IEnumerable<CurveMarkerViewModel> BuildCurveMarkers(IEnumerable<CalibrationMeasurementPointViewModel> points, string accent, bool isBackward, int maxStep, double maxSpeed)
     {
         foreach (var point in points)
         {
@@ -3328,6 +3424,90 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static string FormatPauseSeconds(double value)
         => value.ToString("0.#", CultureInfo.InvariantCulture);
 
+    private static string NormalizeRunoutDistanceText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var builder = new StringBuilder();
+        var hasSeparator = false;
+        var fractionalDigits = 0;
+
+        foreach (var ch in value.Trim())
+        {
+            if (char.IsDigit(ch))
+            {
+                if (hasSeparator)
+                {
+                    if (fractionalDigits >= 2)
+                        continue;
+
+                    fractionalDigits++;
+                }
+
+                builder.Append(ch);
+                continue;
+            }
+
+            if ((ch == '.' || ch == ',') && !hasSeparator)
+            {
+                if (builder.Length == 0)
+                    builder.Append('0');
+
+                builder.Append('.');
+                hasSeparator = true;
+            }
+        }
+
+        var normalized = builder.ToString();
+        if (!TryParseRunoutDistance(normalized, out var parsed))
+            return normalized;
+
+        return FormatRunoutDistance(Math.Round(Math.Clamp(parsed, 0.0, 999.99), 2, MidpointRounding.AwayFromZero));
+    }
+
+    private static bool TryParseRunoutDistance(string? text, out double parsed)
+        => double.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out parsed);
+
+    private static string FormatRunoutDistance(double value)
+        => value.ToString("0.00", CultureInfo.InvariantCulture);
+
+    private (bool StartEnabled, bool MiddleEnabled, bool EndEnabled) GetBlockSelectionEnabledState()
+    {
+        var selectedIndex = SelectedMethod is null ? -1 : CalibrationMethods.IndexOf(SelectedMethod);
+        return selectedIndex switch
+        {
+            // 1. metoda
+            0 => (true, true, true),
+            // 2. metoda
+            1 => (true, false, true),
+            // 3. metoda
+            2 => (true, true, true),
+            // 4. metoda
+            3 => (true, false, true),
+            // 5. metoda
+            4 => (false, true, false),
+            // 6. metoda
+            5 => (true, false, false),
+            // 7. metoda a fallback
+            _ => (false, false, false)
+        };
+    }
+
+    private void ClearDisabledBlockSelections()
+    {
+        var state = GetBlockSelectionEnabledState();
+
+        if (!state.StartEnabled && _selectedStartBlock is not null)
+            SelectedStartBlock = null;
+
+        if (!state.MiddleEnabled && _selectedMiddleBlock is not null)
+            SelectedMiddleBlock = null;
+
+        if (!state.EndEnabled && _selectedEndBlock is not null)
+            SelectedEndBlock = null;
+    }
+
     private static void ReplaceCollection<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {
         target.Clear();
@@ -3366,16 +3546,96 @@ public sealed class CalibrationMethodOption : ReactiveObject
 
 public sealed class CalibrationIndicatorOption : ReactiveObject
 {
-    public CalibrationIndicatorOption(string displayName, string iconGlyph, string iconPath)
+    private static readonly ConcurrentDictionary<string, IImage?> IconCache = new(StringComparer.Ordinal);
+    private readonly string _activeIconPath;
+    private readonly string _inactiveIconPath;
+    private bool _isActive;
+
+    /// <summary>
+    /// Hlavný konštruktor s oddelenými cestami ikony pre aktívny a neaktívny stav.
+    /// </summary>
+    public CalibrationIndicatorOption(
+        string displayName,
+        string iconGlyph,
+        string activeIconPath,
+        string inactiveIconPath,
+        bool isActive = false,
+        Guid? indicatorId = null)
     {
         DisplayName = displayName;
         IconGlyph = iconGlyph;
-        IconPath = iconPath;
+        _activeIconPath = activeIconPath;
+        _inactiveIconPath = inactiveIconPath;
+        _isActive = isActive;
+        IndicatorId = indicatorId;
+    }
+
+    /// <summary>
+    /// Spätne kompatibilný konštruktor — obe stavy používajú rovnakú ikonu.
+    /// </summary>
+    public CalibrationIndicatorOption(string displayName, string iconGlyph, string iconPath)
+        : this(displayName, iconGlyph, iconPath, iconPath)
+    {
     }
 
     public string DisplayName { get; }
     public string IconGlyph { get; }
-    public string IconPath { get; }
+
+    /// <summary>Voliteľné ID zdrojového BlockIndicator-a pre presné párovanie pri live aktualizácii.</summary>
+    public Guid? IndicatorId { get; }
+
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            if (_isActive == value)
+                return;
+            this.RaiseAndSetIfChanged(ref _isActive, value);
+            this.RaisePropertyChanged(nameof(IconPath));
+            this.RaisePropertyChanged(nameof(IconImage));
+        }
+    }
+
+    public string IconPath => _isActive ? _activeIconPath : _inactiveIconPath;
+
+    public IImage? IconImage => LoadIcon(_isActive ? _activeIconPath : _inactiveIconPath);
+
+    private static IImage? LoadIcon(string assetUri)
+        => IconCache.GetOrAdd(assetUri, static uri =>
+        {
+            try
+            {
+                var resolved = new Uri(uri);
+                using var stream = AssetLoader.Open(resolved);
+                return new Bitmap(stream);
+            }
+            catch
+            {
+                try
+                {
+                    var fileName = Path.GetFileName(new Uri(uri).AbsolutePath);
+                    var searchDir = AppDomain.CurrentDomain.BaseDirectory;
+
+                    for (var i = 0; i <= 6; i++)
+                    {
+                        var candidate = Path.Combine(searchDir, "Assets", "Appicons", "16", fileName);
+                        if (File.Exists(candidate))
+                        {
+                            using var fileStream = File.OpenRead(candidate);
+                            return new Bitmap(fileStream);
+                        }
+
+                        searchDir = Path.GetDirectoryName(searchDir) ?? searchDir;
+                    }
+                }
+                catch
+                {
+                }
+
+                return null;
+            }
+        });
 
     public override string ToString() => DisplayName;
 }

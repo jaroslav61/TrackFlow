@@ -2,10 +2,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
         xmlns:vmc="clr-namespace:TrackFlow.ViewModels.Calibration;assembly=TrackFlow"
+        xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
         x:Class="TrackFlow.Views.Library.LocomotiveCalibrationWindow"
         x:DataType="vm:LocomotiveSpeedEditorViewModel"
         Title="Kalibrácia rýchlosti lokomotívy"
-        Width="1300"
+        Width="1200"
         Height="560"
         MinWidth="1150"
         MinHeight="400"
@@ -13,9 +14,16 @@
         CanResize="True">
     <Window.Resources>
         <DataTemplate x:Key="CalibrationIndicatorComboItemTemplate" x:DataType="vm:CalibrationIndicatorOption">
-            <StackPanel Orientation="Horizontal" Spacing="7" MinWidth="210">
-                <Image Width="16" Height="16" Source="{Binding IconPath}" Stretch="Uniform" />
-                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="None" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CalibrationIndicatorComboSelectionTemplate" x:DataType="vm:CalibrationIndicatorOption">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
             </StackPanel>
         </DataTemplate>
     </Window.Resources>
@@ -219,26 +227,112 @@
                 <Grid ColumnDefinitions="Auto,*"
                       RowDefinitions="Auto,Auto,Auto"
                       ColumnSpacing="8"
-                      RowSpacing="6"
-                      IsEnabled="{Binding IsBlockConfigurationEnabled}">
+                      RowSpacing="6">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Štart" VerticalAlignment="Center" FontSize="12" Foreground="#5B6575" />
-                    <ComboBox Grid.Row="0" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---"  ItemsSource="{Binding StartBlockOptions}" SelectedItem="{Binding SelectedStartBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                    <ComboBox Grid.Row="0"
+                              Grid.Column="1"
+                              MinWidth="160"
+                              HorizontalAlignment="Stretch"
+                              Classes="speedCompactCombo"
+                              PlaceholderText="--- Vyberte blok ---"
+                              ItemsSource="{Binding StartBlockOptions}"
+                              SelectedItem="{Binding SelectedStartBlock}"
+                              IsEnabled="{Binding IsStartBlockEnabled}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                        <ComboBox.SelectionBoxItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding IconGlyph}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="13" FontWeight="Bold" Foreground="{Binding IsActive, Converter={StaticResource CalibrationIndicatorGlyphBrush}}" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.SelectionBoxItemTemplate>
+                    </ComboBox>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Stred" VerticalAlignment="Center" FontSize="12" Foreground="#5B6575" />
-                    <ComboBox Grid.Row="1" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---" ItemsSource="{Binding MiddleBlockOptions}" SelectedItem="{Binding SelectedMiddleBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="1"
+                              MinWidth="160"
+                              HorizontalAlignment="Stretch"
+                              Classes="speedCompactCombo"
+                              PlaceholderText="--- Vyberte blok ---"
+                              ItemsSource="{Binding MiddleBlockOptions}"
+                              SelectedItem="{Binding SelectedMiddleBlock}"
+                              IsEnabled="{Binding IsMiddleBlockEnabled}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                        <ComboBox.SelectionBoxItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.SelectionBoxItemTemplate>
+                    </ComboBox>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Koniec" FontSize="12" Foreground="#5B6575" />
-                    <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="170" Classes="speedCompactCombo" PlaceholderText="--- Vyberte blok ---" ItemsSource="{Binding EndBlockOptions}" SelectedItem="{Binding SelectedEndBlock}" ItemTemplate="{StaticResource CalibrationIndicatorComboItemTemplate}" />
+                    <ComboBox Grid.Row="2"
+                              Grid.Column="1"
+                              MinWidth="160"
+                              HorizontalAlignment="Stretch"
+                              Classes="speedCompactCombo"
+                              PlaceholderText="--- Vyberte blok ---"
+                              ItemsSource="{Binding EndBlockOptions}"
+                              SelectedItem="{Binding SelectedEndBlock}"
+                              IsEnabled="{Binding IsEndBlockEnabled}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                        <ComboBox.SelectionBoxItemTemplate>
+                            <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.SelectionBoxItemTemplate>
+                    </ComboBox>
                 </Grid>
 
                 <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
 
-                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto" ColumnSpacing="10">
+                <Grid ColumnDefinitions="55,25,45,25,30" RowDefinitions="Auto" ColumnSpacing="10">
                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldLabel" Text="Pauza (s)" VerticalAlignment="Center" Margin="0" />
                     <TextBox Grid.Row="0" Grid.Column="1"
                              Classes="speedCompactTextBox"
                              Width="40"
                              MinWidth="20"
+                             MaxLength="2"
                              HorizontalContentAlignment="Right"
                              Text="{Binding PauseSecondsText, UpdateSourceTrigger=PropertyChanged}" />
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldLabel" Text="Dobeh" VerticalAlignment="Center" Margin="6,0,0,0" />
+                    <TextBox Grid.Row="0" Grid.Column="3"
+                             Classes="speedCompactTextBox"
+                             Width="40"
+                             MinWidth="20"
+                             HorizontalContentAlignment="Right"
+                             Text="{Binding RunoutDistanceMmText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="0" Grid.Column="4" Classes="fieldLabel" Text="[mm]" VerticalAlignment="Center" Margin="4,0,0,0" />
+                    
+                    
                 </Grid>
 
                 <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
@@ -279,7 +373,7 @@
                                 CornerRadius="8"
                                 Padding="10,8"
                                 Margin="0,6,0,0">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="70">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="30">
                                 <RadioButton Classes="profileModeRadioButton"
                                              GroupName="CalibrationProfileMode"
                                              Content="Profil dopredu"

@@ -84,20 +84,29 @@ public partial class RouteEditorViewModel : ObservableObject
         {
             foreach (var indicator in blockElement.Indicators)
             {
-                // Ikona neaktívneho indikátora (s _d.png koncovkou)
-                string iconPath = indicator.Type switch
+                var (activeIconPath, inactiveIconPath) = indicator.Type switch
                 {
-                    BlockIndicatorType.Contact => "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png",
-                    BlockIndicatorType.Flagman => "avares://TrackFlow/Assets/Appicons/16/flag_d.png",
-                    BlockIndicatorType.Virtual => "avares://TrackFlow/Assets/Appicons/16/virt_cont_d.png",
-                    _ => "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png"
+                    BlockIndicatorType.Contact => (
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png"),
+                    BlockIndicatorType.Flagman => (
+                        "avares://TrackFlow/Assets/Appicons/16/flag.png",
+                        "avares://TrackFlow/Assets/Appicons/16/flag_d.png"),
+                    BlockIndicatorType.Virtual => (
+                        "avares://TrackFlow/Assets/Appicons/16/virt_cont.png",
+                        "avares://TrackFlow/Assets/Appicons/16/virt_cont_d.png"),
+                    _ => (
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind.png",
+                        "avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png")
                 };
 
                 AvailableSensors.Add(new SensorItem
                 {
                     Id = indicator.Id.ToString(),
                     Name = indicator.Name,
-                    IconPath = iconPath,
+                    ActiveIconPath = activeIconPath,
+                    InactiveIconPath = inactiveIconPath,
+                    IsActive = indicator.IsActive,
                     IsSelected = false
                 });
             }

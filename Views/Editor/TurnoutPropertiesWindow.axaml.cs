@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 using TrackFlow.Models.Layout;
 using TrackFlow.ViewModels.Editor;
 using TrackFlow.Views.Editor.Markers;
@@ -26,6 +27,9 @@ public class TurnoutStateItem
 
 public partial class TurnoutPropertiesWindow : Window
 {
+    private TurnoutPropertiesViewModel? _boundViewModel;
+    private DispatcherTimer? _indicatorRefreshTimer;
+
     public TurnoutPropertiesWindow()
     {
         AvaloniaXamlLoader.Load(this);
@@ -39,8 +43,15 @@ public partial class TurnoutPropertiesWindow : Window
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
+        if (_boundViewModel != null)
+            _boundViewModel.CloseRequested -= OnCloseRequested;
+
+        _boundViewModel = null;
+        _indicatorRefreshTimer?.Stop();
+
         if (DataContext is TurnoutPropertiesViewModel vm)
         {
+            _boundViewModel = vm;
             vm.CloseRequested += OnCloseRequested;
             
             // Vytvoríme vizualizáciu default stavu
@@ -48,7 +59,27 @@ public partial class TurnoutPropertiesWindow : Window
             
             // Nastavíme funkčnosť indikátorov v záložke "Indikátory"
             SetupIndicatorListBoxes(vm);
+
+            // Dialóg má reflektovať živý stav indikátorov (aktívny/neaktívny) počas otvorenia.
+            _indicatorRefreshTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _indicatorRefreshTimer.Tick -= OnIndicatorRefreshTimerTick;
+            _indicatorRefreshTimer.Tick += OnIndicatorRefreshTimerTick;
+            _indicatorRefreshTimer.Start();
         }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _indicatorRefreshTimer?.Stop();
+        if (_boundViewModel != null)
+            _boundViewModel.CloseRequested -= OnCloseRequested;
+        _boundViewModel = null;
+        base.OnClosed(e);
+    }
+
+    private void OnIndicatorRefreshTimerTick(object? sender, EventArgs e)
+    {
+        _boundViewModel?.RefreshSensorStates();
     }
 
     private void OnCloseRequested(bool saved)
