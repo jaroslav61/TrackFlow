@@ -684,6 +684,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public SettingsViewModel CreateSettingsDialogViewModel(object? locomotiveOrAddress = null)
     {
         var vm = new SettingsViewModel(SettingsManager, dccConnectionService: Dcc);
+
         vm.SetDccTestLocomotiveProvider(() => SmartStrips.SelectedLocomotive, SmartStrips);
 
         if (locomotiveOrAddress != null)

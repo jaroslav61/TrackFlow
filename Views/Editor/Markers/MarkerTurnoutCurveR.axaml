@@ -1,61 +1,61 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="TrackFlow.Views.Editor.Markers.MarkerTurnoutCurveR"
-             Width="24" 
+             Width="24"
              Height="24"
              Padding="0"
              ClipToBounds="False"
              HorizontalAlignment="Left"
              VerticalAlignment="Top"
              UseLayoutRounding="False">
-    
-    
-    <Canvas Width="24" 
-          Height="24"
-          UseLayoutRounding="False" 
-          ClipToBounds="False">
-      
+
+
+    <Canvas Width="24"
+            Height="24"
+            UseLayoutRounding="False"
+            ClipToBounds="False">
+
         <!-- 1. NEAKTÍVNA VETVA (Arc2) - Vzadu -->
         <Path x:Name="Arc2PathOutline"
-              Stroke="Black" 
-              StrokeThickness="3.5" 
+              Stroke="Black"
+              StrokeThickness="3.5"
               Fill="Transparent"
               StrokeLineCap="Flat"
               RenderOptions.EdgeMode="Antialias"
               UseLayoutRounding="False"
               Stretch="None"
-              Data=""/>
-        
+              Data="" />
+
         <Path x:Name="Arc2Path"
-              Stroke="#DDDDDD" 
-              StrokeThickness="2" 
+              Stroke="#DDDDDD"
+              StrokeThickness="2"
               Fill="Transparent"
               StrokeLineCap="Flat"
               RenderOptions.EdgeMode="Antialias"
               UseLayoutRounding="False"
               Stretch="None"
-              Data=""/>
-      
+              Data="" />
+
         <!-- 2. AKTÍVNA VETVA (Arc1) - Vpredu -->
         <Path x:Name="Arc1PathOutline"
-              Stroke="Black" 
-              StrokeThickness="3.5" 
+              Stroke="Black"
+              StrokeThickness="3.5"
               Fill="Transparent"
               StrokeLineCap="Flat"
               RenderOptions.EdgeMode="Antialias"
               UseLayoutRounding="False"
               Stretch="None"
-              Data=""/>
+              Data="" />
 
         <Path x:Name="Arc1Path"
-              Stroke="#71c5ff" 
-              StrokeThickness="2" 
+              Stroke="#71c5ff"
+              StrokeThickness="2"
               Fill="Transparent"
               StrokeLineCap="Flat"
               RenderOptions.EdgeMode="Antialias"
               UseLayoutRounding="False"
               Stretch="None"
-              Data=""/>
-    
-  </Canvas>
+              Data="" />
+
+    </Canvas>
 </UserControl>

@@ -1,439 +1,423 @@
 ﻿{
-    "SchemaVersion":  3,
-    "IsDirty":  false,
-    "Settings":  {
-                     "SchemaVersion":  3,
-                     "DccCentralType":  null,
-                     "DccCentralHost":  null,
-                     "DccCentralPort":  null,
-                     "AutoConnect":  null,
-                     "Scale":  null,
-                     "AutoRegenerateRoutes":  false,
-                     "MaxPathElements":  15,
-                     "MaxTurnoutsInPath":  5
-                 },
-    "Locomotives":  [
-                        {
-                            "Id":  "loco_demo_1",
-                            "Name":  "Demo 754",
-                            "Address":  3,
-                            "Description":  "Testovacia lokomotíva 1",
-                            "IconName":  "",
-                            "Type":  null,
-                            "LengthCm":  0,
-                            "WeightT":  0,
-                            "DecoderType":  null,
-                            "DccSystemName":  null,
-                            "Functions":  [
-
-                                          ],
-                            "Number":  "",
-                            "HomeDepot":  "",
-                            "MaxSpeed":  0,
-                            "Power":  0,
-                            "MinRadius":  0,
-                            "Epoch":  "",
-                            "Scale":  "",
-                            "TotalKm":  0,
-                            "LastRunDate":  null,
-                            "LastMaintenanceDate":  null,
-                            "TotalOperationTime":  "00:00:00"
-                        },
-                        {
-                            "Id":  "loco_demo_2",
-                            "Name":  "Demo 040E",
-                            "Address":  7,
-                            "Description":  "Testovacia lokomotíva 2",
-                            "IconName":  "",
-                            "Type":  null,
-                            "LengthCm":  0,
-                            "WeightT":  0,
-                            "DecoderType":  null,
-                            "DccSystemName":  null,
-                            "Functions":  [
-
-                                          ],
-                            "Number":  "",
-                            "HomeDepot":  "",
-                            "MaxSpeed":  0,
-                            "Power":  0,
-                            "MinRadius":  0,
-                            "Epoch":  "",
-                            "Scale":  "",
-                            "TotalKm":  0,
-                            "LastRunDate":  null,
-                            "LastMaintenanceDate":  null,
-                            "TotalOperationTime":  "00:00:00"
-                        }
-                    ],
-    "Wagons":  [
-
-               ],
-    "Layout":  {
-                   "SchemaVersion":  3,
-                   "CanvasWidth":  2200,
-                   "CanvasHeight":  1400,
-                   "ZoomFactor":  1,
-                   "PanX":  0,
-                   "PanY":  0,
-                   "Elements":  [
-                                    {
-                                        "$type":  "text",
-                                        "Text":  "ParallelIndependentRoutesSample: dve nezávislé cesty majú bežať súčasne bez WAIT.",
-                                        "VisibleInEditModeOnly":  false,
-                                        "BackgroundColor":  "#FFFDE7",
-                                        "FontName":  "Segoe UI",
-                                        "FontSize":  11,
-                                        "FillColor":  "#5D4037",
-                                        "FrameColor":  "#E6C200",
-                                        "FrameThickness":  1,
-                                        "HorizontalAlignment":  "Left",
-                                        "VerticalAlignment":  "Center",
-                                        "WidthInCells":  34,
-                                        "HeightInCells":  2,
-                                        "Id":  "txt_parallel",
-                                        "X":  96,
-                                        "Y":  48,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "Text"
-                                    },
-                                    {
-                                        "$type":  "text",
-                                        "Text":  "Postup: polož vlaky do A a C, potom spusti 1. aj 2. cestu takmer naraz; WAIT sa nemá objaviť.",
-                                        "VisibleInEditModeOnly":  false,
-                                        "BackgroundColor":  "#E8F5E9",
-                                        "FontName":  "Segoe UI",
-                                        "FontSize":  11,
-                                        "FillColor":  "#1B5E20",
-                                        "FrameColor":  "#66BB6A",
-                                        "FrameThickness":  1,
-                                        "HorizontalAlignment":  "Left",
-                                        "VerticalAlignment":  "Center",
-                                        "WidthInCells":  38,
-                                        "HeightInCells":  2,
-                                        "Id":  "txt_parallel_steps",
-                                        "X":  96,
-                                        "Y":  96,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "Text"
-                                    },
-                                    {
-                                        "$type":  "text",
-                                        "Text":  "Legenda: žltý box = význam sample-u | zelený box = odporúčaný postup | 1./2. = poradie spustenia | bez X/V1 = bez shared konfliktu",
-                                        "VisibleInEditModeOnly":  false,
-                                        "BackgroundColor":  "#E3F2FD",
-                                        "FontName":  "Segoe UI",
-                                        "FontSize":  11,
-                                        "FillColor":  "#0D47A1",
-                                        "FrameColor":  "#42A5F5",
-                                        "FrameThickness":  1,
-                                        "HorizontalAlignment":  "Left",
-                                        "VerticalAlignment":  "Center",
-                                        "WidthInCells":  44,
-                                        "HeightInCells":  2,
-                                        "Id":  "txt_parallel_legend",
-                                        "X":  96,
-                                        "Y":  480,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "Text"
-                                    },
-                                    {
-                                        "$type":  "signal",
-                                        "DccAddress":  221,
-                                        "Aspect":  0,
-                                        "IsBasicMode":  false,
-                                        "ProtectsBlockId":  "blk_pi_b",
-                                        "SignalSystemId":  null,
-                                        "SignalProfile":  "3-aspect",
-                                        "Id":  "sig_pi_a",
-                                        "X":  96,
-                                        "Y":  216,
-                                        "Rotation":  0,
-                                        "Label":  "S1 A",
-                                        "MarkerKey":  "Signal"
-                                    },
-                                    {
-                                        "$type":  "signal",
-                                        "DccAddress":  222,
-                                        "Aspect":  0,
-                                        "IsBasicMode":  false,
-                                        "ProtectsBlockId":  "blk_pi_d",
-                                        "SignalSystemId":  null,
-                                        "SignalProfile":  "3-aspect",
-                                        "Id":  "sig_pi_c",
-                                        "X":  96,
-                                        "Y":  336,
-                                        "Rotation":  0,
-                                        "Label":  "S2 C",
-                                        "MarkerKey":  "Signal"
-                                    },
-                                    {
-                                        "$type":  "block",
-                                        "LengthCm":  220,
-                                        "BlockLengthCells":  4,
-                                        "RequestYellow":  false,
-                                        "MaxSpeedKmh":  120,
-                                        "ResSpeedKmh":  40,
-                                        "AllowBackward":  true,
-                                        "AllowForward":  true,
-                                        "CriticalSection":  false,
-                                        "MaxTrainLengthCm":  0,
-                                        "Indicators":  [
-
-                                                       ],
-                                        "SignalType":  0,
-                                        "StopPosition":  0,
-                                        "SignalLeftId":  "",
-                                        "SignalRightId":  "sig_pi_a",
-                                        "SignalUpId":  null,
-                                        "SignalDownId":  null,
-                                        "AllowShunting":  false,
-                                        "Id":  "blk_pi_a",
-                                        "X":  120,
-                                        "Y":  216,
-                                        "Rotation":  0,
-                                        "Label":  "Blok A - linka 1",
-                                        "MarkerKey":  "Block"
-                                    },
-                                    {
-                                        "$type":  "block",
-                                        "LengthCm":  220,
-                                        "BlockLengthCells":  4,
-                                        "RequestYellow":  false,
-                                        "MaxSpeedKmh":  120,
-                                        "ResSpeedKmh":  40,
-                                        "AllowBackward":  true,
-                                        "AllowForward":  true,
-                                        "CriticalSection":  false,
-                                        "MaxTrainLengthCm":  0,
-                                        "Indicators":  [
-
-                                                       ],
-                                        "SignalType":  0,
-                                        "StopPosition":  0,
-                                        "SignalLeftId":  "",
-                                        "SignalRightId":  "",
-                                        "SignalUpId":  null,
-                                        "SignalDownId":  null,
-                                        "AllowShunting":  false,
-                                        "Id":  "blk_pi_b",
-                                        "X":  432,
-                                        "Y":  216,
-                                        "Rotation":  0,
-                                        "Label":  "Blok B - linka 1",
-                                        "MarkerKey":  "Block"
-                                    },
-                                    {
-                                        "$type":  "block",
-                                        "LengthCm":  220,
-                                        "BlockLengthCells":  4,
-                                        "RequestYellow":  false,
-                                        "MaxSpeedKmh":  120,
-                                        "ResSpeedKmh":  40,
-                                        "AllowBackward":  true,
-                                        "AllowForward":  true,
-                                        "CriticalSection":  false,
-                                        "MaxTrainLengthCm":  0,
-                                        "Indicators":  [
-
-                                                       ],
-                                        "SignalType":  0,
-                                        "StopPosition":  0,
-                                        "SignalLeftId":  "",
-                                        "SignalRightId":  "sig_pi_c",
-                                        "SignalUpId":  null,
-                                        "SignalDownId":  null,
-                                        "AllowShunting":  false,
-                                        "Id":  "blk_pi_c",
-                                        "X":  120,
-                                        "Y":  336,
-                                        "Rotation":  0,
-                                        "Label":  "Blok C - linka 2",
-                                        "MarkerKey":  "Block"
-                                    },
-                                    {
-                                        "$type":  "block",
-                                        "LengthCm":  220,
-                                        "BlockLengthCells":  4,
-                                        "RequestYellow":  false,
-                                        "MaxSpeedKmh":  120,
-                                        "ResSpeedKmh":  40,
-                                        "AllowBackward":  true,
-                                        "AllowForward":  true,
-                                        "CriticalSection":  false,
-                                        "MaxTrainLengthCm":  0,
-                                        "Indicators":  [
-
-                                                       ],
-                                        "SignalType":  0,
-                                        "StopPosition":  0,
-                                        "SignalLeftId":  "",
-                                        "SignalRightId":  "",
-                                        "SignalUpId":  null,
-                                        "SignalDownId":  null,
-                                        "AllowShunting":  false,
-                                        "Id":  "blk_pi_d",
-                                        "X":  432,
-                                        "Y":  336,
-                                        "Rotation":  0,
-                                        "Label":  "Blok D - linka 2",
-                                        "MarkerKey":  "Block"
-                                    },
-                                    {
-                                        "$type":  "segment",
-                                        "LengthMm":  168,
-                                        "IsOccupied":  false,
-                                        "AssignedLocoId":  null,
-                                        "IsLocked":  false,
-                                        "Id":  "seg_pi_ab",
-                                        "X":  288,
-                                        "Y":  216,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "TrackSegment"
-                                    },
-                                    {
-                                        "$type":  "segment",
-                                        "LengthMm":  168,
-                                        "IsOccupied":  false,
-                                        "AssignedLocoId":  null,
-                                        "IsLocked":  false,
-                                        "Id":  "seg_pi_cd",
-                                        "X":  288,
-                                        "Y":  336,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "TrackSegment"
-                                    },
-                                    {
-                                        "$type":  "route",
-                                        "RouteName":  "1. A → B (bez konfliktu)",
-                                        "Description":  "Paralelná linka 1",
-                                        "RequestYellow":  false,
-                                        "MaxSpeed":  60,
-                                        "LimitedSpeed":  40,
-                                        "IndicatorIds":  [
-
-                                                         ],
-                                        "StartBlockId":  null,
-                                        "EndBlockId":  null,
-                                        "Steps":  [
-
-                                                  ],
-                                        "SelectedRouteDefinitionId":  "r_pi_1",
-                                        "Id":  "rm_pi_1",
-                                        "X":  120,
-                                        "Y":  144,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "Route"
-                                    },
-                                    {
-                                        "$type":  "route",
-                                        "RouteName":  "2. C → D (bez konfliktu)",
-                                        "Description":  "Paralelná linka 2",
-                                        "RequestYellow":  false,
-                                        "MaxSpeed":  60,
-                                        "LimitedSpeed":  40,
-                                        "IndicatorIds":  [
-
-                                                         ],
-                                        "StartBlockId":  null,
-                                        "EndBlockId":  null,
-                                        "Steps":  [
-
-                                                  ],
-                                        "SelectedRouteDefinitionId":  "r_pi_2",
-                                        "Id":  "rm_pi_2",
-                                        "X":  120,
-                                        "Y":  384,
-                                        "Rotation":  0,
-                                        "Label":  "",
-                                        "MarkerKey":  "Route"
-                                    }
-                                ],
-                   "Routes":  [
-                                  {
-                                      "Id":  "r_pi_1",
-                                      "Name":  "A → B nezávislá",
-                                      "FromBlockId":  "blk_pi_a",
-                                      "ToBlockId":  "blk_pi_b",
-                                      "FromBlockDirection":  "Right",
-                                      "ToBlockDirection":  "Right",
-                                      "StartNavigationDirection":  "Right",
-                                      "RouteSignalIds":  [
-                                                             "sig_pi_a"
-                                                         ],
-                                      "Kind":  1,
-                                      "SafetyFallbackAspect":  "Stop",
-                                      "TurnoutSettings":  [
-
-                                                          ],
-                                      "BlockIds":  [
-                                                       "blk_pi_a",
-                                                       "blk_pi_b"
-                                                   ],
-                                      "PathElementIds":  [
-                                                             "seg_pi_ab"
-                                                         ],
-                                      "IsAutoGenerated":  false,
-                                      "IsEnabled":  true,
-                                      "Color":  "#66BB6A",
-                                      "MaxSpeed":  60
-                                  },
-                                  {
-                                      "Id":  "r_pi_2",
-                                      "Name":  "C → D nezávislá",
-                                      "FromBlockId":  "blk_pi_c",
-                                      "ToBlockId":  "blk_pi_d",
-                                      "FromBlockDirection":  "Right",
-                                      "ToBlockDirection":  "Right",
-                                      "StartNavigationDirection":  "Right",
-                                      "RouteSignalIds":  [
-                                                             "sig_pi_c"
-                                                         ],
-                                      "Kind":  1,
-                                      "SafetyFallbackAspect":  "Stop",
-                                      "TurnoutSettings":  [
-
-                                                          ],
-                                      "BlockIds":  [
-                                                       "blk_pi_c",
-                                                       "blk_pi_d"
-                                                   ],
-                                      "PathElementIds":  [
-                                                             "seg_pi_cd"
-                                                         ],
-                                      "IsAutoGenerated":  false,
-                                      "IsEnabled":  true,
-                                      "Color":  "#AB47BC",
-                                      "MaxSpeed":  60
-                                  }
-                              ],
-                   "SignalSystems":  [
-                                         {
-                                             "Id":  "SK_DEFAULT",
-                                             "Name":  "Slovenská základná sústava",
-                                             "Kind":  0,
-                                             "SupportedHeadCounts":  [
-                                                                         2,
-                                                                         3,
-                                                                         4,
-                                                                         5
-                                                                     ],
-                                             "Profiles":  [
-
-                                                          ]
-                                         }
-                                     ],
-                   "Plans":  [
-
-                             ]
-               },
-    "CabAssignments":  [
-
-                       ]
+  "SchemaVersion": 3,
+  "IsDirty": false,
+  "Settings": {
+    "SchemaVersion": 3,
+    "DccCentralType": null,
+    "DccCentralHost": null,
+    "DccCentralPort": null,
+    "AutoConnect": null,
+    "Scale": null,
+    "AutoRegenerateRoutes": false,
+    "MaxPathElements": 15,
+    "MaxTurnoutsInPath": 5
+  },
+  "Locomotives": [
+    {
+      "Id": "loco_demo_1",
+      "Name": "Demo 754",
+      "Address": 3,
+      "Description": "Testovacia lokomotíva 1",
+      "IconName": "",
+      "Type": null,
+      "LengthCm": 0,
+      "WeightT": 0,
+      "DecoderType": null,
+      "DccSystemName": null,
+      "Functions": [
+      ],
+      "Number": "",
+      "HomeDepot": "",
+      "MaxSpeed": 0,
+      "Power": 0,
+      "MinRadius": 0,
+      "Epoch": "",
+      "Scale": "",
+      "TotalKm": 0,
+      "LastRunDate": null,
+      "LastMaintenanceDate": null,
+      "TotalOperationTime": "00:00:00"
+    },
+    {
+      "Id": "loco_demo_2",
+      "Name": "Demo 040E",
+      "Address": 7,
+      "Description": "Testovacia lokomotíva 2",
+      "IconName": "",
+      "Type": null,
+      "LengthCm": 0,
+      "WeightT": 0,
+      "DecoderType": null,
+      "DccSystemName": null,
+      "Functions": [
+      ],
+      "Number": "",
+      "HomeDepot": "",
+      "MaxSpeed": 0,
+      "Power": 0,
+      "MinRadius": 0,
+      "Epoch": "",
+      "Scale": "",
+      "TotalKm": 0,
+      "LastRunDate": null,
+      "LastMaintenanceDate": null,
+      "TotalOperationTime": "00:00:00"
+    }
+  ],
+  "Wagons": [
+  ],
+  "Layout": {
+    "SchemaVersion": 3,
+    "CanvasWidth": 2200,
+    "CanvasHeight": 1400,
+    "ZoomFactor": 1,
+    "PanX": 0,
+    "PanY": 0,
+    "Elements": [
+      {
+        "$type": "text",
+        "Text": "ParallelIndependentRoutesSample: dve nezávislé cesty majú bežať súčasne bez WAIT.",
+        "VisibleInEditModeOnly": false,
+        "BackgroundColor": "#FFFDE7",
+        "FontName": "Segoe UI",
+        "FontSize": 11,
+        "FillColor": "#5D4037",
+        "FrameColor": "#E6C200",
+        "FrameThickness": 1,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Center",
+        "WidthInCells": 34,
+        "HeightInCells": 2,
+        "Id": "txt_parallel",
+        "X": 96,
+        "Y": 48,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "Text"
+      },
+      {
+        "$type": "text",
+        "Text": "Postup: polož vlaky do A a C, potom spusti 1. aj 2. cestu takmer naraz; WAIT sa nemá objaviť.",
+        "VisibleInEditModeOnly": false,
+        "BackgroundColor": "#E8F5E9",
+        "FontName": "Segoe UI",
+        "FontSize": 11,
+        "FillColor": "#1B5E20",
+        "FrameColor": "#66BB6A",
+        "FrameThickness": 1,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Center",
+        "WidthInCells": 38,
+        "HeightInCells": 2,
+        "Id": "txt_parallel_steps",
+        "X": 96,
+        "Y": 96,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "Text"
+      },
+      {
+        "$type": "text",
+        "Text": "Legenda: žltý box = význam sample-u | zelený box = odporúčaný postup | 1./2. = poradie spustenia | bez X/V1 = bez shared konfliktu",
+        "VisibleInEditModeOnly": false,
+        "BackgroundColor": "#E3F2FD",
+        "FontName": "Segoe UI",
+        "FontSize": 11,
+        "FillColor": "#0D47A1",
+        "FrameColor": "#42A5F5",
+        "FrameThickness": 1,
+        "HorizontalAlignment": "Left",
+        "VerticalAlignment": "Center",
+        "WidthInCells": 44,
+        "HeightInCells": 2,
+        "Id": "txt_parallel_legend",
+        "X": 96,
+        "Y": 480,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "Text"
+      },
+      {
+        "$type": "signal",
+        "DccAddress": 221,
+        "Aspect": 0,
+        "IsBasicMode": false,
+        "ProtectsBlockId": "blk_pi_b",
+        "SignalSystemId": null,
+        "SignalProfile": "3-aspect",
+        "Id": "sig_pi_a",
+        "X": 96,
+        "Y": 216,
+        "Rotation": 0,
+        "Label": "S1 A",
+        "MarkerKey": "Signal"
+      },
+      {
+        "$type": "signal",
+        "DccAddress": 222,
+        "Aspect": 0,
+        "IsBasicMode": false,
+        "ProtectsBlockId": "blk_pi_d",
+        "SignalSystemId": null,
+        "SignalProfile": "3-aspect",
+        "Id": "sig_pi_c",
+        "X": 96,
+        "Y": 336,
+        "Rotation": 0,
+        "Label": "S2 C",
+        "MarkerKey": "Signal"
+      },
+      {
+        "$type": "block",
+        "LengthCm": 220,
+        "BlockLengthCells": 4,
+        "RequestYellow": false,
+        "MaxSpeedKmh": 120,
+        "ResSpeedKmh": 40,
+        "AllowBackward": true,
+        "AllowForward": true,
+        "CriticalSection": false,
+        "MaxTrainLengthCm": 0,
+        "Indicators": [
+        ],
+        "SignalType": 0,
+        "StopPosition": 0,
+        "SignalLeftId": "",
+        "SignalRightId": "sig_pi_a",
+        "SignalUpId": null,
+        "SignalDownId": null,
+        "AllowShunting": false,
+        "Id": "blk_pi_a",
+        "X": 120,
+        "Y": 216,
+        "Rotation": 0,
+        "Label": "Blok A - linka 1",
+        "MarkerKey": "Block"
+      },
+      {
+        "$type": "block",
+        "LengthCm": 220,
+        "BlockLengthCells": 4,
+        "RequestYellow": false,
+        "MaxSpeedKmh": 120,
+        "ResSpeedKmh": 40,
+        "AllowBackward": true,
+        "AllowForward": true,
+        "CriticalSection": false,
+        "MaxTrainLengthCm": 0,
+        "Indicators": [
+        ],
+        "SignalType": 0,
+        "StopPosition": 0,
+        "SignalLeftId": "",
+        "SignalRightId": "",
+        "SignalUpId": null,
+        "SignalDownId": null,
+        "AllowShunting": false,
+        "Id": "blk_pi_b",
+        "X": 432,
+        "Y": 216,
+        "Rotation": 0,
+        "Label": "Blok B - linka 1",
+        "MarkerKey": "Block"
+      },
+      {
+        "$type": "block",
+        "LengthCm": 220,
+        "BlockLengthCells": 4,
+        "RequestYellow": false,
+        "MaxSpeedKmh": 120,
+        "ResSpeedKmh": 40,
+        "AllowBackward": true,
+        "AllowForward": true,
+        "CriticalSection": false,
+        "MaxTrainLengthCm": 0,
+        "Indicators": [
+        ],
+        "SignalType": 0,
+        "StopPosition": 0,
+        "SignalLeftId": "",
+        "SignalRightId": "sig_pi_c",
+        "SignalUpId": null,
+        "SignalDownId": null,
+        "AllowShunting": false,
+        "Id": "blk_pi_c",
+        "X": 120,
+        "Y": 336,
+        "Rotation": 0,
+        "Label": "Blok C - linka 2",
+        "MarkerKey": "Block"
+      },
+      {
+        "$type": "block",
+        "LengthCm": 220,
+        "BlockLengthCells": 4,
+        "RequestYellow": false,
+        "MaxSpeedKmh": 120,
+        "ResSpeedKmh": 40,
+        "AllowBackward": true,
+        "AllowForward": true,
+        "CriticalSection": false,
+        "MaxTrainLengthCm": 0,
+        "Indicators": [
+        ],
+        "SignalType": 0,
+        "StopPosition": 0,
+        "SignalLeftId": "",
+        "SignalRightId": "",
+        "SignalUpId": null,
+        "SignalDownId": null,
+        "AllowShunting": false,
+        "Id": "blk_pi_d",
+        "X": 432,
+        "Y": 336,
+        "Rotation": 0,
+        "Label": "Blok D - linka 2",
+        "MarkerKey": "Block"
+      },
+      {
+        "$type": "segment",
+        "LengthMm": 168,
+        "IsOccupied": false,
+        "AssignedLocoId": null,
+        "IsLocked": false,
+        "Id": "seg_pi_ab",
+        "X": 288,
+        "Y": 216,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "TrackSegment"
+      },
+      {
+        "$type": "segment",
+        "LengthMm": 168,
+        "IsOccupied": false,
+        "AssignedLocoId": null,
+        "IsLocked": false,
+        "Id": "seg_pi_cd",
+        "X": 288,
+        "Y": 336,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "TrackSegment"
+      },
+      {
+        "$type": "route",
+        "RouteName": "1. A → B (bez konfliktu)",
+        "Description": "Paralelná linka 1",
+        "RequestYellow": false,
+        "MaxSpeed": 60,
+        "LimitedSpeed": 40,
+        "IndicatorIds": [
+        ],
+        "StartBlockId": null,
+        "EndBlockId": null,
+        "Steps": [
+        ],
+        "SelectedRouteDefinitionId": "r_pi_1",
+        "Id": "rm_pi_1",
+        "X": 120,
+        "Y": 144,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "Route"
+      },
+      {
+        "$type": "route",
+        "RouteName": "2. C → D (bez konfliktu)",
+        "Description": "Paralelná linka 2",
+        "RequestYellow": false,
+        "MaxSpeed": 60,
+        "LimitedSpeed": 40,
+        "IndicatorIds": [
+        ],
+        "StartBlockId": null,
+        "EndBlockId": null,
+        "Steps": [
+        ],
+        "SelectedRouteDefinitionId": "r_pi_2",
+        "Id": "rm_pi_2",
+        "X": 120,
+        "Y": 384,
+        "Rotation": 0,
+        "Label": "",
+        "MarkerKey": "Route"
+      }
+    ],
+    "Routes": [
+      {
+        "Id": "r_pi_1",
+        "Name": "A → B nezávislá",
+        "FromBlockId": "blk_pi_a",
+        "ToBlockId": "blk_pi_b",
+        "FromBlockDirection": "Right",
+        "ToBlockDirection": "Right",
+        "StartNavigationDirection": "Right",
+        "RouteSignalIds": [
+          "sig_pi_a"
+        ],
+        "Kind": 1,
+        "SafetyFallbackAspect": "Stop",
+        "TurnoutSettings": [
+        ],
+        "BlockIds": [
+          "blk_pi_a",
+          "blk_pi_b"
+        ],
+        "PathElementIds": [
+          "seg_pi_ab"
+        ],
+        "IsAutoGenerated": false,
+        "IsEnabled": true,
+        "Color": "#66BB6A",
+        "MaxSpeed": 60
+      },
+      {
+        "Id": "r_pi_2",
+        "Name": "C → D nezávislá",
+        "FromBlockId": "blk_pi_c",
+        "ToBlockId": "blk_pi_d",
+        "FromBlockDirection": "Right",
+        "ToBlockDirection": "Right",
+        "StartNavigationDirection": "Right",
+        "RouteSignalIds": [
+          "sig_pi_c"
+        ],
+        "Kind": 1,
+        "SafetyFallbackAspect": "Stop",
+        "TurnoutSettings": [
+        ],
+        "BlockIds": [
+          "blk_pi_c",
+          "blk_pi_d"
+        ],
+        "PathElementIds": [
+          "seg_pi_cd"
+        ],
+        "IsAutoGenerated": false,
+        "IsEnabled": true,
+        "Color": "#AB47BC",
+        "MaxSpeed": 60
+      }
+    ],
+    "SignalSystems": [
+      {
+        "Id": "SK_DEFAULT",
+        "Name": "Slovenská základná sústava",
+        "Kind": 0,
+        "SupportedHeadCounts": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "Profiles": [
+        ]
+      }
+    ],
+    "Plans": [
+    ]
+  },
+  "CabAssignments": [
+  ]
 }

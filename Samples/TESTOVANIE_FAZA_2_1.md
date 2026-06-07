@@ -8,23 +8,23 @@
 
 ## Obsah layoutu
 
-| Prvok           | ID              | Popis                                               |
-|-----------------|-----------------|-----------------------------------------------------|
-| Blok A – start  | `blk_a`         | Štartovací blok, má priradené návestidlo `S1 start` |
-| Blok B – priamo | `blk_b`         | Cieľový blok, priama koľaj                          |
-| Blok C – odbočka| `blk_c`         | Cieľový blok, odbočka                               |
-| Výhybka V1      | `sw_1`          | DCC adresa 101, stav `Straight` / `Diverging`       |
-| Návestidlo S1   | `sig_start`     | DCC adresa 120, chráni Blok B (`ProtectsBlockId`)   |
-| Route marker A→B| `route_marker_straight` | Aktivuje route `r_straight`                |
-| Route marker A→C| `route_marker_diverge`  | Aktivuje route `r_diverge`                 |
-| Demo lokomotíva | `loco_demo_1`   | Adresa DCC 3, „Demo 754"                            |
+| Prvok            | ID                      | Popis                                               |
+|------------------|-------------------------|-----------------------------------------------------|
+| Blok A – start   | `blk_a`                 | Štartovací blok, má priradené návestidlo `S1 start` |
+| Blok B – priamo  | `blk_b`                 | Cieľový blok, priama koľaj                          |
+| Blok C – odbočka | `blk_c`                 | Cieľový blok, odbočka                               |
+| Výhybka V1       | `sw_1`                  | DCC adresa 101, stav `Straight` / `Diverging`       |
+| Návestidlo S1    | `sig_start`             | DCC adresa 120, chráni Blok B (`ProtectsBlockId`)   |
+| Route marker A→B | `route_marker_straight` | Aktivuje route `r_straight`                         |
+| Route marker A→C | `route_marker_diverge`  | Aktivuje route `r_diverge`                          |
+| Demo lokomotíva  | `loco_demo_1`           | Adresa DCC 3, „Demo 754"                            |
 
 ### Cesty (RouteDefinition)
 
-| ID           | Trasa   | Vyhybka V1 | Aspekt návestidla S1 |
-|--------------|---------|------------|----------------------|
-| `r_straight` | A → B   | Priamo (0) | **Yellow** (Výstraha)      |
-| `r_diverge`  | A → C   | Odbočka (1)| **LowerYellow** (Výstraha s obmedzením) |
+| ID           | Trasa | Vyhybka V1  | Aspekt návestidla S1                    |
+|--------------|-------|-------------|-----------------------------------------|
+| `r_straight` | A → B | Priamo (0)  | **Yellow** (Výstraha)                   |
+| `r_diverge`  | A → C | Odbočka (1) | **LowerYellow** (Výstraha s obmedzením) |
 
 ---
 
@@ -42,18 +42,18 @@
 ### Postup
 
 1. **Pretiahni** lokomotívu „Demo 754" zo zoznamu na canvas a pusti ju na blok **Blok A – start**.
-   - Blok A sa zafarbí (obsadený lokomotívou).
+    - Blok A sa zafarbí (obsadený lokomotívou).
 2. **Klikni ľavým tlačidlom** na route marker **PRIAMO A→B**.
 
 ### Očakávané výsledky
 
-| Čo sledovať                  | Očakávaný stav                        |
-|------------------------------|---------------------------------------|
-| Návestidlo **S1** (canvas)   | Zmení sa na **žltú hornu** (Yellow)   |
-| Výhybka **V1** (canvas)      | Zostáva / prepne sa na **Straight**   |
-| Správa v UI                  | „route-activated" alebo prázdna       |
-| Log (Info level)             | `Route signal apply: route=r_straight signal=sig_start … aspect=Yellow` |
-| DCC (ak pripojené)           | Extended accessory `#2` na adresu 120 |
+| Čo sledovať                | Očakávaný stav                                                          |
+|----------------------------|-------------------------------------------------------------------------|
+| Návestidlo **S1** (canvas) | Zmení sa na **žltú hornu** (Yellow)                                     |
+| Výhybka **V1** (canvas)    | Zostáva / prepne sa na **Straight**                                     |
+| Správa v UI                | „route-activated" alebo prázdna                                         |
+| Log (Info level)           | `Route signal apply: route=r_straight signal=sig_start … aspect=Yellow` |
+| DCC (ak pripojené)         | Extended accessory `#2` na adresu 120                                   |
 
 > **Prepis aspektu do DCC čísla:** `Yellow = 2` (viď `SignalController.MapAspectToExtendedNumber`)
 
@@ -69,12 +69,12 @@
 
 ### Očakávané výsledky
 
-| Čo sledovať                  | Očakávaný stav                           |
-|------------------------------|------------------------------------------|
-| Návestidlo **S1** (canvas)   | Zmení sa na **dolnú žltú** (LowerYellow) |
-| Výhybka **V1** (canvas)      | Prepne sa na **Diverging** (odbočka)     |
-| Log (Info level)             | `Route signal apply: … aspect=LowerYellow` |
-| DCC (ak pripojené)           | Extended accessory `#6` na adresu 120   |
+| Čo sledovať                | Očakávaný stav                             |
+|----------------------------|--------------------------------------------|
+| Návestidlo **S1** (canvas) | Zmení sa na **dolnú žltú** (LowerYellow)   |
+| Výhybka **V1** (canvas)    | Prepne sa na **Diverging** (odbočka)       |
+| Log (Info level)           | `Route signal apply: … aspect=LowerYellow` |
+| DCC (ak pripojené)         | Extended accessory `#6` na adresu 120      |
 
 ---
 
@@ -93,12 +93,12 @@
 
 ### Očakávané výsledky
 
-| Čo sledovať                  | Očakávaný stav                         |
-|------------------------------|----------------------------------------|
-| Návestidlo **S1** (canvas)   | Zmení sa na **Red** (červená)          |
-| UI správa                    | „route-deactivated" / „routes-deactivated-all" |
-| Log (Info level)             | `Route signal apply: … aspect=Red`    |
-| DCC (ak pripojené)           | Extended accessory `#1` na adresu 120 |
+| Čo sledovať                | Očakávaný stav                                 |
+|----------------------------|------------------------------------------------|
+| Návestidlo **S1** (canvas) | Zmení sa na **Red** (červená)                  |
+| UI správa                  | „route-deactivated" / „routes-deactivated-all" |
+| Log (Info level)           | `Route signal apply: … aspect=Red`             |
+| DCC (ak pripojené)         | Extended accessory `#1` na adresu 120          |
 
 ---
 
@@ -110,17 +110,18 @@ Tento scénar simuluje vjazd vlaku do chráneného bloku.
 
 1. Aktivuj route `r_straight` (scénar T1) – S1 → Yellow.
 2. Skontruj, že lokomotíva je na Blok A (S1 svieti Yellow).
-3. **Pretiahni** lokomotívu zo Blok B na Blok A (alebo klikni pravým tlačidlom na Blok B → „Presunut vybranu lokomotivu sem"), aby si presunul lokomotívu do Blok B.
-   - Blok B = prvý blok za návestidlom S1 na route `r_straight`.
+3. **Pretiahni** lokomotívu zo Blok B na Blok A (alebo klikni pravým tlačidlom na Blok B → „Presunut vybranu lokomotivu
+   sem"), aby si presunul lokomotívu do Blok B.
+    - Blok B = prvý blok za návestidlom S1 na route `r_straight`.
 
 ### Očakávané výsledky
 
-| Čo sledovať                  | Očakávaný stav                                    |
-|------------------------------|---------------------------------------------------|
-| Návestidlo **S1** (canvas)   | **Okamžite** zmení sa na **Red**                  |
-| Blok B (canvas)              | Zafarbí sa ako obsadený                           |
-| Route `r_straight`           | Deaktivuje sa automaticky                         |
-| Log (Info level)             | `OnBlockOccupied … signal=sig_start aspect=Red`   |
+| Čo sledovať                | Očakávaný stav                                  |
+|----------------------------|-------------------------------------------------|
+| Návestidlo **S1** (canvas) | **Okamžite** zmení sa na **Red**                |
+| Blok B (canvas)            | Zafarbí sa ako obsadený                         |
+| Route `r_straight`         | Deaktivuje sa automaticky                       |
+| Log (Info level)           | `OnBlockOccupied … signal=sig_start aspect=Red` |
 
 > **Prečo sa to deje:** `OnBlockOccupiedAsync` v `OperationViewModel` detekuje obsadenie prvého
 > bloku za navestidlom a okamžite nastaví aspekt na `Red` bez čakania na ďalšie udalosti.
@@ -139,12 +140,12 @@ Tento scénar simuluje vjazd vlaku do chráneného bloku.
 
 ### Očakávané výsledky
 
-| Čo sledovať                  | Očakávaný stav                                   |
-|------------------------------|--------------------------------------------------|
-| Návestidlo **S1** (canvas)   | Zostáva na **Red** (nezmení sa)                  |
-| UI správa                    | Prázdna alebo „route-activated" (route ak. prebehla, ale signal nie) |
-| Log (**Warning** level)      | `Route signal resolve failed: no signal assigned on block blk_a for direction Right (route=r_straight)` |
-| DCC                          | Žiaden príkaz sa neodošle                        |
+| Čo sledovať                | Očakávaný stav                                                                                          |
+|----------------------------|---------------------------------------------------------------------------------------------------------|
+| Návestidlo **S1** (canvas) | Zostáva na **Red** (nezmení sa)                                                                         |
+| UI správa                  | Prázdna alebo „route-activated" (route ak. prebehla, ale signal nie)                                    |
+| Log (**Warning** level)    | `Route signal resolve failed: no signal assigned on block blk_a for direction Right (route=r_straight)` |
+| DCC                        | Žiaden príkaz sa neodošle                                                                               |
 
 > **Bezpečné správanie:** Systém zaloguje Warning a zachová predchádzajúci aspekt návestidla
 > bez zmeny – nikdy nevytvorí nebezpečný stav.
@@ -180,16 +181,16 @@ aspect=LowerYellow → LowerYellow (Výstraha s obmedzením 40 km/h)
 
 ### Mapovanie aspektov na DCC čísla
 
-| Aspekt              | Extended aspect # | Basic mode             |
-|---------------------|-------------------|------------------------|
-| `Off`               | 0                 | –                      |
-| `Red`               | 1                 | addr+0, activate=true  |
-| `Yellow`            | 2                 | addr+1, activate=true  |
-| `Green`             | 3                 | addr+0, activate=false |
-| `White`             | 4                 | addr+1, activate=false |
-| `Blue`              | 5                 | addr+0, activate=true  |
-| `LowerYellow`       | 6                 | addr+1, activate=true  |
-| `UpperYellowBlinking` | 7             | addr+1, activate=true  |
+| Aspekt                | Extended aspect # | Basic mode             |
+|-----------------------|-------------------|------------------------|
+| `Off`                 | 0                 | –                      |
+| `Red`                 | 1                 | addr+0, activate=true  |
+| `Yellow`              | 2                 | addr+1, activate=true  |
+| `Green`               | 3                 | addr+0, activate=false |
+| `White`               | 4                 | addr+1, activate=false |
+| `Blue`                | 5                 | addr+0, activate=true  |
+| `LowerYellow`         | 6                 | addr+1, activate=true  |
+| `UpperYellowBlinking` | 7                 | addr+1, activate=true  |
 
 > Návestidlo `S1 start` má DCC adresu **120** a je v **extended móde** (`IsBasicMode=false`).
 
@@ -216,20 +217,22 @@ aspect=LowerYellow → LowerYellow (Výstraha s obmedzením 40 km/h)
 
 ## Akceptačné kritériá (z FAZA_2_1_PLAN.md)
 
-| # | Kritérium                                                          | Scenár |
+| # | Kritérium                                                           | Scenár |
 |---|---------------------------------------------------------------------|--------|
 | 1 | Aktivácia cesty spolahlivo nastavi aspekt podla stavu vyhybiek      | T1, T2 |
 | 2 | DCC odoslanie prebehne na spravne navestidlo podla smeru cesty      | T1, T2 |
 | 3 | Pri deaktivacii ciest sa navestidla vracaju na SafetyFallbackAspect | T3     |
 | 4 | Occupancy okamzite prepina chranene navestidlo na Red               | T4     |
-| 5 | Pri chybajucom navestidle je warning a system ostava fail-safe       | T5     |
+| 5 | Pri chybajucom navestidle je warning a system ostava fail-safe      | T5     |
 
 Všetky kritériá sú pokryté automatickými testami v:
+
 - `TrackFlow.Tests/SignalControllerTests.cs`
 - `TrackFlow.Tests/OperationViewModelRouteActivationTests.cs`
 - `TrackFlow.Tests/OperationViewModelSignalSafetyTests.cs`
 
 Spusti testy príkazom:
+
 ```powershell
 dotnet test TrackFlow.Tests
 ```

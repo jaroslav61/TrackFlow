@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using Avalonia.Threading;
 using Avalonia.Interactivity;
 using System.Threading.Tasks;
-using System.ComponentModel;
 using TrackFlow.Services;
 using TrackFlow.ViewModels;
 using TrackFlow.Views.Library;
@@ -22,6 +21,9 @@ public partial class MainWindow : Window
     private MainWindowViewModel? _vm;
     private DoctorWindow? _doctorWindow;
     private ClockView? _clockView;
+    private bool _isSettingsDialogOpen;
+    private bool _isClosePromptInProgress;
+    private bool _allowCloseWithoutPrompt;
 
     public MainWindow()
     {
@@ -273,21 +275,35 @@ public partial class MainWindow : Window
 
     private async Task<bool> ShowSettingsDialogAsync(MainWindowViewModel vm)
     {
+        if (_isSettingsDialogOpen)
+            return false;
+
         var owner = this;
         var settingsVm = vm.CreateSettingsDialogViewModel();
-        var dlg = new SettingsWindow
-        {
-            DataContext = settingsVm
-        };
+        SettingsWindow? dlg = null;
+        _isSettingsDialogOpen = true;
 
         try
         {
+            dlg = new SettingsWindow();
+            dlg.DataContext = settingsVm;
+
             var result = await dlg.ShowDialog<bool>(owner);
             return result;
         }
+        catch (Exception ex)
+        {
+            Program.ReportUnhandledException("MainWindow.ShowSettingsDialogAsync", ex, isTerminating: false);
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Nastavenia",
+                $"⚠️ Otvorenie okna Nastavenia zlyhalo: {ex.GetType().Name}: {ex.Message}",
+                DiagnosticLevel.Warning);
+            return false;
+        }
         finally
         {
-            settingsVm.Dispose();
+            _isSettingsDialogOpen = false;
+            try { settingsVm.Dispose(); } catch { /* best-effort */ }
         }
     }
 
@@ -349,6 +365,16 @@ public partial class MainWindow : Window
     
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
+        if (_allowCloseWithoutPrompt)
+            return;
+
+        if (_isClosePromptInProgress)
+        {
+            // Prevent re-entrant close loops while the async confirm dialog is active.
+            e.Cancel = true;
+            return;
+        }
+
         try
         {
             // Ak je VM null alebo nie je otvorený projekt, povoliť zatvorenie
@@ -361,6 +387,7 @@ public partial class MainWindow : Window
 
             // KRITICKÉ: Zrušiť zatvorenie a počkať na užívateľa
             e.Cancel = true;
+            _isClosePromptInProgress = true;
 
             // Zobraziť confirm dialog s otázkou
             var message = "Projekt obsahuje neuložené zmeny." + Environment.NewLine + Environment.NewLine + "Chcete zmeny uložiť pred zatvorením?";
@@ -399,6 +426,7 @@ public partial class MainWindow : Window
                     {
                         // Uloženie úspešné, zatvoriť aplikáciu
                         // SaveProject už nastavil IsDirty = false, takže zatvorenie prejde
+                        _allowCloseWithoutPrompt = true;
                         Close();
                     }
                     // Ak uloženie zlyhalo, e.Cancel zostáva true a okno zostane otvorené
@@ -407,6 +435,7 @@ public partial class MainWindow : Window
                 case Views.Dialogs.ConfirmDialog.DialogResult.No:
                     // Zatvoriť bez uloženia: označ projekt ako čistý cez tracker (správna cesta)
                     _vm.SettingsManager.Dirty.MarkClean();
+                    _allowCloseWithoutPrompt = true;
                     Close();
                     break;
 
@@ -414,6 +443,12 @@ public partial class MainWindow : Window
                     // Zostať otvorený (e.Cancel už je true)
                     break;
             }
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("closed owner", StringComparison.OrdinalIgnoreCase))
+        {
+            // Window is already closing/disposed; do not block app shutdown in this race.
+            _allowCloseWithoutPrompt = true;
+            e.Cancel = false;
         }
         catch (Exception ex)
         {
@@ -423,6 +458,10 @@ public partial class MainWindow : Window
                 "Aplikácia",
                 $"⚠️ Zatváranie okna zlyhalo: {ex.GetType().Name}: {ex.Message}",
                 DiagnosticLevel.Warning);
+        }
+        finally
+        {
+            _isClosePromptInProgress = false;
         }
     }
     
@@ -528,5 +567,6 @@ public partial class MainWindow : Window
         {
             // best-effort
         }
+
     }
 }

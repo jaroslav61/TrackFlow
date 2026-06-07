@@ -1,12 +1,12 @@
-using Avalonia.Data.Converters;
-using Avalonia.Media;
 using System;
 using System.Globalization;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
 
 namespace TrackFlow.Converters;
 
 /// <summary>
-/// Konvertuje color string (#RRGGBB alebo špeciálne hodnoty) na Brush
+///     Konvertuje color string (#RRGGBB alebo špeciálne hodnoty) na Brush
 /// </summary>
 public class ColorStringToBrushConverter : IValueConverter
 {
@@ -18,16 +18,15 @@ public class ColorStringToBrushConverter : IValueConverter
         // Špeciálne hodnoty
         if (colorString == "Automatický" || colorString == "Automatic")
             return new SolidColorBrush(Colors.Gray); // Neutrálna farba pre "auto"
-        
+
         if (colorString == "Transparentné" || colorString == "Transparent")
             return new SolidColorBrush(Colors.Transparent);
-        
+
         if (colorString == "Vlastná farba...")
             return new SolidColorBrush(Colors.White); // Prázdna vzorka pre vlastný výber
 
         // Hex hodnota
         if (colorString.StartsWith("#"))
-        {
             try
             {
                 return new SolidColorBrush(Color.Parse(colorString));
@@ -36,7 +35,6 @@ public class ColorStringToBrushConverter : IValueConverter
             {
                 return new SolidColorBrush(Colors.Transparent);
             }
-        }
 
         return new SolidColorBrush(Colors.Transparent);
     }
@@ -46,4 +44,3 @@ public class ColorStringToBrushConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
-

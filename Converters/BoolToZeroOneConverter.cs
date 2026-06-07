@@ -1,17 +1,19 @@
-using Avalonia.Data.Converters;
 using System;
 using System.Globalization;
+using Avalonia.Data.Converters;
 
-namespace TrackFlow.Converters
+namespace TrackFlow.Converters;
+
+public class BoolToZeroOneConverter : IValueConverter
 {
-    public class BoolToZeroOneConverter : IValueConverter
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            var b = value as bool? ?? false;
-            return b ? 1.0 : 0.0;
-        }
+        var b = value as bool? ?? false;
+        return b ? 1.0 : 0.0;
+    }
 
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }

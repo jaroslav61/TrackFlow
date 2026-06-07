@@ -116,7 +116,7 @@
 				<!-- ToggleButton Switch -->
 				<ToggleButton IsChecked="{Binding IsSimulationMode}"
 							  Width="160"
-							  Height="36"
+							  Height="30"
 							  CornerRadius="4"
 							  HorizontalContentAlignment="Center"
 							  VerticalContentAlignment="Center">

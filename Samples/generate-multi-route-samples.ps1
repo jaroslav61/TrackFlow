@@ -1,7 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function New-Loco {
+function New-Loco
+{
     param(
         [string]$Id,
         [string]$Name,
@@ -35,7 +36,8 @@ function New-Loco {
     }
 }
 
-function New-Block {
+function New-Block
+{
     param(
         [string]$Id,
         [double]$X,
@@ -73,7 +75,8 @@ function New-Block {
     }
 }
 
-function New-Segment {
+function New-Segment
+{
     param(
         [string]$Id,
         [double]$X,
@@ -96,7 +99,8 @@ function New-Segment {
     }
 }
 
-function New-Signal {
+function New-Signal
+{
     param(
         [string]$Id,
         [double]$X,
@@ -123,7 +127,8 @@ function New-Signal {
     }
 }
 
-function New-Turnout {
+function New-Turnout
+{
     param(
         [string]$Id,
         [double]$X,
@@ -160,7 +165,8 @@ function New-Turnout {
     }
 }
 
-function New-RouteMarker {
+function New-RouteMarker
+{
     param(
         [string]$Id,
         [string]$RouteName,
@@ -191,7 +197,8 @@ function New-RouteMarker {
     }
 }
 
-function New-Text {
+function New-Text
+{
     param(
         [string]$Id,
         [double]$X,
@@ -227,7 +234,8 @@ function New-Text {
     }
 }
 
-function New-RouteDef {
+function New-RouteDef
+{
     param(
         [string]$Id,
         [string]$Name,
@@ -265,7 +273,8 @@ function New-RouteDef {
     }
 }
 
-function New-Project {
+function New-Project
+{
     param(
         [object[]]$Locos,
         [object[]]$Elements,
@@ -314,7 +323,8 @@ function New-Project {
     }
 }
 
-function Write-Sample {
+function Write-Sample
+{
     param(
         [string]$BaseName,
         [object]$Project,
@@ -354,8 +364,8 @@ $sharedBlockElements = @(
     (New-RouteMarker -Id 'rm_sb_2' -RouteName '2. C → D cez X (WAIT)' -Description 'Zdieľaný blok' -SelectedRouteDefinitionId 'r_sb_2' -X 120 -Y 384)
 )
 $sharedBlockRoutes = @(
-    (New-RouteDef -Id 'r_sb_1' -Name 'A → X → B' -FromBlockId 'blk_sb_a' -ToBlockId 'blk_sb_b' -RouteSignalIds @('sig_sb_a') -TurnoutSettings @() -BlockIds @('blk_sb_a','blk_sb_shared','blk_sb_b') -PathElementIds @('seg_sb_a_x','seg_sb_x_b') -Color '#00D4AA' -MaxSpeed 50),
-    (New-RouteDef -Id 'r_sb_2' -Name 'C → X → D' -FromBlockId 'blk_sb_c' -ToBlockId 'blk_sb_d' -RouteSignalIds @('sig_sb_c') -TurnoutSettings @() -BlockIds @('blk_sb_c','blk_sb_shared','blk_sb_d') -PathElementIds @('seg_sb_c_x','seg_sb_x_d') -Color '#FFB300' -MaxSpeed 50)
+    (New-RouteDef -Id 'r_sb_1' -Name 'A → X → B' -FromBlockId 'blk_sb_a' -ToBlockId 'blk_sb_b' -RouteSignalIds @('sig_sb_a') -TurnoutSettings @() -BlockIds @('blk_sb_a', 'blk_sb_shared', 'blk_sb_b') -PathElementIds @('seg_sb_a_x', 'seg_sb_x_b') -Color '#00D4AA' -MaxSpeed 50),
+    (New-RouteDef -Id 'r_sb_2' -Name 'C → X → D' -FromBlockId 'blk_sb_c' -ToBlockId 'blk_sb_d' -RouteSignalIds @('sig_sb_c') -TurnoutSettings @() -BlockIds @('blk_sb_c', 'blk_sb_shared', 'blk_sb_d') -PathElementIds @('seg_sb_c_x', 'seg_sb_x_d') -Color '#FFB300' -MaxSpeed 50)
 )
 Write-Sample -BaseName 'SharedBlockWaitSample' -Project (New-Project -Locos $locos -Elements $sharedBlockElements -Routes $sharedBlockRoutes) -Readme @'
 # SharedBlockWaitSample
@@ -412,8 +422,8 @@ $sharedTurnoutElements = @(
     (New-RouteMarker -Id 'rm_st_2' -RouteName '2. D → A (WAIT na V1)' -Description 'Zdieľaná výhybka, opačný smer' -SelectedRouteDefinitionId 'r_st_2' -X 456 -Y 360)
 )
 $sharedTurnoutRoutes = @(
-    (New-RouteDef -Id 'r_st_1' -Name 'A → B cez V1 priamo' -FromBlockId 'blk_st_a' -ToBlockId 'blk_st_b' -RouteSignalIds @('sig_st_a') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_st_1'; RequiredState = 0 }) -BlockIds @('blk_st_a','blk_st_b') -PathElementIds @('seg_st_a_sw','sw_st_1','seg_st_sw_b') -Color '#42A5F5' -MaxSpeed 50),
-    (New-RouteDef -Id 'r_st_2' -Name 'D → A cez V1 odbočka' -FromBlockId 'blk_st_d' -ToBlockId 'blk_st_a' -RouteSignalIds @('sig_st_d') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_st_1'; RequiredState = 1 }) -BlockIds @('blk_st_d','blk_st_a') -PathElementIds @('seg_st_sw_d','sw_st_1','seg_st_a_sw') -Color '#EF6C00' -MaxSpeed 40 -FromBlockDirection 'Left' -ToBlockDirection 'Right' -StartNavigationDirection 'Left')
+    (New-RouteDef -Id 'r_st_1' -Name 'A → B cez V1 priamo' -FromBlockId 'blk_st_a' -ToBlockId 'blk_st_b' -RouteSignalIds @('sig_st_a') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_st_1'; RequiredState = 0 }) -BlockIds @('blk_st_a', 'blk_st_b') -PathElementIds @('seg_st_a_sw', 'sw_st_1', 'seg_st_sw_b') -Color '#42A5F5' -MaxSpeed 50),
+    (New-RouteDef -Id 'r_st_2' -Name 'D → A cez V1 odbočka' -FromBlockId 'blk_st_d' -ToBlockId 'blk_st_a' -RouteSignalIds @('sig_st_d') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_st_1'; RequiredState = 1 }) -BlockIds @('blk_st_d', 'blk_st_a') -PathElementIds @('seg_st_sw_d', 'sw_st_1', 'seg_st_a_sw') -Color '#EF6C00' -MaxSpeed 40 -FromBlockDirection 'Left' -ToBlockDirection 'Right' -StartNavigationDirection 'Left')
 )
 Write-Sample -BaseName 'SharedTurnoutWaitSample' -Project (New-Project -Locos $locos -Elements $sharedTurnoutElements -Routes $sharedTurnoutRoutes) -Readme @'
 # SharedTurnoutWaitSample
@@ -467,8 +477,8 @@ $parallelElements = @(
     (New-RouteMarker -Id 'rm_pi_2' -RouteName '2. C → D (bez konfliktu)' -Description 'Paralelná linka 2' -SelectedRouteDefinitionId 'r_pi_2' -X 120 -Y 384)
 )
 $parallelRoutes = @(
-    (New-RouteDef -Id 'r_pi_1' -Name 'A → B nezávislá' -FromBlockId 'blk_pi_a' -ToBlockId 'blk_pi_b' -RouteSignalIds @('sig_pi_a') -TurnoutSettings @() -BlockIds @('blk_pi_a','blk_pi_b') -PathElementIds @('seg_pi_ab') -Color '#66BB6A' -MaxSpeed 60),
-    (New-RouteDef -Id 'r_pi_2' -Name 'C → D nezávislá' -FromBlockId 'blk_pi_c' -ToBlockId 'blk_pi_d' -RouteSignalIds @('sig_pi_c') -TurnoutSettings @() -BlockIds @('blk_pi_c','blk_pi_d') -PathElementIds @('seg_pi_cd') -Color '#AB47BC' -MaxSpeed 60)
+    (New-RouteDef -Id 'r_pi_1' -Name 'A → B nezávislá' -FromBlockId 'blk_pi_a' -ToBlockId 'blk_pi_b' -RouteSignalIds @('sig_pi_a') -TurnoutSettings @() -BlockIds @('blk_pi_a', 'blk_pi_b') -PathElementIds @('seg_pi_ab') -Color '#66BB6A' -MaxSpeed 60),
+    (New-RouteDef -Id 'r_pi_2' -Name 'C → D nezávislá' -FromBlockId 'blk_pi_c' -ToBlockId 'blk_pi_d' -RouteSignalIds @('sig_pi_c') -TurnoutSettings @() -BlockIds @('blk_pi_c', 'blk_pi_d') -PathElementIds @('seg_pi_cd') -Color '#AB47BC' -MaxSpeed 60)
 )
 Write-Sample -BaseName 'ParallelIndependentRoutesSample' -Project (New-Project -Locos $locos -Elements $parallelElements -Routes $parallelRoutes) -Readme @'
 # ParallelIndependentRoutesSample
@@ -519,8 +529,8 @@ $deadlockElements = @(
     (New-RouteMarker -Id 'rm_dl_2' -RouteName '2. C → Y → X → D' -Description 'Potenciálny deadlock 2' -SelectedRouteDefinitionId 'r_dl_2' -X 120 -Y 408)
 )
 $deadlockRoutes = @(
-    (New-RouteDef -Id 'r_dl_1' -Name 'A → X → Y → B' -FromBlockId 'blk_dl_a' -ToBlockId 'blk_dl_b' -RouteSignalIds @('sig_dl_a') -TurnoutSettings @() -BlockIds @('blk_dl_a','blk_dl_x','blk_dl_y','blk_dl_b') -PathElementIds @('seg_dl_a_x','seg_dl_x_y','seg_dl_y_b') -Color '#00897B' -MaxSpeed 45),
-    (New-RouteDef -Id 'r_dl_2' -Name 'C → Y → X → D' -FromBlockId 'blk_dl_c' -ToBlockId 'blk_dl_d' -RouteSignalIds @('sig_dl_c') -TurnoutSettings @() -BlockIds @('blk_dl_c','blk_dl_y','blk_dl_x','blk_dl_d') -PathElementIds @('seg_dl_c_y','seg_dl_y_x','seg_dl_x_d') -Color '#D81B60' -MaxSpeed 45)
+    (New-RouteDef -Id 'r_dl_1' -Name 'A → X → Y → B' -FromBlockId 'blk_dl_a' -ToBlockId 'blk_dl_b' -RouteSignalIds @('sig_dl_a') -TurnoutSettings @() -BlockIds @('blk_dl_a', 'blk_dl_x', 'blk_dl_y', 'blk_dl_b') -PathElementIds @('seg_dl_a_x', 'seg_dl_x_y', 'seg_dl_y_b') -Color '#00897B' -MaxSpeed 45),
+    (New-RouteDef -Id 'r_dl_2' -Name 'C → Y → X → D' -FromBlockId 'blk_dl_c' -ToBlockId 'blk_dl_d' -RouteSignalIds @('sig_dl_c') -TurnoutSettings @() -BlockIds @('blk_dl_c', 'blk_dl_y', 'blk_dl_x', 'blk_dl_d') -PathElementIds @('seg_dl_c_y', 'seg_dl_y_x', 'seg_dl_x_d') -Color '#D81B60' -MaxSpeed 45)
 )
 Write-Sample -BaseName 'DeadlockPotentialSample' -Project (New-Project -Locos $locos -Elements $deadlockElements -Routes $deadlockRoutes -CanvasWidth 2600 -CanvasHeight 1500) -Readme @'
 # DeadlockPotentialSample
@@ -568,8 +578,8 @@ $tailClearElements = @(
     (New-RouteMarker -Id 'rm_tc_2' -RouteName '2. D → X → A (čaká na release)' -Description 'Tail-clear opačný smer' -SelectedRouteDefinitionId 'r_tc_2' -X 696 -Y 360)
 )
 $tailClearRoutes = @(
-    (New-RouteDef -Id 'r_tc_1' -Name 'A → X → B cez V1' -FromBlockId 'blk_tc_a' -ToBlockId 'blk_tc_b' -RouteSignalIds @('sig_tc_a') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_tc_1'; RequiredState = 0 }) -BlockIds @('blk_tc_a','blk_tc_mid','blk_tc_b') -PathElementIds @('seg_tc_a_mid','seg_tc_mid_sw','sw_tc_1','seg_tc_sw_b') -Color '#3949AB' -MaxSpeed 45),
-    (New-RouteDef -Id 'r_tc_2' -Name 'D → X → A cez V1' -FromBlockId 'blk_tc_d' -ToBlockId 'blk_tc_a' -RouteSignalIds @('sig_tc_d') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_tc_1'; RequiredState = 1 }) -BlockIds @('blk_tc_d','blk_tc_mid','blk_tc_a') -PathElementIds @('seg_tc_sw_d','sw_tc_1','seg_tc_mid_sw','seg_tc_a_mid') -Color '#F4511E' -MaxSpeed 40 -FromBlockDirection 'Left' -ToBlockDirection 'Right' -StartNavigationDirection 'Left')
+    (New-RouteDef -Id 'r_tc_1' -Name 'A → X → B cez V1' -FromBlockId 'blk_tc_a' -ToBlockId 'blk_tc_b' -RouteSignalIds @('sig_tc_a') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_tc_1'; RequiredState = 0 }) -BlockIds @('blk_tc_a', 'blk_tc_mid', 'blk_tc_b') -PathElementIds @('seg_tc_a_mid', 'seg_tc_mid_sw', 'sw_tc_1', 'seg_tc_sw_b') -Color '#3949AB' -MaxSpeed 45),
+    (New-RouteDef -Id 'r_tc_2' -Name 'D → X → A cez V1' -FromBlockId 'blk_tc_d' -ToBlockId 'blk_tc_a' -RouteSignalIds @('sig_tc_d') -TurnoutSettings @([ordered]@{ TurnoutId = 'sw_tc_1'; RequiredState = 1 }) -BlockIds @('blk_tc_d', 'blk_tc_mid', 'blk_tc_a') -PathElementIds @('seg_tc_sw_d', 'sw_tc_1', 'seg_tc_mid_sw', 'seg_tc_a_mid') -Color '#F4511E' -MaxSpeed 40 -FromBlockDirection 'Left' -ToBlockDirection 'Right' -StartNavigationDirection 'Left')
 )
 Write-Sample -BaseName 'TailClearReleaseSample' -Project (New-Project -Locos $locos -Elements $tailClearElements -Routes $tailClearRoutes -CanvasWidth 2600 -CanvasHeight 1500) -Readme @'
 # TailClearReleaseSample

@@ -6,77 +6,61 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using TrackFlow.Services;
+
 namespace TrackFlow.Services.Dcc;
 
-public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProgrammingClient, IDccTelemetry, ITelemetryPreferenceAwareClient, IRBusFeedbackSource, IDisposable, INotifyPropertyChanged
+public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProgrammingClient, IDccTelemetry,
+    ITelemetryPreferenceAwareClient, IRBusFeedbackSource, IDisposable, INotifyPropertyChanged
 {
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public event Action<RBusFeedbackState>? RBusFeedbackChanged;
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-    // ── Telemetria (IDccTelemetry) ───────────────────────────────────────────
-    public bool IsTelemetrySupported => true;
-    public bool IsBlackZ21 => HardwareType.IsBlackZ21();
-
-    private double? _mainVoltage;
-    public double? MainVoltage
-    {
-        get => _mainVoltage;
-        private set { if (_mainVoltage != value) { _mainVoltage = value; OnPropertyChanged(); } }
-    }
-
-    private double? _progVoltage;
-    public double? ProgVoltage
-    {
-        get => _progVoltage;
-        private set { if (_progVoltage != value) { _progVoltage = value; OnPropertyChanged(); } }
-    }
-
-    private double? _trackCurrent;
-    public double? TrackCurrent
-    {
-        get => _trackCurrent;
-        private set { if (_trackCurrent != value) { _trackCurrent = value; OnPropertyChanged(); } }
-    }
-
-    private double? _progTrackCurrent;
-    public double? ProgTrackCurrent
-    {
-        get => _progTrackCurrent;
-        private set { if (_progTrackCurrent != value) { _progTrackCurrent = value; OnPropertyChanged(); } }
-    }
-
-    private double? _centralTemperature;
-    public double? CentralTemperature
-    {
-        get => _centralTemperature;
-        private set { if (_centralTemperature != value) { _centralTemperature = value; OnPropertyChanged(); } }
-    }
-
-    // Pozadie pre telemetriu – BEŽÍ NA EXISTUJÚCOM _sendUdp sokete (žiadny druhý socket).
-    // _telemetryCts riadi zároveň polling systémového stavu aj R-BUS feedbacku cez
-    // jednu zdieľanú receive-slučku, ktorá parsuje LAN_SYSTEMSTATE_DATACHANGED.
-    private CancellationTokenSource? _telemetryCts;
-    private Task? _telemetryPollTask;
-    private Task? _mainReceiveTask;
     private const int SystemStatusPollIntervalMs = 2000;
     private const int RBusPollIntervalMs = 250;
-    public bool IsTelemetryEnabled { get; set; } = true;
-    public bool IsConnected { get; private set; }
-    public uint? SerialNumber { get; private set; }
+    private const int SpeedThrottleMs = 80;
 
-    /// <summary>HwType vrátený centrálou cez LAN_GET_HWINFO (nastavený pri Connect).</summary>
-    public Z21HardwareType HardwareType { get; private set; } = Z21HardwareType.Unknown;
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Telemetria – LAN_SYSTEMSTATE_GETDATA (0x85) / LAN_SYSTEMSTATE_DATACHANGED (0x84)
+    //
+    // Komunikácia ide cez EXISTUJÚCI _sendUdp socket (žiaden druhý paralelný socket,
+    // ktorý by sa bil so subscribciami z21). Receive prebieha v jednej zdieľanej
+    // hlavnej slučke `MainReceiveLoopAsync`, do ktorej sa pridávajú prípadné ďalšie
+    // typy odpovedí (lokomotívy, výhybky, broadcasty).
+    // ─────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>FW verzia (BCD, napr. 0x0140 = 1.40), nastavená pri Connect.</summary>
-    public uint? FirmwareVersionRaw { get; private set; }
+    /// <summary>
+    ///     z21 LAN_SYSTEMSTATE_GETDATA – vyžiada aktuálny systémový stav (napätie/prúd/teplota).
+    ///     Štruktúra (4 B): DataLen=0x04 0x00 | HeaderID=0x85 0x00 (LE).
+    ///     Centrála na to odpovedá LAN_SYSTEMSTATE_DATACHANGED (header 0x84).
+    /// </summary>
+    private static readonly byte[] LanGetSystemStatusPacket = { 0x04, 0x00, 0x85, 0x00 };
 
-    /// <summary>Iba pre testovacie účely – umožní nastaviť detegovaný HW typ bez sieťovej komunikácie.</summary>
-    internal void SetHardwareTypeForTest(Z21HardwareType hardwareType) => HardwareType = hardwareType;
+    private static readonly byte[] LanGetRBusGroup0Packet = { 0x05, 0x00, 0x81, 0x00, 0x00 };
+
+    private static readonly Z21BroadcastFlags DefaultOperationalBroadcastFlags =
+        Z21BroadcastFlags.XBus |
+        Z21BroadcastFlags.RBus |
+        Z21BroadcastFlags.SystemState;
+
+    private readonly Dictionary<int, byte> _lastRBusModuleMasks = new();
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly object _shutdownSync = new();
+
+    // Throttling rýchlostných paketov – max 1 paket / 80 ms
+    private readonly Stopwatch _speedStopwatch = Stopwatch.StartNew();
+
+    private double? _centralTemperature;
+
+    // Posledný čas prijatia akéhokoľvek validného rámca cez _sendUdp – používa sa pre ľahký PingAsync.
+    private long _lastFrameReceivedTicks;
+    private long _lastSpeedSentTicks; // prístup výhradne cez Interlocked.* – pozri SetLocomotiveSpeedAsync
+    private Task? _mainReceiveTask;
+
+    private double? _mainVoltage;
+
+    private double? _progTrackCurrent;
+
+    private double? _progVoltage;
 
     private IPEndPoint? _remoteEp;
 
@@ -85,22 +69,27 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     // function, e-stop, accessory, polling); zároveň naň MainReceiveLoopAsync
     // počúva spontánne odpovede (LAN_SYSTEMSTATE_DATACHANGED a pod.).
     private UdpClient? _sendUdp;
-    private readonly SemaphoreSlim _sendLock = new(1, 1);
-    private readonly object _shutdownSync = new();
-    private readonly Dictionary<int, byte> _lastRBusModuleMasks = new();
+    private int _shutdownRequested;
     private Task _shutdownTask = Task.CompletedTask;
     private int _shutdownVersion;
-    private int _shutdownRequested;
 
-    // Throttling rýchlostných paketov – max 1 paket / 80 ms
-    private readonly Stopwatch _speedStopwatch = Stopwatch.StartNew();
-    private long _lastSpeedSentTicks; // prístup výhradne cez Interlocked.* – pozri SetLocomotiveSpeedAsync
-    private const int SpeedThrottleMs = 80;
+    // Pozadie pre telemetriu – BEŽÍ NA EXISTUJÚCOM _sendUdp sokete (žiadny druhý socket).
+    // _telemetryCts riadi zároveň polling systémového stavu aj R-BUS feedbacku cez
+    // jednu zdieľanú receive-slučku, ktorá parsuje LAN_SYSTEMSTATE_DATACHANGED.
+    private CancellationTokenSource? _telemetryCts;
+    private Task? _telemetryPollTask;
 
-    // Posledný čas prijatia akéhokoľvek validného rámca cez _sendUdp – používa sa pre ľahký PingAsync.
-    private long _lastFrameReceivedTicks;
+    private double? _trackCurrent;
+
+    /// <summary>HwType vrátený centrálou cez LAN_GET_HWINFO (nastavený pri Connect).</summary>
+    public Z21HardwareType HardwareType { get; private set; } = Z21HardwareType.Unknown;
+
+    /// <summary>FW verzia (BCD, napr. 0x0140 = 1.40), nastavená pri Connect.</summary>
+    public uint? FirmwareVersionRaw { get; private set; }
 
     private bool IsShutdownRequested => Volatile.Read(ref _shutdownRequested) != 0;
+    public bool IsConnected { get; private set; }
+    public uint? SerialNumber { get; private set; }
 
     public async Task<bool> ConnectAsync(string host, int port, CancellationToken ct = default)
     {
@@ -113,10 +102,21 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         try
         {
             var addresses = await Dns.GetHostAddressesAsync(host, ct);
-            if (addresses.Length == 0) { IsConnected = false; SerialNumber = null; return false; }
+            if (addresses.Length == 0)
+            {
+                IsConnected = false;
+                SerialNumber = null;
+                return false;
+            }
+
             ip = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork) ?? addresses[0];
         }
-        catch { IsConnected = false; SerialNumber = null; return false; }
+        catch
+        {
+            IsConnected = false;
+            SerialNumber = null;
+            return false;
+        }
 
         _remoteEp = new IPEndPoint(ip, port);
 
@@ -138,7 +138,10 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             _sendUdp = CreateReusableUdpClient();
             _sendUdp.Connect(_remoteEp);
         }
-        finally { _sendLock.Release(); }
+        finally
+        {
+            _sendLock.Release();
+        }
 
         SerialNumber = serial.Value;
         IsConnected = true;
@@ -155,8 +158,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             var fwText = $"FW 0x{hwInfo.Value.FwVersion:X4}";
             TrackFlowDoctorService.Instance.Diagnose(
                 "DCC",
-                $"🔎 Detegovaná centrála: {hwName} ({fwText}, HwType=0x{hwInfo.Value.HwType:X8})",
-                DiagnosticLevel.Info);
+                $"🔎 Detegovaná centrála: {hwName} ({fwText}, HwType=0x{hwInfo.Value.HwType:X8})");
         }
         else
         {
@@ -173,6 +175,129 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     public void Disconnect()
     {
         _ = BeginDisconnectAsync();
+    }
+
+    // LAN_X_SET_LOCO_DRIVE – 128 krokov
+    // Packet (10 B): 0A 00 | 40 00 | E4 | 13 | AdrH | AdrL | SpeedByte | XOR
+    // SpeedByte: bit7=smer(1=vpred), bit6..0: 0=stop(0), nouzový stop(1 – nepoužívame), krok(2-127)
+    public async Task SetLocomotiveSpeedAsync(int address, int speed, bool forward, CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null) return;
+
+        // Throttling – zahadzujeme príliš časté aktualizácie, ale STOP vždy prepustíme.
+        // Read-modify-write je thread-safe cez Interlocked.CompareExchange – pri súbežnom
+        // volaní z viacerých UI eventov (CabStrip + drag) sa zaručene neprepustia 2 pakety
+        // do z21 v okne kratšom ako SpeedThrottleMs.
+        var elapsed = _speedStopwatch.ElapsedMilliseconds;
+        var isStop = speed <= 0;
+
+        if (!isStop)
+        {
+            var lastTicks = Interlocked.Read(ref _lastSpeedSentTicks);
+            if (elapsed - lastTicks < SpeedThrottleMs)
+                return;
+            if (Interlocked.CompareExchange(ref _lastSpeedSentTicks, elapsed, lastTicks) != lastTicks)
+                return; // iný thread práve odoslal – nech to vybaví on
+        }
+        else
+        {
+            Interlocked.Exchange(ref _lastSpeedSentTicks, elapsed);
+        }
+
+        var (adrH, adrL) = DccAddressCodec.EncodeLocoAddress(address);
+
+        byte spd;
+        if (speed <= 0) spd = 0;
+        else if (speed == 1) spd = 2;
+        else if (speed > 126) spd = 127;
+        else spd = (byte)speed;
+
+        var speedByte = (byte)(spd | (forward ? 0x80 : 0x00));
+        var xor = (byte)(0xE4 ^ 0x13 ^ adrH ^ adrL ^ speedByte);
+
+        await SendAsync(new byte[] { 0x0A, 0x00, 0x40, 0x00, 0xE4, 0x13, adrH, adrL, speedByte, xor }, ct);
+    }
+
+    // LAN_X_SET_LOCO_FUNCTION
+    // Packet (10 B): 0A 00 | 40 00 | E4 | F8 | AdrH | AdrL | DB2 | XOR
+    // DB2: bit7..6 = typ (00=vyp, 01=zap, 10=toggle), bit5..0 = číslo funkcie
+    public async Task SetLocomotiveFunctionAsync(int address, int functionIndex, bool active,
+        CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null) return;
+
+        var (adrH, adrL) = DccAddressCodec.EncodeLocoAddress(address);
+        var fn = (byte)(functionIndex & 0x3F);
+        var db2 = (byte)(fn | (active ? 0x40 : 0x00));
+        var xor = (byte)(0xE4 ^ 0xF8 ^ adrH ^ adrL ^ db2);
+
+        await SendAsync(new byte[] { 0x0A, 0x00, 0x40, 0x00, 0xE4, 0xF8, adrH, adrL, db2, xor }, ct);
+    }
+
+    // LAN_X_SET_STOP – núdzové zastavenie
+    // Packet (6 B): 06 00 | 40 00 | 80 | 80
+    // POZOR: posiela aj keď IsConnected=false (bezpečnostný prvok)
+    public async Task EmergencyStopAsync(CancellationToken ct = default)
+    {
+        if (_remoteEp == null) return;
+        await SendAsync(new byte[] { 0x06, 0x00, 0x40, 0x00, 0x80, 0x80 }, ct, true);
+    }
+
+    // LAN_X_SET_TRACK_POWER_ON – obnoví napájanie koľajiska po E-Stop
+    // Packet (7 B): 07 00 | 40 00 | 21 | 81 | A0
+    public async Task TrackPowerOnAsync(CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null) return;
+        await SendAsync(CreateExitServiceModePacket(), ct);
+    }
+
+    // LAN_X_SET_TURNOUT – ovládanie výhybky / accessory decoder
+    // Packet (9 B): 09 00 | 40 00 | 53 | AdrH | AdrL | Data | XOR
+    // Data: bit3=activate(1=energize, 0=de-energize), bit2=queue, bit1..0=výstup(0=priamo, 1=odbočka)
+    // Adresa: DCC accessory 1..2048 → interná adresa = address - 1
+    public async Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null) return;
+
+        // Z21 accessory adresa je 0-based
+        var addr = address - 1;
+        var adrH = (byte)((addr >> 8) & 0x07);
+        var adrL = (byte)(addr & 0xFF);
+
+        // Data byte: bit3=activate, bit2=queue(0), bit1=0, bit0=výstup(0=priamo, 1=odbočka)
+        var data = (byte)((activate ? 0x08 : 0x00) | (branch ? 0x01 : 0x00));
+
+        var xor = (byte)(0x53 ^ adrH ^ adrL ^ data);
+        await SendAsync(new byte[] { 0x09, 0x00, 0x40, 0x00, 0x53, adrH, adrL, data, xor }, ct);
+    }
+
+    // LAN_X_SET_EXT_ACCESSORY – rozšírené príslušenstvo (1 adresa + číslo aspektu)
+    // Packet (9 B): 09 00 | 40 00 | 54 | AdrH | AdrL | Aspect | XOR
+    // Aspect: 0..31 (nižších 5 bitov)
+    // Adresa: 11-bitová DCC accessory adresa (0..2047) – posiela sa priamo, bez NMRA basic offsetu.
+    public async Task SetExtendedAccessoryAspectAsync(int address, int aspectNumber, CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null)
+            return;
+
+        // Validácia hraníc podľa Z21 LAN špec. v1.13 (sekcia 4.2.4 LAN_X_SET_EXT_ACCESSORY):
+        //  • adresa: 11-bit ⇒ 0..2047
+        //  • aspect: 5-bit  ⇒ 0..31
+        if (address < 0 || address > 0x07FF)
+            throw new ArgumentOutOfRangeException(nameof(address),
+                "Extended Accessory adresa musí byť v rozsahu 0..2047 (11-bit).");
+        if (aspectNumber < 0 || aspectNumber > 0x1F)
+            throw new ArgumentOutOfRangeException(nameof(aspectNumber),
+                "Aspect Extended Accessory musí byť v rozsahu 0..31 (5-bit).");
+
+        var adrH = (byte)((address >> 8) & 0x07);
+        var adrL = (byte)(address & 0xFF);
+        var data = (byte)(aspectNumber & 0x1F);
+        var xor = (byte)(0x54 ^ adrH ^ adrL ^ data);
+
+        var packet = new byte[] { 0x09, 0x00, 0x40, 0x00, 0x54, adrH, adrL, data, xor };
+
+        await SendAsync(packet, ct);
     }
 
     public async Task<bool> PingAsync(CancellationToken ct = default)
@@ -204,9 +329,16 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             {
                 if (Interlocked.Read(ref _lastFrameReceivedTicks) > lastTicks)
                     return true;
-                try { await Task.Delay(50, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return false; }
+                try
+                {
+                    await Task.Delay(50, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
+                }
             }
+
             return false;
         }
         catch
@@ -215,243 +347,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         }
     }
 
-    // LAN_X_SET_LOCO_DRIVE – 128 krokov
-    // Packet (10 B): 0A 00 | 40 00 | E4 | 13 | AdrH | AdrL | SpeedByte | XOR
-    // SpeedByte: bit7=smer(1=vpred), bit6..0: 0=stop(0), nouzový stop(1 – nepoužívame), krok(2-127)
-    public async Task SetLocomotiveSpeedAsync(int address, int speed, bool forward, CancellationToken ct = default)
-    {
-        if (!IsConnected || _remoteEp == null) return;
-
-        // Throttling – zahadzujeme príliš časté aktualizácie, ale STOP vždy prepustíme.
-        // Read-modify-write je thread-safe cez Interlocked.CompareExchange – pri súbežnom
-        // volaní z viacerých UI eventov (CabStrip + drag) sa zaručene neprepustia 2 pakety
-        // do z21 v okne kratšom ako SpeedThrottleMs.
-        var elapsed = _speedStopwatch.ElapsedMilliseconds;
-        var isStop = speed <= 0;
-
-        if (!isStop)
-        {
-            var lastTicks = Interlocked.Read(ref _lastSpeedSentTicks);
-            if ((elapsed - lastTicks) < SpeedThrottleMs)
-                return;
-            if (Interlocked.CompareExchange(ref _lastSpeedSentTicks, elapsed, lastTicks) != lastTicks)
-                return; // iný thread práve odoslal – nech to vybaví on
-        }
-        else
-        {
-            Interlocked.Exchange(ref _lastSpeedSentTicks, elapsed);
-        }
-
-        var (adrH, adrL) = DccAddressCodec.EncodeLocoAddress(address);
-
-        byte spd;
-        if (speed <= 0)       spd = 0;
-        else if (speed == 1)  spd = 2;
-        else if (speed > 126) spd = 127;
-        else                  spd = (byte)speed;
-
-        byte speedByte = (byte)(spd | (forward ? 0x80 : 0x00));
-        byte xor = (byte)(0xE4 ^ 0x13 ^ adrH ^ adrL ^ speedByte);
-
-        await SendAsync(new byte[] { 0x0A, 0x00, 0x40, 0x00, 0xE4, 0x13, adrH, adrL, speedByte, xor }, ct);
-    }
-
-    // LAN_X_SET_LOCO_FUNCTION
-    // Packet (10 B): 0A 00 | 40 00 | E4 | F8 | AdrH | AdrL | DB2 | XOR
-    // DB2: bit7..6 = typ (00=vyp, 01=zap, 10=toggle), bit5..0 = číslo funkcie
-    public async Task SetLocomotiveFunctionAsync(int address, int functionIndex, bool active, CancellationToken ct = default)
-    {
-        if (!IsConnected || _remoteEp == null) return;
-
-        var (adrH, adrL) = DccAddressCodec.EncodeLocoAddress(address);
-        byte fn   = (byte)(functionIndex & 0x3F);
-        byte db2  = (byte)(fn | (active ? 0x40 : 0x00));
-        byte xor  = (byte)(0xE4 ^ 0xF8 ^ adrH ^ adrL ^ db2);
-
-        await SendAsync(new byte[] { 0x0A, 0x00, 0x40, 0x00, 0xE4, 0xF8, adrH, adrL, db2, xor }, ct);
-    }
-
-    // LAN_X_SET_STOP – núdzové zastavenie
-    // Packet (6 B): 06 00 | 40 00 | 80 | 80
-    // POZOR: posiela aj keď IsConnected=false (bezpečnostný prvok)
-    public async Task EmergencyStopAsync(CancellationToken ct = default)
-    {
-        if (_remoteEp == null) return;
-        await SendAsync(new byte[] { 0x06, 0x00, 0x40, 0x00, 0x80, 0x80 }, ct, bypassConnectedCheck: true);
-    }
-
-    // LAN_X_SET_TRACK_POWER_ON – obnoví napájanie koľajiska po E-Stop
-    // Packet (7 B): 07 00 | 40 00 | 21 | 81 | A0
-    public async Task TrackPowerOnAsync(CancellationToken ct = default)
-    {
-        if (!IsConnected || _remoteEp == null) return;
-        await SendAsync(CreateExitServiceModePacket(), ct);
-    }
-
-    // LAN_X_SET_TURNOUT – ovládanie výhybky / accessory decoder
-    // Packet (9 B): 09 00 | 40 00 | 53 | AdrH | AdrL | Data | XOR
-    // Data: bit3=activate(1=energize, 0=de-energize), bit2=queue, bit1..0=výstup(0=priamo, 1=odbočka)
-    // Adresa: DCC accessory 1..2048 → interná adresa = address - 1
-    public async Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default)
-    {
-        if (!IsConnected || _remoteEp == null) return;
-
-        // Z21 accessory adresa je 0-based
-        var addr = address - 1;
-        byte adrH = (byte)((addr >> 8) & 0x07);
-        byte adrL = (byte)(addr & 0xFF);
-
-        // Data byte: bit3=activate, bit2=queue(0), bit1=0, bit0=výstup(0=priamo, 1=odbočka)
-        byte data = (byte)((activate ? 0x08 : 0x00) | (branch ? 0x01 : 0x00));
-
-        byte xor = (byte)(0x53 ^ adrH ^ adrL ^ data);
-        await SendAsync(new byte[] { 0x09, 0x00, 0x40, 0x00, 0x53, adrH, adrL, data, xor }, ct);
-    }
-
-    // LAN_X_SET_EXT_ACCESSORY – rozšírené príslušenstvo (1 adresa + číslo aspektu)
-    // Packet (9 B): 09 00 | 40 00 | 54 | AdrH | AdrL | Aspect | XOR
-    // Aspect: 0..31 (nižších 5 bitov)
-    // Adresa: 11-bitová DCC accessory adresa (0..2047) – posiela sa priamo, bez NMRA basic offsetu.
-    public async Task SetExtendedAccessoryAspectAsync(int address, int aspectNumber, CancellationToken ct = default)
-    {
-        if (!IsConnected || _remoteEp == null)
-            return;
-
-        // Validácia hraníc podľa Z21 LAN špec. v1.13 (sekcia 4.2.4 LAN_X_SET_EXT_ACCESSORY):
-        //  • adresa: 11-bit ⇒ 0..2047
-        //  • aspect: 5-bit  ⇒ 0..31
-        if (address < 0 || address > 0x07FF)
-            throw new ArgumentOutOfRangeException(nameof(address), "Extended Accessory adresa musí byť v rozsahu 0..2047 (11-bit).");
-        if (aspectNumber < 0 || aspectNumber > 0x1F)
-            throw new ArgumentOutOfRangeException(nameof(aspectNumber), "Aspect Extended Accessory musí byť v rozsahu 0..31 (5-bit).");
-
-        byte adrH = (byte)((address >> 8) & 0x07);
-        byte adrL = (byte)(address & 0xFF);
-        byte data = (byte)(aspectNumber & 0x1F);
-        byte xor = (byte)(0x54 ^ adrH ^ adrL ^ data);
-
-        var packet = new byte[] { 0x09, 0x00, 0x40, 0x00, 0x54, adrH, adrL, data, xor };
-
-        await SendAsync(packet, ct);
-    }
-
-    // Odošle packet cez perzistentný socket
-    private async Task SendAsync(byte[] packet, CancellationToken ct, bool bypassConnectedCheck = false)
-    {
-        if (!bypassConnectedCheck && !IsConnected) return;
-
-        await _sendLock.WaitAsync(ct);
-        try
-        {
-            if (_sendUdp == null || _remoteEp == null) return;
-            await _sendUdp.SendAsync(packet, packet.Length);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested || IsShutdownRequested)
-        {
-            // Očakávané počas ukončovania spojenia.
-        }
-        catch (ObjectDisposedException) when (IsShutdownRequested)
-        {
-            // Socket bol lokálne zatvorený počas Disconnect().
-        }
-        catch (SocketException) when (ct.IsCancellationRequested || IsShutdownRequested)
-        {
-            // Lokálny shutdown / zrušenie odosielania.
-        }
-        catch (Exception ex)
-        {
-            if (!IsShutdownRequested)
-            {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"⚠️ Z21 send chyba: {ex.GetType().Name}: {ex.Message} – označujem centrálu ako odpojenú.",
-                    DiagnosticLevel.Warning);
-                IsConnected = false;  // Sieťová chyba – monitor to zachytí a reconnectne
-            }
-        }
-        finally { _sendLock.Release(); }
-    }
-
-    // Samostatný krátkodobý socket pre handshake / ping – nezablokuje _sendUdp
-    private static async Task<uint?> TryGetSerialOnceAsync(IPEndPoint ep, CancellationToken ct)
-    {
-        try
-        {
-            using var udp = CreateReusableUdpClient();
-            udp.Connect(ep);
-            var payload = new byte[] { 0x04, 0x00, 0x10, 0x00 };
-            await udp.SendAsync(payload, payload.Length);
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(1500);
-
-            UdpReceiveResult result;
-            try
-            {
-                result = await ReceiveWithCancellationAsync(udp, timeoutCts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
-
-            var data = result.Buffer;
-            if (data.Length < 8) return null;
-            if (data[0] != 0x08 || data[1] != 0x00 || data[2] != 0x10 || data[3] != 0x00) return null;
-            return (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
-        }
-        catch { return null; }
-    }
-
-    /// <summary>
-    /// LAN_GET_HWINFO – pýta sa centrály na typ hardvéru a verziu firmvéru.
-    /// Request:  04 00 1A 00
-    /// Response: 0C 00 1A 00 | HwType(4 B LE) | FwVersion(4 B LE)
-    /// </summary>
-    private static async Task<(uint HwType, uint FwVersion)?> TryGetHwInfoOnceAsync(IPEndPoint ep, CancellationToken ct)
-    {
-        try
-        {
-            using var udp = CreateReusableUdpClient();
-            udp.Connect(ep);
-            var payload = new byte[] { 0x04, 0x00, 0x1A, 0x00 };
-            await udp.SendAsync(payload, payload.Length);
-
-            // Niekedy príde najprv serial-broadcast alebo iný rámec – skúsime pár pokusov.
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(1500);
-
-            try
-            {
-                while (!cts.IsCancellationRequested)
-                {
-                    UdpReceiveResult result;
-                    try
-                    {
-                        result = await ReceiveWithCancellationAsync(udp, cts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) { return null; }
-
-                    var data = result.Buffer;
-                    if (data.Length >= 12
-                        && data[0] == 0x0C && data[1] == 0x00
-                        && data[2] == 0x1A && data[3] == 0x00)
-                    {
-                        uint hw = (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
-                        uint fw = (uint)(data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24));
-                        return (hw, fw);
-                    }
-                    // iný rámec – pokračujeme
-                }
-            }
-            catch (OperationCanceledException) { /* timeout */ }
-
-            return null;
-        }
-        catch { return null; }
-    }
-
-    public async Task<int> ReadCvAsync(int cvAddress, DccProgrammingTestMode programmingMode, int timeoutMs, int locoAddress, CancellationToken ct = default)
+    public async Task<int> ReadCvAsync(int cvAddress, DccProgrammingTestMode programmingMode, int timeoutMs,
+        int locoAddress, CancellationToken ct = default)
     {
         if (!IsConnected || _remoteEp == null)
             throw new InvalidOperationException("DCC centrála nie je pripojená.");
@@ -469,12 +366,10 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         if (!isPom
             && HardwareType != Z21HardwareType.Unknown
             && !HardwareType.SupportsServiceModeProgramming())
-        {
             throw new NotSupportedException(
                 $"Centrála {HardwareType.ToDisplayName()} nepodporuje service-mode CV-read " +
                 "(jednotka bez vlastného DCC generátora). Použite POM (Program on Main) " +
                 "s adresou lokomotívy na hlavnej trati.");
-        }
 
         // ─────────────────────────────────────────────────────────────────────────────
         // Dedikovaný UDP socket pre CV-read:
@@ -491,8 +386,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
-            $"🔧 CV{cvAddress} read: otváram UDP socket localPort={localPort} → {_remoteEp}",
-            DiagnosticLevel.Info);
+            $"🔧 CV{cvAddress} read: otváram UDP socket localPort={localPort} → {_remoteEp}");
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
@@ -503,8 +397,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER");
 
             var serialOk = await WaitForFrameAsync(udp, ct, deadline,
-                isMatch: r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
-                description: "LAN_GET_SERIALNUMBER_REPLY");
+                r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
+                "LAN_GET_SERIALNUMBER_REPLY");
             if (!serialOk.Matched)
                 throw new TimeoutException(
                     $"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms). " +
@@ -527,6 +421,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                 packet = CreateServiceModeCvReadPacket(cvAddress);
                 packetDescription = $"LAN_X_CV_READ (CV{cvAddress})";
             }
+
             await SendAndLogAsync(udp, packet, packetDescription);
 
             // 4) Receive loop – čakáme na LAN_X_CV_RESULT alebo NACK.
@@ -535,7 +430,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             //    je takmer isté že programovacia koľaj nie je aktívna (typické pre z21 start).
             const int silenceAfterProgrammingModeMs = 5000;
             var totalFramesSeen = serialOk.FramesSeen;
-            bool sawProgrammingModeNotification = false;
+            var sawProgrammingModeNotification = false;
             DateTime? silenceDeadlineUtc = null;
 
             while (true)
@@ -598,7 +493,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                     && response[0] == 0x07 && response[1] == 0x00
                     && response[2] == 0x40 && response[3] == 0x00
                     && response[4] == 0x61)
-                {
                     switch (response[5])
                     {
                         case 0x02: // LAN_X_BC_PROGRAMMING_MODE – informačné
@@ -608,9 +502,9 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                                 silenceDeadlineUtc = DateTime.UtcNow.AddMilliseconds(silenceAfterProgrammingModeMs);
                                 TrackFlowDoctorService.Instance.Diagnose(
                                     "DCC",
-                                    $"ℹ️ Centrála prešla do programming módu – čakám max {silenceAfterProgrammingModeMs} ms na odpoveď dekodéra.",
-                                    DiagnosticLevel.Info);
+                                    $"ℹ️ Centrála prešla do programming módu – čakám max {silenceAfterProgrammingModeMs} ms na odpoveď dekodéra.");
                             }
+
                             break;
 
                         case 0x12: // LAN_X_CV_NACK – dekodér neodpovedal
@@ -621,20 +515,17 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                             throw new InvalidOperationException(
                                 "Skrat na programovacej koľaji (NACK SC).");
                     }
-                }
                 // Iné rámce (keepalive, status) ignorujeme.
             }
         }
         finally
         {
-            if (!isPom)
-            {
-                await TryExitServiceModeAsync(udp).ConfigureAwait(false);
-            }
+            if (!isPom) await TryExitServiceModeAsync(udp).ConfigureAwait(false);
         }
     }
 
-    public async Task WriteCvAsync(int cvAddress, int value, DccProgrammingTestMode programmingMode, int timeoutMs, int locoAddress, CancellationToken ct = default)
+    public async Task WriteCvAsync(int cvAddress, int value, DccProgrammingTestMode programmingMode, int timeoutMs,
+        int locoAddress, CancellationToken ct = default)
     {
         if (!IsConnected || _remoteEp == null)
             throw new InvalidOperationException("DCC centrála nie je pripojená.");
@@ -652,10 +543,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         if (!isPom
             && HardwareType != Z21HardwareType.Unknown
             && !HardwareType.SupportsServiceModeProgramming())
-        {
             throw new NotSupportedException(
                 $"Centrála {HardwareType.ToDisplayName()} nepodporuje service-mode CV-write.");
-        }
 
         using var udp = CreateReusableUdpClient();
         udp.Connect(_remoteEp);
@@ -668,10 +557,11 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER").ConfigureAwait(false);
 
             var serialOk = await WaitForFrameAsync(udp, ct, deadline,
-                isMatch: r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
-                description: "LAN_GET_SERIALNUMBER_REPLY").ConfigureAwait(false);
+                r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
+                "LAN_GET_SERIALNUMBER_REPLY").ConfigureAwait(false);
             if (!serialOk.Matched)
-                throw new TimeoutException($"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms).");
+                throw new TimeoutException(
+                    $"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms).");
 
             var setBroadcast = CreateSetBroadcastFlagsPacket(Z21BroadcastFlags.XBus);
             await SendAndLogAsync(udp, setBroadcast, "LAN_SET_BROADCASTFLAGS(0x00000001)").ConfigureAwait(false);
@@ -700,9 +590,249 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         var readBack = await ReadCvAsync(cvAddress, programmingMode, timeoutMs, locoAddress, ct).ConfigureAwait(false);
         if (readBack != value)
-        {
             throw new InvalidOperationException(
                 $"Overenie zápisu zlyhalo: po zápise CV{cvAddress}={value} centrála prečítala hodnotu {readBack}.");
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    // ── Telemetria (IDccTelemetry) ───────────────────────────────────────────
+    public bool IsTelemetrySupported => true;
+    public bool IsBlackZ21 => HardwareType.IsBlackZ21();
+
+    public double? MainVoltage
+    {
+        get => _mainVoltage;
+        private set
+        {
+            if (_mainVoltage != value)
+            {
+                _mainVoltage = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public double? ProgVoltage
+    {
+        get => _progVoltage;
+        private set
+        {
+            if (_progVoltage != value)
+            {
+                _progVoltage = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public double? TrackCurrent
+    {
+        get => _trackCurrent;
+        private set
+        {
+            if (_trackCurrent != value)
+            {
+                _trackCurrent = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public double? ProgTrackCurrent
+    {
+        get => _progTrackCurrent;
+        private set
+        {
+            if (_progTrackCurrent != value)
+            {
+                _progTrackCurrent = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public double? CentralTemperature
+    {
+        get => _centralTemperature;
+        private set
+        {
+            if (_centralTemperature != value)
+            {
+                _centralTemperature = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // Bezpečné Dispose: BeginDisconnectAsync vracia Task, ktorý dokončí cleanup
+        // receive-slučky a telemetrického pollera. Synchrónne počkáme MAX 2 s, aby
+        // sa pri "stuck" sokete (pomalá sieť, vypnutý router) nezablokoval UI thread
+        // pri zatváraní MainWindow.
+        var shutdown = BeginDisconnectAsync();
+        try
+        {
+            shutdown.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException)
+        {
+            // cleanup je best-effort – akékoľvek interné výnimky už zachytil ObserveCleanupTaskAsync
+        }
+
+        try
+        {
+            _sendLock.Dispose();
+        }
+        catch
+        {
+            /* ignore */
+        }
+    }
+
+    public event Action<RBusFeedbackState>? RBusFeedbackChanged;
+    public bool IsTelemetryEnabled { get; set; } = true;
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    /// <summary>Iba pre testovacie účely – umožní nastaviť detegovaný HW typ bez sieťovej komunikácie.</summary>
+    internal void SetHardwareTypeForTest(Z21HardwareType hardwareType)
+    {
+        HardwareType = hardwareType;
+    }
+
+    // Odošle packet cez perzistentný socket
+    private async Task SendAsync(byte[] packet, CancellationToken ct, bool bypassConnectedCheck = false)
+    {
+        if (!bypassConnectedCheck && !IsConnected) return;
+
+        await _sendLock.WaitAsync(ct);
+        try
+        {
+            if (_sendUdp == null || _remoteEp == null) return;
+            await _sendUdp.SendAsync(packet, packet.Length);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested || IsShutdownRequested)
+        {
+            // Očakávané počas ukončovania spojenia.
+        }
+        catch (ObjectDisposedException) when (IsShutdownRequested)
+        {
+            // Socket bol lokálne zatvorený počas Disconnect().
+        }
+        catch (SocketException) when (ct.IsCancellationRequested || IsShutdownRequested)
+        {
+            // Lokálny shutdown / zrušenie odosielania.
+        }
+        catch (Exception ex)
+        {
+            if (!IsShutdownRequested)
+            {
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "DCC",
+                    $"⚠️ Z21 send chyba: {ex.GetType().Name}: {ex.Message} – označujem centrálu ako odpojenú.",
+                    DiagnosticLevel.Warning);
+                IsConnected = false; // Sieťová chyba – monitor to zachytí a reconnectne
+            }
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
+    }
+
+    // Samostatný krátkodobý socket pre handshake / ping – nezablokuje _sendUdp
+    private static async Task<uint?> TryGetSerialOnceAsync(IPEndPoint ep, CancellationToken ct)
+    {
+        try
+        {
+            using var udp = CreateReusableUdpClient();
+            udp.Connect(ep);
+            var payload = new byte[] { 0x04, 0x00, 0x10, 0x00 };
+            await udp.SendAsync(payload, payload.Length);
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(1500);
+
+            UdpReceiveResult result;
+            try
+            {
+                result = await ReceiveWithCancellationAsync(udp, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+
+            var data = result.Buffer;
+            if (data.Length < 8) return null;
+            if (data[0] != 0x08 || data[1] != 0x00 || data[2] != 0x10 || data[3] != 0x00) return null;
+            return (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///     LAN_GET_HWINFO – pýta sa centrály na typ hardvéru a verziu firmvéru.
+    ///     Request:  04 00 1A 00
+    ///     Response: 0C 00 1A 00 | HwType(4 B LE) | FwVersion(4 B LE)
+    /// </summary>
+    private static async Task<(uint HwType, uint FwVersion)?> TryGetHwInfoOnceAsync(IPEndPoint ep, CancellationToken ct)
+    {
+        try
+        {
+            using var udp = CreateReusableUdpClient();
+            udp.Connect(ep);
+            var payload = new byte[] { 0x04, 0x00, 0x1A, 0x00 };
+            await udp.SendAsync(payload, payload.Length);
+
+            // Niekedy príde najprv serial-broadcast alebo iný rámec – skúsime pár pokusov.
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(1500);
+
+            try
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    UdpReceiveResult result;
+                    try
+                    {
+                        result = await ReceiveWithCancellationAsync(udp, cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return null;
+                    }
+
+                    var data = result.Buffer;
+                    if (data.Length >= 12
+                        && data[0] == 0x0C && data[1] == 0x00
+                        && data[2] == 0x1A && data[3] == 0x00)
+                    {
+                        var hw = (uint)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+                        var fw = (uint)(data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24));
+                        return (hw, fw);
+                    }
+                    // iný rámec – pokračujeme
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                /* timeout */
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -711,8 +841,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         await udp.SendAsync(packet, packet.Length);
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
-            $"📤 {description}: {BytesToHex(packet)}",
-            DiagnosticLevel.Info);
+            $"📤 {description}: {BytesToHex(packet)}");
     }
 
     private static async Task ObserveWriteResponseAsync(
@@ -758,7 +887,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                 && response[0] == 0x07 && response[1] == 0x00
                 && response[2] == 0x40 && response[3] == 0x00
                 && response[4] == 0x61)
-            {
                 switch (response[5])
                 {
                     case 0x02:
@@ -769,15 +897,12 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                     case 0x13:
                         throw new InvalidOperationException("Skrat na programovacej koľaji (NACK SC).");
                 }
-            }
 
             if (response.Length >= 10
                 && response[0] == 0x0A && response[1] == 0x00
                 && response[2] == 0x40 && response[3] == 0x00
                 && response[4] == 0x64 && response[5] == 0x14)
-            {
                 return;
-            }
         }
     }
 
@@ -786,7 +911,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         try
         {
             await Task.Delay(100).ConfigureAwait(false);
-            await SendAndLogAsync(udp, CreateExitServiceModePacket(), "LAN_X_SET_TRACK_POWER_ON (exit service mode)").ConfigureAwait(false);
+            await SendAndLogAsync(udp, CreateExitServiceModePacket(), "LAN_X_SET_TRACK_POWER_ON (exit service mode)")
+                .ConfigureAwait(false);
             await Task.Delay(100).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
@@ -814,8 +940,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     {
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
-            $"📥 #{seq} ({frame.Length} B): {BytesToHex(frame)}",
-            DiagnosticLevel.Info);
+            $"📥 #{seq} ({frame.Length} B): {BytesToHex(frame)}");
     }
 
     private static async Task<UdpReceiveResult> ReceiveWithCancellationAsync(UdpClient udp, CancellationToken ct)
@@ -829,10 +954,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             _ = receiveTask.ContinueWith(
-                static t =>
-                {
-                    _ = t.Exception;
-                },
+                static t => { _ = t.Exception; },
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
@@ -844,12 +966,13 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     private static string BytesToHex(byte[] data)
     {
         if (data == null || data.Length == 0) return "(empty)";
-        var sb = new System.Text.StringBuilder(data.Length * 3);
-        for (int i = 0; i < data.Length; i++)
+        var sb = new StringBuilder(data.Length * 3);
+        for (var i = 0; i < data.Length; i++)
         {
             if (i > 0) sb.Append(' ');
             sb.Append(data[i].ToString("X2"));
         }
+
         return sb.ToString();
     }
 
@@ -865,8 +988,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             (byte)((value >> 24) & 0xFF)
         };
     }
-
-    private readonly record struct FrameWaitResult(bool Matched, int FramesSeen);
 
     private static async Task<FrameWaitResult> WaitForFrameAsync(
         UdpClient udp,
@@ -918,24 +1039,24 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     }
 
     /// <summary>
-    /// Vytvorí OFICIÁLNY z21 paket LAN_X_CV_READ pre service-mode (programovacia koľaj).
-    /// Štruktúra (9 B):
-    ///   z21 Header (4 B):  DataLen (LE) | HeaderID (LE)   = 0x09,0x00 | 0x40,0x00
-    ///   X-Bus dáta (4 B):  XHeader=0x23 | DB0=0x11 | CV-Adresa (BE, zero-based)
-    ///   XOR (1 B):         XOR cez 4 X-Bus bajty
-    /// Pre CV1 (cvNumber=1) vznikne: 0x09,0x00,0x40,0x00,0x23,0x11,0x00,0x00,0x32
-    /// Toto je paket, na ktorý centrála odpovedá LAN_X_CV_RESULT (0A 00 40 00 64 14 CV-H CV-L Value XOR).
+    ///     Vytvorí OFICIÁLNY z21 paket LAN_X_CV_READ pre service-mode (programovacia koľaj).
+    ///     Štruktúra (9 B):
+    ///     z21 Header (4 B):  DataLen (LE) | HeaderID (LE)   = 0x09,0x00 | 0x40,0x00
+    ///     X-Bus dáta (4 B):  XHeader=0x23 | DB0=0x11 | CV-Adresa (BE, zero-based)
+    ///     XOR (1 B):         XOR cez 4 X-Bus bajty
+    ///     Pre CV1 (cvNumber=1) vznikne: 0x09,0x00,0x40,0x00,0x23,0x11,0x00,0x00,0x32
+    ///     Toto je paket, na ktorý centrála odpovedá LAN_X_CV_RESULT (0A 00 40 00 64 14 CV-H CV-L Value XOR).
     /// </summary>
     public static byte[] CreateServiceModeCvReadPacket(int cvNumber)
     {
         if (cvNumber < 1 || cvNumber > 1024)
             throw new ArgumentOutOfRangeException(nameof(cvNumber), "CV číslo musí byť v rozsahu 1..1024.");
 
-        int cvIndex = cvNumber - 1;
-        byte cvHigh = (byte)((cvIndex >> 8) & 0x03); // CV adresa max 10-bit (0..1023)
-        byte cvLow  = (byte)(cvIndex & 0xFF);
+        var cvIndex = cvNumber - 1;
+        var cvHigh = (byte)((cvIndex >> 8) & 0x03); // CV adresa max 10-bit (0..1023)
+        var cvLow = (byte)(cvIndex & 0xFF);
 
-        byte xor = (byte)(0x23 ^ 0x11 ^ cvHigh ^ cvLow);
+        var xor = (byte)(0x23 ^ 0x11 ^ cvHigh ^ cvLow);
         return new byte[] { 0x09, 0x00, 0x40, 0x00, 0x23, 0x11, cvHigh, cvLow, xor };
     }
 
@@ -946,29 +1067,30 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         if (value < 0 || value > 255)
             throw new ArgumentOutOfRangeException(nameof(value), "CV hodnota musí byť v rozsahu 0..255.");
 
-        int cvIndex = cvNumber - 1;
-        byte cvHigh = (byte)((cvIndex >> 8) & 0x03);
-        byte cvLow = (byte)(cvIndex & 0xFF);
-        byte cvValue = (byte)value;
+        var cvIndex = cvNumber - 1;
+        var cvHigh = (byte)((cvIndex >> 8) & 0x03);
+        var cvLow = (byte)(cvIndex & 0xFF);
+        var cvValue = (byte)value;
 
-        byte xor = (byte)(0x24 ^ 0x12 ^ cvHigh ^ cvLow ^ cvValue);
+        var xor = (byte)(0x24 ^ 0x12 ^ cvHigh ^ cvLow ^ cvValue);
         return new byte[] { 0x0A, 0x00, 0x40, 0x00, 0x24, 0x12, cvHigh, cvLow, cvValue, xor };
     }
 
     /// <summary>
-    /// Paket na ukončenie service-mode programovania a návrat centrály do normálneho
-    /// prevádzkového režimu (Track Power On).
+    ///     Paket na ukončenie service-mode programovania a návrat centrály do normálneho
+    ///     prevádzkového režimu (Track Power On).
     /// </summary>
-    public static byte[] CreateExitServiceModePacket() =>
-        new byte[] { 0x07, 0x00, 0x40, 0x00, 0x21, 0x81, 0xA0 };
+    public static byte[] CreateExitServiceModePacket()
+    {
+        return new byte[] { 0x07, 0x00, 0x40, 0x00, 0x21, 0x81, 0xA0 };
+    }
 
     /// <summary>
-    /// Vytvorí OFICIÁLNY z21 paket LAN_X_CV_POM_READ_BYTE pre čítanie CV cez POM (Program on Main).
-    /// POM read funguje na hlavnej trati – vyžaduje RailCom-kompatibilný dekodér aj centrálu.
-    /// 
-    /// Štruktúra (12 B):
-    ///   z21 Header (4 B):  DataLen | HeaderID = 0x0C,0x00 | 0x40,0x00
-    ///   X-Bus dáta (7 B):
+    ///     Vytvorí OFICIÁLNY z21 paket LAN_X_CV_POM_READ_BYTE pre čítanie CV cez POM (Program on Main).
+    ///     POM read funguje na hlavnej trati – vyžaduje RailCom-kompatibilný dekodér aj centrálu.
+    ///     Štruktúra (12 B):
+    ///     z21 Header (4 B):  DataLen | HeaderID = 0x0C,0x00 | 0x40,0x00
+    ///     X-Bus dáta (7 B):
     ///     XHeader = 0xE6
     ///     DB0     = 0x30
     ///     AddrMSB = (locoAddr > 127 ? 0xC0 : 0x00) | ((locoAddr >> 8) &amp; 0x3F)
@@ -976,10 +1098,9 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     ///     OptCvH  = 0xE4 | ((cv-1) >> 8) &amp; 0x03    ← 0xE4 = "POM read byte" príkaz
     ///     CvLo    = (cv-1) &amp; 0xFF
     ///     Data    = 0x00 (pre read ignorované)
-    ///   XOR (1 B):  XOR cez všetkých 7 X-Bus bajtov
-    /// 
-    /// Príklad pre loco=3, CV=1:  0C 00 40 00 E6 30 00 03 E4 00 00 31
-    /// Odpoveď: rovnaký LAN_X_CV_RESULT ako pri service-mode (0A 00 40 00 64 14 CV-H CV-L Value XOR).
+    ///     XOR (1 B):  XOR cez všetkých 7 X-Bus bajtov
+    ///     Príklad pre loco=3, CV=1:  0C 00 40 00 E6 30 00 03 E4 00 00 31
+    ///     Odpoveď: rovnaký LAN_X_CV_RESULT ako pri service-mode (0A 00 40 00 64 14 CV-H CV-L Value XOR).
     /// </summary>
     public static byte[] CreatePomCvReadPacket(int locoAddress, int cvNumber)
     {
@@ -993,17 +1114,20 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         var (addrMsb, addrLsb) = DccAddressCodec.EncodeLocoAddress(locoAddress);
 
         // CV adresa – zero-based, rozdelená na 2 horné bity (do OptCvH) a 8 dolných (do CvLo).
-        int cvIndex = cvNumber - 1;
-        byte optCvH = (byte)(0xE4 | ((cvIndex >> 8) & 0x03)); // 0xE4 = POM read byte príkaz
-        byte cvLo   = (byte)(cvIndex & 0xFF);
-        byte data   = 0x00; // pri reade sa data byte ignoruje
+        var cvIndex = cvNumber - 1;
+        var optCvH = (byte)(0xE4 | ((cvIndex >> 8) & 0x03)); // 0xE4 = POM read byte príkaz
+        var cvLo = (byte)(cvIndex & 0xFF);
+        byte data = 0x00; // pri reade sa data byte ignoruje
 
         byte[] xBus = { 0xE6, 0x30, addrMsb, addrLsb, optCvH, cvLo, data };
         byte xor = 0;
-        for (int i = 0; i < xBus.Length; i++) xor ^= xBus[i];
+        for (var i = 0; i < xBus.Length; i++) xor ^= xBus[i];
 
         var packet = new byte[4 + xBus.Length + 1];
-        packet[0] = 0x0C; packet[1] = 0x00; packet[2] = 0x40; packet[3] = 0x00;
+        packet[0] = 0x0C;
+        packet[1] = 0x00;
+        packet[2] = 0x40;
+        packet[3] = 0x00;
         Buffer.BlockCopy(xBus, 0, packet, 4, xBus.Length);
         packet[4 + xBus.Length] = xor;
         return packet;
@@ -1020,38 +1144,44 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         var (addrMsb, addrLsb) = DccAddressCodec.EncodeLocoAddress(locoAddress);
 
-        int cvIndex = cvNumber - 1;
-        byte optCvH = (byte)(0xEC | ((cvIndex >> 8) & 0x03));
-        byte cvLo = (byte)(cvIndex & 0xFF);
-        byte data = (byte)value;
+        var cvIndex = cvNumber - 1;
+        var optCvH = (byte)(0xEC | ((cvIndex >> 8) & 0x03));
+        var cvLo = (byte)(cvIndex & 0xFF);
+        var data = (byte)value;
 
         byte[] xBus = { 0xE6, 0x30, addrMsb, addrLsb, optCvH, cvLo, data };
         byte xor = 0;
-        for (int i = 0; i < xBus.Length; i++) xor ^= xBus[i];
+        for (var i = 0; i < xBus.Length; i++) xor ^= xBus[i];
 
         var packet = new byte[4 + xBus.Length + 1];
-        packet[0] = 0x0C; packet[1] = 0x00; packet[2] = 0x40; packet[3] = 0x00;
+        packet[0] = 0x0C;
+        packet[1] = 0x00;
+        packet[2] = 0x40;
+        packet[3] = 0x00;
         Buffer.BlockCopy(xBus, 0, packet, 4, xBus.Length);
         packet[4 + xBus.Length] = xor;
         return packet;
     }
 
     /// <summary>
-    /// Vytvorí UDP paket so štruktúrou 0xE6 0x30 (XPressNet "Direct CV access" / POM-style).
-    /// POZN.: Toto NIE JE správny paket pre LAN_X_CV_READ na service-mode programovacej koľaji –
-    /// na ten použi <see cref="CreateServiceModeCvReadPacket"/>. Metóda je ponechaná pre kompatibilitu
-    /// a budúce POM operácie.
-    /// Štruktúra (11 B):
-    ///   z21 Header (4 B):  DataLen (LE) | HeaderID (LE)   = 0x0C,0x00 | 0x40,0x00
-    ///   X-Bus dáta (6 B):  XHeader=0xE6 | DB0=0x30 | CV-Adresa (BE, zero-based) | 0x00 | 0x00
-    ///   XOR (1 B):         XOR cez všetkých 6 X-Bus bajtov
-    /// Pre CV1 vznikne: 0x0C,0x00,0x40,0x00,0xE6,0x30,0x00,0x00,0x00,0x00,0xD6
+    ///     Vytvorí UDP paket so štruktúrou 0xE6 0x30 (XPressNet "Direct CV access" / POM-style).
+    ///     POZN.: Toto NIE JE správny paket pre LAN_X_CV_READ na service-mode programovacej koľaji –
+    ///     na ten použi <see cref="CreateServiceModeCvReadPacket" />. Metóda je ponechaná pre kompatibilitu
+    ///     a budúce POM operácie.
+    ///     Štruktúra (11 B):
+    ///     z21 Header (4 B):  DataLen (LE) | HeaderID (LE)   = 0x0C,0x00 | 0x40,0x00
+    ///     X-Bus dáta (6 B):  XHeader=0xE6 | DB0=0x30 | CV-Adresa (BE, zero-based) | 0x00 | 0x00
+    ///     XOR (1 B):         XOR cez všetkých 6 X-Bus bajtov
+    ///     Pre CV1 vznikne: 0x0C,0x00,0x40,0x00,0xE6,0x30,0x00,0x00,0x00,0x00,0xD6
     /// </summary>
-    public static byte[] CreateReadCv1Packet() => CreateReadCvPacket(1);
+    public static byte[] CreateReadCv1Packet()
+    {
+        return CreateReadCvPacket(1);
+    }
 
     /// <summary>
-    /// Univerzálna verzia – vytvorí LAN_X_CV_READ paket pre ľubovoľné CV (1..1024).
-    /// CV adresa sa do paketu ukladá ako zero-based (cvNumber - 1) v Big Endian poradí.
+    ///     Univerzálna verzia – vytvorí LAN_X_CV_READ paket pre ľubovoľné CV (1..1024).
+    ///     CV adresa sa do paketu ukladá ako zero-based (cvNumber - 1) v Big Endian poradí.
     /// </summary>
     public static byte[] CreateReadCvPacket(int cvNumber)
     {
@@ -1059,16 +1189,16 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             throw new ArgumentOutOfRangeException(nameof(cvNumber), "CV číslo musí byť v rozsahu 1..1024.");
 
         // CV adresa – zero-based, Big Endian
-        int cvIndex = cvNumber - 1;
-        byte cvHigh = (byte)((cvIndex >> 8) & 0xFF);
-        byte cvLow  = (byte)(cvIndex & 0xFF);
+        var cvIndex = cvNumber - 1;
+        var cvHigh = (byte)((cvIndex >> 8) & 0xFF);
+        var cvLow = (byte)(cvIndex & 0xFF);
 
         // X-Bus časť paketu: XHeader, DB0, CV-H, CV-L, 0x00, 0x00 (6 B)
         byte[] xBus = { 0xE6, 0x30, cvHigh, cvLow, 0x00, 0x00 };
 
         // XOR checksum cez všetky X-Bus bajty
         byte xor = 0;
-        for (int i = 0; i < xBus.Length; i++)
+        for (var i = 0; i < xBus.Length; i++)
             xor ^= xBus[i];
 
         // Zloženie kompletného paketu (4 B header + 6 B X-Bus + 1 B XOR = 11 B)
@@ -1086,14 +1216,29 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     private void DisposeSendUdp()
     {
         var udp = Interlocked.Exchange(ref _sendUdp, null);
-        try { udp?.Close(); } catch { }
-        try { udp?.Dispose(); } catch { }
+        try
+        {
+            udp?.Close();
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            udp?.Dispose();
+        }
+        catch
+        {
+        }
     }
 
     private Task AwaitPendingShutdownAsync()
     {
         lock (_shutdownSync)
+        {
             return _shutdownTask;
+        }
     }
 
     private Task BeginDisconnectAsync(bool waitForCompletion = false)
@@ -1172,27 +1317,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Telemetria – LAN_SYSTEMSTATE_GETDATA (0x85) / LAN_SYSTEMSTATE_DATACHANGED (0x84)
-    //
-    // Komunikácia ide cez EXISTUJÚCI _sendUdp socket (žiaden druhý paralelný socket,
-    // ktorý by sa bil so subscribciami z21). Receive prebieha v jednej zdieľanej
-    // hlavnej slučke `MainReceiveLoopAsync`, do ktorej sa pridávajú prípadné ďalšie
-    // typy odpovedí (lokomotívy, výhybky, broadcasty).
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// z21 LAN_SYSTEMSTATE_GETDATA – vyžiada aktuálny systémový stav (napätie/prúd/teplota).
-    /// Štruktúra (4 B): DataLen=0x04 0x00 | HeaderID=0x85 0x00 (LE).
-    /// Centrála na to odpovedá LAN_SYSTEMSTATE_DATACHANGED (header 0x84).
-    /// </summary>
-    private static readonly byte[] LanGetSystemStatusPacket = { 0x04, 0x00, 0x85, 0x00 };
-    private static readonly byte[] LanGetRBusGroup0Packet = { 0x05, 0x00, 0x81, 0x00, 0x00 };
-    private static readonly Z21BroadcastFlags DefaultOperationalBroadcastFlags =
-        Z21BroadcastFlags.XBus |
-        Z21BroadcastFlags.RBus |
-        Z21BroadcastFlags.SystemState;
-
     private void StartTelemetry()
     {
         CancelTelemetry();
@@ -1200,8 +1324,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
-            $"RBUS init: spúšťam telemetriu pre z21 endpoint {_remoteEp}.",
-            DiagnosticLevel.Info);
+            $"RBUS init: spúšťam telemetriu pre z21 endpoint {_remoteEp}.");
 
         // CTS vytvoríme PRED spustením fire-and-forget taskov – aby vedeli rešpektovať
         // shutdown a aby sa pri rýchlom Connect/Disconnect/Connect nikdy neposlal
@@ -1225,10 +1348,12 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                 await SendAsync(registerTelemetryPacket, ct).ConfigureAwait(false);
                 TrackFlowDoctorService.Instance.Diagnose(
                     "DCC",
-                    $"RBUS subscribe: LAN_SET_BROADCASTFLAGS(0x{(uint)DefaultOperationalBroadcastFlags:X8}) – odber telemetrie + X-bus + R-BUS.",
-                    DiagnosticLevel.Info);
+                    $"RBUS subscribe: LAN_SET_BROADCASTFLAGS(0x{(uint)DefaultOperationalBroadcastFlags:X8}) – odber telemetrie + X-bus + R-BUS.");
             }
-            catch (OperationCanceledException) { /* shutdown */ }
+            catch (OperationCanceledException)
+            {
+                /* shutdown */
+            }
             catch (Exception ex)
             {
                 TrackFlowDoctorService.Instance.Diagnose(
@@ -1250,10 +1375,12 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                 await SendAsync(LanGetRBusGroup0Packet, ct).ConfigureAwait(false);
                 TrackFlowDoctorService.Instance.Diagnose(
                     "DCC",
-                    "RBUS poll-init: LAN_RMBUS_GETDATA(group=0) – počiatočný dopyt na moduly 1..N.",
-                    DiagnosticLevel.Info);
+                    "RBUS poll-init: LAN_RMBUS_GETDATA(group=0) – počiatočný dopyt na moduly 1..N.");
             }
-            catch (OperationCanceledException) { /* shutdown */ }
+            catch (OperationCanceledException)
+            {
+                /* shutdown */
+            }
             catch
             {
                 // best-effort only
@@ -1265,9 +1392,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     {
         // Nepoužívame .GetAwaiter().GetResult() – Dispose/StopTelemetry sa môže volať
         // z UI vlákna a synchrónne čakanie na receive-loop môže spôsobiť deadlock.
-        var shutdown = BeginDisconnectAsync(waitForCompletion: false);
-        try { shutdown.Wait(TimeSpan.FromSeconds(2)); }
-        catch (AggregateException) { /* cleanup je best-effort */ }
+        var shutdown = BeginDisconnectAsync();
+        try
+        {
+            shutdown.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException)
+        {
+            /* cleanup je best-effort */
+        }
     }
 
     private (Task? PollTask, Task? ReceiveTask) CancelTelemetry()
@@ -1281,8 +1414,21 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         _mainReceiveTask = null;
         _lastRBusModuleMasks.Clear();
 
-        try { cts?.Cancel(); } catch { }
-        try { cts?.Dispose(); } catch { }
+        try
+        {
+            cts?.Cancel();
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            cts?.Dispose();
+        }
+        catch
+        {
+        }
 
         // Reset – pri odpojení UI ukáže prázdne hodnoty.
         MainVoltage = null;
@@ -1302,8 +1448,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         {
             if (!IsTelemetryEnabled)
             {
-                try { await Task.Delay(RBusPollIntervalMs, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return; }
+                try
+                {
+                    await Task.Delay(RBusPollIntervalMs, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
                 continue;
             }
 
@@ -1311,8 +1464,14 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             // Nie je nutné parsovať návratovú hodnotu, odpoveď zachytí MainReceiveLoopAsync.
             if (DateTime.UtcNow >= nextSystemStatusAtUtc)
             {
-                try { await SendAsync(LanGetSystemStatusPacket, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return; }
+                try
+                {
+                    await SendAsync(LanGetSystemStatusPacket, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
                 catch (Exception ex) when (!ct.IsCancellationRequested && !IsShutdownRequested)
                 {
                     TrackFlowDoctorService.Instance.Diagnose(
@@ -1324,8 +1483,14 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                 nextSystemStatusAtUtc = DateTime.UtcNow.AddMilliseconds(SystemStatusPollIntervalMs);
             }
 
-            try { await SendAsync(LanGetRBusGroup0Packet, ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) { return; }
+            try
+            {
+                await SendAsync(LanGetRBusGroup0Packet, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
             catch (Exception ex) when (!ct.IsCancellationRequested && !IsShutdownRequested)
             {
                 TrackFlowDoctorService.Instance.Diagnose(
@@ -1334,15 +1499,21 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                     DiagnosticLevel.Warning);
             }
 
-            try { await Task.Delay(RBusPollIntervalMs, ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) { return; }
+            try
+            {
+                await Task.Delay(RBusPollIntervalMs, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
     }
 
     /// <summary>
-    /// Hlavná zdieľaná receive-slučka nad _sendUdp.
-    /// Sem patrí parsovanie VŠETKÝCH spontánnych odpovedí z21 (telemetria,
-    /// v budúcnosti aj lokomotívy / výhybky / broadcasty).
+    ///     Hlavná zdieľaná receive-slučka nad _sendUdp.
+    ///     Sem patrí parsovanie VŠETKÝCH spontánnych odpovedí z21 (telemetria,
+    ///     v budúcnosti aj lokomotívy / výhybky / broadcasty).
     /// </summary>
     private async Task MainReceiveLoopAsync(CancellationToken ct)
     {
@@ -1356,8 +1527,14 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             {
                 result = await ReceiveWithCancellationAsync(udp, ct).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) { return; }
-            catch (ObjectDisposedException)    { return; }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
             catch (SocketException) when (ct.IsCancellationRequested || IsShutdownRequested)
             {
                 return;
@@ -1370,8 +1547,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                     DiagnosticLevel.Warning);
 
                 // Sieťová chyba – krátka pauza a ďalšie kolo.
-                try { await Task.Delay(50, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return; }
+                try
+                {
+                    await Task.Delay(50, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
                 continue;
             }
             catch (Exception ex) when (!ct.IsCancellationRequested && !IsShutdownRequested)
@@ -1382,8 +1566,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                     DiagnosticLevel.Warning);
 
                 // Sieťová chyba – krátka pauza a ďalšie kolo.
-                try { await Task.Delay(50, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return; }
+                try
+                {
+                    await Task.Delay(50, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
                 continue;
             }
 
@@ -1392,8 +1583,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     }
 
     /// <summary>
-    /// Centrálny dispečer prichádzajúcich rámcov z _sendUdp.
-    /// Tu sa pridávajú podmienky pre nové typy odpovedí.
+    ///     Centrálny dispečer prichádzajúcich rámcov z _sendUdp.
+    ///     Tu sa pridávajú podmienky pre nové typy odpovedí.
     /// </summary>
     private void DispatchIncomingFrame(byte[] frame)
     {
@@ -1414,31 +1605,26 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         // LAN_X rámce s XHeader 0x43 sa v reálnych logoch ukázali ako X-Bus / accessory broadcast,
         // nie ako stabilná occupancy telemetria – spôsobovali falošné prepínanie blokov počas
         // odosielania návestí po pripojení centrály.
-        if (IsDirectRBusDataChangedFrame(frame))
-        {
-            TryParseRBusDataChanged(frame);
-            return;
-        }
+        if (IsDirectRBusDataChangedFrame(frame)) TryParseRBusDataChanged(frame);
 
         // Sem v budúcnosti pribudnú ďalšie ramce (loco, turnout, broadcasts).
     }
 
     /// <summary>
-    /// Rozparsuje LAN_SYSTEMSTATE_DATACHANGED (header 0x14 0x00 0x84 0x00) a aktualizuje
-    /// telemetrické vlastnosti.
-    ///
-    /// Štruktúra paketu podľa oficiálnej Z21 LAN špecifikácie v1.13 (20 B):
-    ///   [0..3]   header 0x14 0x00 0x84 0x00
-    ///   [4..5]   MainCurrent          (mA, signed LE)   – aktuálny prúd hlavnej koľaje
-    ///   [6..7]   ProgCurrent          (mA, signed LE)   – prúd programovacej koľaje
-    ///   [8..9]   FilteredMainCurrent  (mA, signed LE)   – vyhladený prúd → krajší pre UI
-    ///   [10..11] Temperature          (°C, signed LE)   – teplota centrály
-    ///   [12..13] SupplyVoltage        (mV, unsigned LE) – napätie napájania
-    ///   [14..15] VCCVoltage           (mV, unsigned LE) – napätie hlavnej koľaje  ← MAIN
-    ///   [16]     CentralState         (bit-field)
-    ///   [17]     CentralStateEx
-    ///   [18]     (reserved)
-    ///   [19]     CapabilityFlags
+    ///     Rozparsuje LAN_SYSTEMSTATE_DATACHANGED (header 0x14 0x00 0x84 0x00) a aktualizuje
+    ///     telemetrické vlastnosti.
+    ///     Štruktúra paketu podľa oficiálnej Z21 LAN špecifikácie v1.13 (20 B):
+    ///     [0..3]   header 0x14 0x00 0x84 0x00
+    ///     [4..5]   MainCurrent          (mA, signed LE)   – aktuálny prúd hlavnej koľaje
+    ///     [6..7]   ProgCurrent          (mA, signed LE)   – prúd programovacej koľaje
+    ///     [8..9]   FilteredMainCurrent  (mA, signed LE)   – vyhladený prúd → krajší pre UI
+    ///     [10..11] Temperature          (°C, signed LE)   – teplota centrály
+    ///     [12..13] SupplyVoltage        (mV, unsigned LE) – napätie napájania
+    ///     [14..15] VCCVoltage           (mV, unsigned LE) – napätie hlavnej koľaje  ← MAIN
+    ///     [16]     CentralState         (bit-field)
+    ///     [17]     CentralStateEx
+    ///     [18]     (reserved)
+    ///     [19]     CapabilityFlags
     /// </summary>
     internal void TryParseSystemStateDatachanged(byte[] data)
     {
@@ -1446,36 +1632,34 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         if (data[0] != 0x14 || data[1] != 0x00 || data[2] != 0x84 || data[3] != 0x00) return;
 
         // Prúdy + teplota – signed 16-bit LE.
-        short progCurrentMa  = (short)(data[6]  | (data[7]  << 8));
-        short filteredMainMa = (short)(data[8]  | (data[9]  << 8));
-        short tempC          = (short)(data[10] | (data[11] << 8));
+        var progCurrentMa = (short)(data[6] | (data[7] << 8));
+        var filteredMainMa = (short)(data[8] | (data[9] << 8));
+        var tempC = (short)(data[10] | (data[11] << 8));
 
         // Napätia – unsigned 16-bit LE (môžu byť tesne pod 32768 mV, znamienko je zbytočné).
-        ushort supplyMv = (ushort)(data[12] | (data[13] << 8));
-        ushort vccMv    = data.Length >= 16
+        var supplyMv = (ushort)(data[12] | (data[13] << 8));
+        var vccMv = data.Length >= 16
             ? (ushort)(data[14] | (data[15] << 8))
             : (ushort)0;
 
-        MainVoltage        = vccMv    / 1000.0;            // VCCVoltage = napätie koľaje
-        ProgVoltage        = supplyMv / 1000.0;            // SupplyVoltage ako proxy
-        TrackCurrent       = filteredMainMa / 1000.0;      // vyhladený prúd – krajšie pre UI
-        ProgTrackCurrent   = progCurrentMa  / 1000.0;
+        MainVoltage = vccMv / 1000.0; // VCCVoltage = napätie koľaje
+        ProgVoltage = supplyMv / 1000.0; // SupplyVoltage ako proxy
+        TrackCurrent = filteredMainMa / 1000.0; // vyhladený prúd – krajšie pre UI
+        ProgTrackCurrent = progCurrentMa / 1000.0;
         CentralTemperature = tempC;
     }
 
     /// <summary>
-    /// Rozparsuje feedback rámec R-Bus / S88 a publikuje zmeny jednotlivých
-    /// 1-based vstupov spätnoväzbových modulov.
-    ///
-    /// Štruktúra LAN_RMBUS_DATACHANGED podľa Z21 LAN špec. v1.13 (sekcia 7.1.2):
-    ///   [0..1] dĺžka rámca (LE, vždy 0x0F 0x00 = 15 B)
-    ///   [2..3] header = 0x80 0x00
-    ///   [4]    GroupIndex (0 alebo 1)
-    ///            • 0 → moduly  1..10
-    ///            • 1 → moduly 11..20
-    ///   [5..14] 10 bajtov masiek, jeden bajt = jeden modul, bit0 = vstup 1, bit7 = vstup 8.
-    ///
-    /// UI a konfigurácia TrackFlow používajú 1-based ModuleAddress aj PortNumber.
+    ///     Rozparsuje feedback rámec R-Bus / S88 a publikuje zmeny jednotlivých
+    ///     1-based vstupov spätnoväzbových modulov.
+    ///     Štruktúra LAN_RMBUS_DATACHANGED podľa Z21 LAN špec. v1.13 (sekcia 7.1.2):
+    ///     [0..1] dĺžka rámca (LE, vždy 0x0F 0x00 = 15 B)
+    ///     [2..3] header = 0x80 0x00
+    ///     [4]    GroupIndex (0 alebo 1)
+    ///     • 0 → moduly  1..10
+    ///     • 1 → moduly 11..20
+    ///     [5..14] 10 bajtov masiek, jeden bajt = jeden modul, bit0 = vstup 1, bit7 = vstup 8.
+    ///     UI a konfigurácia TrackFlow používajú 1-based ModuleAddress aj PortNumber.
     /// </summary>
     internal void TryParseRBusDataChanged(byte[] data)
     {
@@ -1488,15 +1672,17 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         // Z21 protokol: GroupIndex 0 ⇒ moduly 1..10, GroupIndex 1 ⇒ moduly 11..20.
         // Pôvodná formula `data[4] + 1` posielala pre group 1 modul 2 namiesto 11,
         // čo by pri >10 R-BUS / S88 moduloch kolidovalo s adresami z group 0.
-        int firstDirectModuleAddress = data[4] * 10 + 1;
-        for (int byteIndex = 5; byteIndex < data.Length; byteIndex++)
+        var firstDirectModuleAddress = data[4] * 10 + 1;
+        for (var byteIndex = 5; byteIndex < data.Length; byteIndex++)
             PublishRBusModuleState(firstDirectModuleAddress + (byteIndex - 5), data[byteIndex], data);
     }
 
     private static bool IsDirectRBusDataChangedFrame(byte[] frame)
-        => frame.Length >= 6
-           && frame[2] == 0x80
-           && frame[3] == 0x00;
+    {
+        return frame.Length >= 6
+               && frame[2] == 0x80
+               && frame[3] == 0x00;
+    }
 
     private void PublishRBusModuleState(int moduleAddress, byte mask, byte[] rawFrame)
     {
@@ -1508,7 +1694,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         // UI default pre indikátor je "neaktívny" (cont_ind_d.png), takže nemusíme posielať
         // 8 udalostí so 6 nulami – ušetríme záplavu Doctor logov pri štarte centrály
         // a zachováme správnu semantiku "0 = neaktívne / žiadna zmena oproti defaultu".
-        byte changedMask = hadPreviousMask
+        var changedMask = hadPreviousMask
             ? (byte)(previousMask ^ mask)
             : mask;
 
@@ -1516,35 +1702,18 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
-            $"RBUS frame-change: modul={moduleAddress}, oldMask=0x{(previousMask):X2}, newMask=0x{mask:X2}, changedMask=0x{changedMask:X2}, raw={BytesToHex(rawFrame)}",
-            DiagnosticLevel.Info);
+            $"RBUS frame-change: modul={moduleAddress}, oldMask=0x{previousMask:X2}, newMask=0x{mask:X2}, changedMask=0x{changedMask:X2}, raw={BytesToHex(rawFrame)}");
 
-        for (int bit = 0; bit < 8; bit++)
+        for (var bit = 0; bit < 8; bit++)
         {
             if ((changedMask & (1 << bit)) == 0)
                 continue;
 
-            int portNumber = bit + 1;
-            bool isActive = (mask & (1 << bit)) != 0;
+            var portNumber = bit + 1;
+            var isActive = (mask & (1 << bit)) != 0;
             RBusFeedbackChanged?.Invoke(new RBusFeedbackState(moduleAddress, portNumber, isActive));
         }
     }
 
-    public void Dispose()
-    {
-        // Bezpečné Dispose: BeginDisconnectAsync vracia Task, ktorý dokončí cleanup
-        // receive-slučky a telemetrického pollera. Synchrónne počkáme MAX 2 s, aby
-        // sa pri "stuck" sokete (pomalá sieť, vypnutý router) nezablokoval UI thread
-        // pri zatváraní MainWindow.
-        var shutdown = BeginDisconnectAsync(waitForCompletion: false);
-        try
-        {
-            shutdown.Wait(TimeSpan.FromSeconds(2));
-        }
-        catch (AggregateException)
-        {
-            // cleanup je best-effort – akékoľvek interné výnimky už zachytil ObserveCleanupTaskAsync
-        }
-        try { _sendLock.Dispose(); } catch { /* ignore */ }
-    }
+    private readonly record struct FrameWaitResult(bool Matched, int FramesSeen);
 }

@@ -29,7 +29,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('Debug','Release')]
+    [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
 
     [switch]$NoBuild,
@@ -46,12 +46,15 @@ $csproj = Join-Path $repoRoot 'TrackFlow.csproj'
 & (Join-Path $repoRoot 'kill-trackflow-locks.ps1')
 
 # 2) Build (optional)
-if (-not $NoBuild) {
+if (-not $NoBuild)
+{
     $buildCmd = "dotnet build -c $Configuration `"$csproj`""
-    if ($DryRun) {
+    if ($DryRun)
+    {
         Write-Host "[run-trackflow] DRY RUN: $buildCmd"
     }
-    else {
+    else
+    {
         Write-Host "[run-trackflow] Building ($Configuration)..."
         dotnet build -c $Configuration "$csproj"
     }
@@ -60,12 +63,14 @@ if (-not $NoBuild) {
 # 3) Start executable
 $exePath = Join-Path $repoRoot ("bin\\$Configuration\\net9.0-windows\\TrackFlow.exe")
 
-if (-not (Test-Path $exePath)) {
+if (-not (Test-Path $exePath))
+{
     throw "TrackFlow.exe not found at: $exePath (try without -NoBuild)"
 }
 
 $startMsg = "[run-trackflow] Starting: $exePath"
-if ($DryRun) {
+if ($DryRun)
+{
     Write-Host "[run-trackflow] DRY RUN: $startMsg"
     exit 0
 }

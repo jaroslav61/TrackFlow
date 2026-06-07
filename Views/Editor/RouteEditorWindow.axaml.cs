@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -16,7 +17,7 @@ public partial class RouteEditorWindow : Window
 
     private void AttachEventHandlers()
     {
-        this.DataContextChanged += OnDataContextChanged;
+        DataContextChanged += OnDataContextChanged;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -24,7 +25,7 @@ public partial class RouteEditorWindow : Window
         if (DataContext is RouteEditorViewModel vm)
         {
             vm.CloseRequested += OnCloseRequested;
-            
+
             // Nastavíme funkčnosť indikátorov v záložke "Indikátory"
             SetupIndicatorListBoxes(vm);
         }
@@ -46,16 +47,14 @@ public partial class RouteEditorWindow : Window
             return;
 
         // Rozdelíme indikátory na dostupné a priradené
-        var available = new System.Collections.ObjectModel.ObservableCollection<SensorItem>();
-        var assigned = new System.Collections.ObjectModel.ObservableCollection<SensorItem>();
+        var available = new ObservableCollection<SensorItem>();
+        var assigned = new ObservableCollection<SensorItem>();
 
         foreach (var sensor in vm.AvailableSensors)
-        {
             if (sensor.IsSelected)
                 assigned.Add(sensor);
             else
                 available.Add(sensor);
-        }
 
         availableListBox.ItemsSource = available;
         assignedListBox.ItemsSource = assigned;
@@ -89,4 +88,3 @@ public partial class RouteEditorWindow : Window
         };
     }
 }
-

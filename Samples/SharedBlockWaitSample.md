@@ -4,19 +4,22 @@
 
 Táto schéma je najjednoduchší prípad **ČAKANIA na zdieľaný blok**.
 
-Je zámerne **abstraktná**: `X` tu reprezentuje konflikt zdieľaného runtime vlastníctva, nie doslovný fyzický jeden rovný blok so štyrmi vetvami.
+Je zámerne **abstraktná**: `X` tu reprezentuje konflikt zdieľaného runtime vlastníctva, nie doslovný fyzický jeden rovný
+blok so štyrmi vetvami.
 
 - horná cesta ide `A -> X -> B`
 - dolná cesta ide `C -> X -> D`
 - spoločný konflikt je `Blok X - logická kolízna zóna`
 
 Pointa ukážky:
+
 - prvý vlak si zarezervuje a obsadí `Blok X`
 - druhý vlak sa k `X` dostane neskôr a musí prejsť do ČAKANIA
 - po uvoľnení `X` má druhý vlak pokračovať bez potreby ručného zásahu
 
 Použi túto ukážku na diagnostiku vlastníctva bloku.
-Ak chceš fyzicky plausibilnejšiu koľajovú geometriu so zdieľaním infra, použi radšej `SharedTurnoutWaitSample` alebo `TailClearReleaseSample`.
+Ak chceš fyzicky plausibilnejšiu koľajovú geometriu so zdieľaním infra, použi radšej `SharedTurnoutWaitSample` alebo
+`TailClearReleaseSample`.
 
 ## Odporúčaný testovací postup
 

@@ -31,7 +31,8 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectName = Split-Path -Leaf $root
 
-if (-not $OutputPath) {
+if (-not $OutputPath)
+{
     $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
     $OutputPath = Join-Path (Split-Path -Parent $root) "$projectName-src-$stamp.zip"
 }
@@ -45,7 +46,8 @@ $excludeDirSegments = @(
     'TestResults', 'route-test-isolation',
     '.test-out'
 )
-if ($NoTests) {
+if ($NoTests)
+{
     $excludeDirSegments += 'TrackFlow.Tests'
 }
 
@@ -61,20 +63,31 @@ $excludeFilePatterns = @(
 Write-Host "Zdroj : $root" -ForegroundColor Cyan
 Write-Host "Cieľ  : $OutputPath" -ForegroundColor Cyan
 
-if (Test-Path -LiteralPath $OutputPath) {
+if (Test-Path -LiteralPath $OutputPath)
+{
     Remove-Item -LiteralPath $OutputPath -Force
 }
 
-function Test-Excluded {
+function Test-Excluded
+{
     param([string]$RelativePath, [bool]$IsDirectory)
     $segments = $RelativePath -split '[\\/]'
-    foreach ($seg in $segments) {
-        if ($excludeDirSegments -contains $seg) { return $true }
+    foreach ($seg in $segments)
+    {
+        if ($excludeDirSegments -contains $seg)
+        {
+            return $true
+        }
     }
-    if (-not $IsDirectory) {
+    if (-not $IsDirectory)
+    {
         $name = $segments[-1]
-        foreach ($pat in $excludeFilePatterns) {
-            if ($name -like $pat) { return $true }
+        foreach ($pat in $excludeFilePatterns)
+        {
+            if ($name -like $pat)
+            {
+                return $true
+            }
         }
     }
     return $false
@@ -85,8 +98,9 @@ Write-Host "Zbieram súbory..." -ForegroundColor Yellow
 $files = @()
 $totalBytes = 0L
 Get-ChildItem -LiteralPath $root -Recurse -File -Force | ForEach-Object {
-    $rel = $_.FullName.Substring($root.Length).TrimStart('\','/')
-    if (-not (Test-Excluded -RelativePath $rel -IsDirectory $false)) {
+    $rel = $_.FullName.Substring($root.Length).TrimStart('\', '/')
+    if (-not (Test-Excluded -RelativePath $rel -IsDirectory $false))
+    {
         $files += [pscustomobject]@{ Full = $_.FullName; Rel = $rel; Size = $_.Length }
         $totalBytes += $_.Length
     }
@@ -99,26 +113,50 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $fs = [System.IO.File]::Open($OutputPath, [System.IO.FileMode]::CreateNew)
-try {
+try
+{
     $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create)
-    try {
+    try
+    {
         $i = 0
-        foreach ($f in $files) {
+        foreach ($f in $files)
+        {
             $i++
-            if ($i % 200 -eq 0) {
-                Write-Progress -Activity "Pakujem" -Status "$i / $($files.Count)" -PercentComplete (($i / $files.Count) * 100)
+            if ($i % 200 -eq 0)
+            {
+                Write-Progress -Activity "Pakujem" -Status "$i / $( $files.Count )" -PercentComplete (($i / $files.Count) * 100)
             }
             $entryName = "$projectName/" + ($f.Rel -replace '\\', '/')
             $entry = $zip.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
             $es = $entry.Open()
-            try {
+            try
+            {
                 $src = [System.IO.File]::OpenRead($f.Full)
-                try { $src.CopyTo($es) } finally { $src.Dispose() }
-            } finally { $es.Dispose() }
+                try
+                {
+                    $src.CopyTo($es)
+                }
+                finally
+                {
+                    $src.Dispose()
+                }
+            }
+            finally
+            {
+                $es.Dispose()
+            }
         }
         Write-Progress -Activity "Pakujem" -Completed
-    } finally { $zip.Dispose() }
-} finally { $fs.Dispose() }
+    }
+    finally
+    {
+        $zip.Dispose()
+    }
+}
+finally
+{
+    $fs.Dispose()
+}
 
 $outSize = (Get-Item -LiteralPath $OutputPath).Length
 Write-Host ""

@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -403,18 +404,34 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         var previousSelection = DccCentralSerialPort;
 
+        // SerialPort.GetPortNames() can block on some systems/drivers; never run it on UI thread.
+        _ = Task.Run(() =>
+        {
+            string[] ports;
+            try
+            {
+                ports = SerialPort.GetPortNames()
+                    .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch
+            {
+                ports = Array.Empty<string>();
+            }
+
+            DispatchToUi(() => ApplyAvailablePorts(ports, previousSelection));
+        });
+    }
+
+    private void ApplyAvailablePorts(IReadOnlyCollection<string> ports, string previousSelection)
+    {
+        if (_disposed)
+            return;
+
         AvailablePorts.Clear();
 
-        try
-        {
-            foreach (var port in SerialPort.GetPortNames().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
-                AvailablePorts.Add(port);
-        }
-        catch
-        {
-            // Niektoré prostredia / test runner nemusia vedieť enumerovať porty.
-            // UI v tom prípade ostane funkčné a používateľ môže pracovať s uloženou hodnotou.
-        }
+        foreach (var port in ports)
+            AvailablePorts.Add(port);
 
         if (!string.IsNullOrWhiteSpace(previousSelection) && !AvailablePorts.Contains(previousSelection))
             AvailablePorts.Insert(0, previousSelection);

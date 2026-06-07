@@ -11,7 +11,9 @@ Táto schéma znázorňuje **jednu zdieľanú výhybku** v topológii, ktorá je
 - opačný smer potrebuje na `V1` stav **odbočka / Diverge**
 
 Pointa sample-u:
-- jedna jednoduchá výhybka má iba 3 vetvy, preto tu nemôžu existovať dve nezávislé cesty typu `A -> B` a `C -> D` len s jednou výhybkou
+
+- jedna jednoduchá výhybka má iba 3 vetvy, preto tu nemôžu existovať dve nezávislé cesty typu `A -> B` a `C -> D` len s
+  jednou výhybkou
 - prvá aktivovaná cesta si vezme vlastníctvo výhybky `V1`
 - druhá cesta nesmie výhybku prehodiť pod aktívnym vlakom
 - preto prejde do WAIT a čaká na odovzdanie vlastníctva `V1`

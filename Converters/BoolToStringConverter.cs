@@ -5,8 +5,8 @@ using Avalonia.Data.Converters;
 namespace TrackFlow.Converters;
 
 /// <summary>
-/// Konvertuje bool na string.
-/// ConverterParameter: "TrueValue|FalseValue"
+///     Konvertuje bool na string.
+///     ConverterParameter: "TrueValue|FalseValue"
 /// </summary>
 public class BoolToStringConverter : IValueConverter
 {
@@ -30,4 +30,3 @@ public class BoolToStringConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
-

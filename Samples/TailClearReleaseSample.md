@@ -10,6 +10,7 @@ Táto schéma testuje, či sa zdieľaná infra neuvoľní priskoro.
 - druhá cesta ide opačným smerom, aby topológia s jednou výhybkou ostala fyzicky možná
 
 Pointa ukážky:
+
 - potvrdiť, že uvoľnenie nepríde už pri vstupe čela do ďalšieho bloku
 - potvrdiť, že infra sa uvoľní až po prejazde chvosta vlaku
 

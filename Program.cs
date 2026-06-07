@@ -24,35 +24,18 @@ namespace TrackFlow
             using var singleInstance = new Mutex(initiallyOwned: true, name: @"Local\TrackFlow", createdNew: out var createdNew);
             if (!createdNew)
             {
-                try
-                {
-                    Console.Error.WriteLine("TrackFlow is already running. Exiting this instance.");
-                }
-                catch
-                {
-                    // Ignore console failures (e.g., no console attached yet).
-                }
                 return;
             }
 
-            // FORCE konzolu aby sa zobrazila
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-            {
-                // Alokuj konzolu pre Windows aplikáciu
-                AllocConsole();
-            }
-            
-            Console.WriteLine("=======================================================");
-            Console.WriteLine("TRACKFLOW KONZOLA - Debug Output");
-            Console.WriteLine("=======================================================");
-            Console.WriteLine($"Štart: {DateTime.Now:HH:mm:ss}");
-            Console.WriteLine("");
-            
             // Inicializovať Serilog logger
             // Logy idú vždy do projektového koreňa (kde je .csproj), nie do bin/
             var logDir = FindProjectLogsDir();
             Directory.CreateDirectory(logDir);
             var logPath = Path.Combine(logDir, "trackflow-.txt");
+
+            // Best-effort: clear stale Avalonia designer hosts that still point to TrackFlow.dll
+            // from previous Rider sessions so a new run starts cleanly.
+            AvaloniaDesignerHostCleanup.CleanupForCurrentProject("startup");
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -77,45 +60,21 @@ namespace TrackFlow
             
             try
             {
-                Console.WriteLine("Inicializujem Avalonia aplikáciu...");
                 Log.Information("TrackFlow starting up... (logs: {LogPath})", logPath);
                 exitCode = BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"!!! FATÁLNA CHYBA: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
                 Log.Fatal(ex, "Application terminated unexpectedly");
                 throw;
             }
             finally
             {
-                Console.WriteLine("");
-                Console.WriteLine("Aplikácia sa ukončuje...");
                 Log.CloseAndFlush();
-
-                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-                {
-                    try
-                    {
-                        FreeConsole();
-                    }
-                    catch
-                    {
-                        // Ignore console teardown failures.
-                    }
-                }
             }
 
-            Environment.Exit(exitCode);
+            Environment.ExitCode = exitCode;
         }
-        
-        // P/Invoke pre Windows API - alokuje konzolu
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool AllocConsole();
-
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FreeConsole();
 
         internal static void ReportUnhandledException(string source, Exception exception, bool isTerminating)
         {

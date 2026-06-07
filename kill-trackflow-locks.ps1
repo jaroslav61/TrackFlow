@@ -25,8 +25,9 @@ Write-Host "[kill-trackflow-locks] Repo: $repoRoot"
 
 # 1) Stop TrackFlow.exe (any instance)
 $trackflow = Get-Process -Name 'TrackFlow' -ErrorAction SilentlyContinue
-if ($trackflow) {
-    Write-Host "[kill-trackflow-locks] Stopping TrackFlow.exe: $($trackflow.Id -join ', ')"
+if ($trackflow)
+{
+    Write-Host "[kill-trackflow-locks] Stopping TrackFlow.exe: $( $trackflow.Id -join ', ' )"
     $trackflow | Stop-Process -Force
 }
 
@@ -34,27 +35,29 @@ if ($trackflow) {
 $targets = @('TrackFlow.dll', 'TrackFlow.exe')
 
 $procs = Get-CimInstance Win32_Process |
-    Where-Object {
-        $_.CommandLine -and (
+        Where-Object {
+            $_.CommandLine -and (
             ($_.Name -in @('dotnet.exe', 'testhost.exe', 'vstest.console.exe')) -or
-            ($_.Name -like '*dotnet*') -or
-            ($_.Name -like '*testhost*')
-        )
-    } |
-    Where-Object {
-        $cmd = $_.CommandLine
-        $targets | Where-Object { $cmd -like "*$_*" } | Measure-Object | Select-Object -ExpandProperty Count
-    } |
-    Select-Object ProcessId, Name, CommandLine
+                    ($_.Name -like '*dotnet*') -or
+                    ($_.Name -like '*testhost*')
+            )
+        } |
+        Where-Object {
+            $cmd = $_.CommandLine
+            $targets | Where-Object { $cmd -like "*$_*" } | Measure-Object | Select-Object -ExpandProperty Count
+        } |
+        Select-Object ProcessId, Name, CommandLine
 
-if (-not $procs) {
+if (-not $procs)
+{
     Write-Host "[kill-trackflow-locks] No matching .NET host processes found."
     exit 0
 }
 
-Write-Host "[kill-trackflow-locks] Stopping $($procs.Count) .NET host process(es) that reference TrackFlow:"
-foreach ($p in $procs) {
-    Write-Host "  - PID $($p.ProcessId) $($p.Name) :: $($p.CommandLine)"
+Write-Host "[kill-trackflow-locks] Stopping $( $procs.Count ) .NET host process(es) that reference TrackFlow:"
+foreach ($p in $procs)
+{
+    Write-Host "  - PID $( $p.ProcessId ) $( $p.Name ) :: $( $p.CommandLine )"
 }
 
 $procs.ProcessId | ForEach-Object {

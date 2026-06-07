@@ -1,12 +1,12 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
-using Avalonia.Interactivity;
 using Avalonia.Input;
-using Avalonia.Media;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using System;
-using System.Linq;
+using Avalonia.Media;
 using TrackFlow.Models.Layout;
 using TrackFlow.ViewModels.Editor;
 using TrackFlow.Views.Editor.Markers;
@@ -200,8 +200,8 @@ public partial class RoutesManagerWindow : Window
     }
 
     /// <summary>
-    /// Pridá čierne obrysové čiary pod každý tvar v Canvase markera.
-    /// Bezpečne skončí ak marker nemá očakávanú štruktúru (UserControl → Canvas).
+    ///     Pridá čierne obrysové čiary pod každý tvar v Canvase markera.
+    ///     Bezpečne skončí ak marker nemá očakávanú štruktúru (UserControl → Canvas).
     /// </summary>
     private static void AddBlackStrokes(Control marker)
     {
@@ -213,11 +213,10 @@ public partial class RoutesManagerWindow : Window
 
         // Najprv zozbierame tvary, aby sme sa vyhli modifikácii kolekcie počas iterácie
         var shapes = canvas.Children.OfType<Shape>()
-                           .Where(s => s is Line or Path)
-                           .ToList();
+            .Where(s => s is Line or Path)
+            .ToList();
 
         foreach (var shape in shapes)
-        {
             try
             {
                 Shape? outline = shape switch
@@ -251,21 +250,19 @@ public partial class RoutesManagerWindow : Window
 
                 RenderOptions.SetEdgeMode(outline, EdgeMode.Antialias);
 
-                int idx = canvas.Children.IndexOf(shape);
+                var idx = canvas.Children.IndexOf(shape);
                 if (idx >= 0)
                     canvas.Children.Insert(idx, outline);
             }
             catch
             {
                 // Neočakávaná štruktúra elementu – ticho preskočíme
-                continue;
             }
-        }
     }
 
     /// <summary>
-    /// Aplikuje farebné zvýraznenie aktívnej/neaktívnej vetvy podľa stavu výhybky.
-    /// Bezpečne skončí ak marker nemá očakávanú štruktúru.
+    ///     Aplikuje farebné zvýraznenie aktívnej/neaktívnej vetvy podľa stavu výhybky.
+    ///     Bezpečne skončí ak marker nemá očakávanú štruktúru.
     /// </summary>
     private static void ApplyStateColoring(Control marker, TurnoutState highlightState)
     {
@@ -276,12 +273,11 @@ public partial class RoutesManagerWindow : Window
         var gray = new SolidColorBrush(Color.Parse("#888888"));
 
         foreach (var child in canvas.Children)
-        {
             try
             {
                 if (child is Line line && line.ZIndex != -1)
                 {
-                    bool active = IsVerticalOrHorizontalLine(line)
+                    var active = IsVerticalOrHorizontalLine(line)
                         ? highlightState == TurnoutState.Straight
                         : highlightState == TurnoutState.Diverge;
                     line.Stroke = active ? blue : gray;
@@ -290,11 +286,11 @@ public partial class RoutesManagerWindow : Window
                 }
                 else if (child is Path path && path.ZIndex != -1)
                 {
-                    bool active = path.Name switch
+                    var active = path.Name switch
                     {
                         "ArcLPath" => highlightState == TurnoutState.DivergeLeft,
                         "ArcRPath" => highlightState == TurnoutState.DivergeRight,
-                        _          => highlightState == TurnoutState.Diverge
+                        _ => highlightState == TurnoutState.Diverge
                     };
                     path.Stroke = active ? blue : gray;
                     path.StrokeThickness = 2;
@@ -305,14 +301,13 @@ public partial class RoutesManagerWindow : Window
             {
                 // Neočakávaná štruktúra elementu – preskočíme
             }
-        }
 
         // Osobitné ošetrenie CenterLine (používa sa u Y-výhybiek)
         var centerLine = canvas.Children.OfType<Line>()
-                                        .FirstOrDefault(l => l.Name == "CenterLine");
+            .FirstOrDefault(l => l.Name == "CenterLine");
         if (centerLine is { ZIndex: not -1 })
         {
-            bool active = highlightState == TurnoutState.Straight;
+            var active = highlightState == TurnoutState.Straight;
             centerLine.Stroke = active ? blue : gray;
             centerLine.StrokeThickness = 2;
             centerLine.ZIndex = active ? 10 : 1;
@@ -321,8 +316,8 @@ public partial class RoutesManagerWindow : Window
 
     private static bool IsVerticalOrHorizontalLine(Line line)
     {
-        double dy = Math.Abs(line.EndPoint.Y - line.StartPoint.Y);
-        double dx = Math.Abs(line.EndPoint.X - line.StartPoint.X);
+        var dy = Math.Abs(line.EndPoint.Y - line.StartPoint.Y);
+        var dx = Math.Abs(line.EndPoint.X - line.StartPoint.X);
         return (dx < 2 && dy > 5) || (dy < 2 && dx > 5);
     }
 }

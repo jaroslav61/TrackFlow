@@ -122,7 +122,26 @@
                         BorderBrush="Transparent"
                         ToolTip.Tip="Pripojiť / Odpojiť DCC centrálu"
                         Cursor="Hand">
-                    <Image Width="16" Height="16" Source="avares://TrackFlow/Assets/Appicons/16/plug.png"/>
+                    <Grid Width="16" Height="16" ClipToBounds="True">
+                        <Image Width="32" Height="16"
+                               HorizontalAlignment="Left"
+                               Stretch="Fill"
+                               Source="avares://TrackFlow/Assets/Appicons/24/plug.png"
+                               Classes.connected="{Binding Ribbon.IsConnected}">
+                            <Image.Styles>
+                                <Style Selector="Image">
+                                    <Setter Property="RenderTransform">
+                                        <TranslateTransform X="-16" />
+                                    </Setter>
+                                </Style>
+                                <Style Selector="Image.connected">
+                                    <Setter Property="RenderTransform">
+                                        <TranslateTransform X="0" />
+                                    </Setter>
+                                </Style>
+                            </Image.Styles>
+                        </Image>
+                    </Grid>
                 </Button>
 
                 <!-- Oddeľovač -->

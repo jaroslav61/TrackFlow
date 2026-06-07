@@ -8,25 +8,31 @@
 ## ✅ Správne implementované funkcie
 
 ### 1. **Zoom mechanizmus**
+
 - ✅ Predvolený zoom: **100%** (`_zoomFactor = 1.0`)
 - ✅ Možnosti: 10%, 25%, 50%, 75%, 100%, "Na okno"
 - ✅ Dynamické prepočítanie pri zmene veľkosti okna (režim "fit")
 - ✅ ScrollViewer s margin kompenzáciou pre správne scrollovanie
 
 ### 2. **Rendering pipeline (zhodný s editorom)**
+
 - ✅ Dvojprechodový rendering:
-  - 1. prechod: koľajnice, výhybky, ostatné prvky
-  - 2. prechod: bloky navrchu (zakryjú koľaje pod nimi)
+    -
+        1. prechod: koľajnice, výhybky, ostatné prvky
+    -
+        2. prechod: bloky navrchu (zakryjú koľaje pod nimi)
 - ✅ Bounding box výpočet s offsetom (rendering od 0,0)
 - ✅ Rotácia markerov cez `IMarkerAngle` alebo `RotateTransform`
 
 ### 3. **Zvýraznenie aktívnej cesty**
+
 - ✅ Hlavné bloky (štart/cieľ): žltá výplň, modrý okraj, opacity 1.0
 - ✅ Neaktívne bloky: šedá výplň (#E8E8E8), sivý okraj, opacity 1.0 (prekrývajú koľaje)
 - ✅ Aktívne koľajnice/prvky: opacity 1.0 + DropShadowEffect (farba cesty)
 - ✅ Neaktívne koľajnice/prvky: opacity **0.18**
 
 ### 4. **Výhybky - stavové vykresľovanie**
+
 - ✅ Identifikácia vetvy podľa `x:Name` z AXAML (nie orientácie čiary)
 - ✅ Aktívna vetva: modrá (#71c5ff), hrúbka 2.5, opacity 1.0, ZIndex 20
 - ✅ Neaktívna vetva: biela (z AXAML), hrúbka 2.0, opacity 0.18, ZIndex 1
@@ -34,6 +40,7 @@
 - ✅ Neaktívny outline: FromArgb(204,0,0,0), hrúbka 3.1, opacity 0.18, ZIndex 0
 
 ### 5. **Outline systém**
+
 - ✅ **Pre výhybky:** AXAML outline vrstvy (nie dynamický `innerOutline`)
 - ✅ **Pre koľajnice:** Dynamický outline (`ApplyOutlineStyle`) s farbou FromArgb(204,0,0,0)
 - ✅ Neaktívne výhybky: `DimTurnoutOutlines()` prepíše outline na TrackSegment farbu
@@ -43,14 +50,17 @@
 ## ⚠️ Známe problémy
 
 ### 1. **Mierne odlišné odtiene šedej**
+
 **Popis:** Neaktívne koľajnice, celé výhybky a neaktívne vetvy výhybiek majú vizuálne mierne odlišné odtiene sivej.
 
-**Príčina:** 
+**Príčina:**
+
 - TrackSegment: dynamický outline FromArgb(204,0,0,0) + opacity 0.18 → alpha ≈ 37
 - Výhybky: AXAML outline Black (alpha 255) prepísaný na FromArgb(204,0,0,0) + opacity 0.18
 - Mikroskopické rozdiely v renderingu Avalonia (anti-aliasing, subpixel positioning)
 
 **Riešenie (budúce):**
+
 - Normalizovať všetky outline vrstvy na identický rendering pipeline
 - Možnosť: pre výhybky tiež používať dynamický outline (odstránenie AXAML outline)
 - Alebo: explicitná kalibrácia alpha hodnoty (204 → ??)
@@ -62,11 +72,14 @@
 ## 🔧 Možné optimalizácie
 
 ### 1. **Deduplikácia kódu pre outline úpravy**
+
 **Aktuálny stav:** Dve podobné metódy:
+
 - `DimTurnoutOutlines()` - pre celé neaktívne výhybky
 - `ApplyTurnoutStateColoring()` - upravuje outline pre neaktívne vetvy
 
 **Návrh:**
+
 ```csharp
 private static void ApplyTurnoutOutlineColor(Canvas canvas, 
     Func<string, bool> isActiveFunc)
@@ -101,6 +114,7 @@ private static void ApplyTurnoutOutlineColor(Canvas canvas,
 ---
 
 ### 2. **Lazy rendering pre veľké layouty**
+
 **Aktuálny stav:** Všetky prvky sa renderujú naraz pri každom `SetLayoutAndRoute()`.
 
 **Návrh:** Virtualizácia (rendering len viditeľných prvkov pri veľmi veľkých layoutoch 500+ prvkov).
@@ -110,6 +124,7 @@ private static void ApplyTurnoutOutlineColor(Canvas canvas,
 ---
 
 ### 3. **Cache pre marker inštancie**
+
 **Aktuálny stav:** `CreateMarkerByKey()` vytvára nové inštancie pre každý prvok (2x - outline + inner).
 
 **Návrh:** Použiť prototypový vzor s `Clone()` pre často používané markery.
@@ -121,13 +136,16 @@ private static void ApplyTurnoutOutlineColor(Canvas canvas,
 ---
 
 ### 4. **Konsolidácia farieb do konštánt**
+
 **Aktuálny stav:** Magické čísla roztrúsené v kóde:
+
 - `Color.FromArgb(204, 0, 0, 0)` - opakuje sa 3x
 - `#71c5ff` (modrá aktívna vetva) - 2x
 - `#FFFFDC` (žltý blok) - 2x
 - `#E8E8E8` (sivý blok) - 1x
 
 **Návrh:**
+
 ```csharp
 private static class PreviewColors
 {
@@ -147,7 +165,9 @@ private static class PreviewColors
 ## 📋 Nekonzistencie so zbytkom aplikácie
 
 ### 1. **LayoutEditorView vs RoutePreviewControl**
+
 **Rozdiel:**
+
 - **Editor:** Používa dvojitý outline pre VŠETKY prvky (vrátane výhybiek)
 - **Preview:** Pre výhybky len AXAML outline (bez `innerOutline`)
 
@@ -158,9 +178,12 @@ private static class PreviewColors
 ---
 
 ### 2. **ApplyOutlineStyle() má parameter `el`**
-**Aktuálny stav:** `ApplyOutlineStyle(Control marker, LayoutElement el)` ale parameter `el` sa používa len na zistenie či je to výhybka.
+
+**Aktuálny stav:** `ApplyOutlineStyle(Control marker, LayoutElement el)` ale parameter `el` sa používa len na zistenie
+či je to výhybka.
 
 **Návrh:** Zjednodušenie:
+
 ```csharp
 private static void ApplyOutlineStyle(Control marker, bool isTurnout)
 {
@@ -170,6 +193,7 @@ private static void ApplyOutlineStyle(Control marker, bool isTurnout)
 ```
 
 Volanie:
+
 ```csharp
 bool isTurnout = el.MarkerKey.Contains("Turnout") || el.MarkerKey == "DoubleSlip";
 ApplyOutlineStyle(innerOutline, isTurnout);
@@ -182,13 +206,16 @@ ApplyOutlineStyle(innerOutline, isTurnout);
 ## 🎯 Odporúčania pre budúcnosť
 
 ### Vysoká priorita
+
 1. **Žiadne** - aktuálna implementácia je funkčná a výkonná
 
 ### Stredná priorita
+
 1. ✅ Konsolidácia farieb do konštánt (čitateľnosť)
 2. ✅ Zjednodušenie `ApplyOutlineStyle()` (konzistencia)
 
 ### Nízka priorita
+
 1. Deduplikácia outline logiky (DRY princíp)
 2. Riešenie mikroskopických rozdielov v odtieňoch sivej
 3. Marker cache pre veľké layouty (optimalizácia)
@@ -197,14 +224,14 @@ ApplyOutlineStyle(innerOutline, isTurnout);
 
 ## 📊 Metriky kódu
 
-| Metrika | Hodnota |
-|---------|---------|
-| Celkový počet riadkov | 567 |
-| Počet metód | 11 |
-| Najdlhšia metóda | `ApplyTurnoutStateColoring()` - 103 riadkov |
-| Priemerná zložitosť | Nízka (väčšinou lineárne prechody) |
-| Duplicitný kód | ~5% (outline úpravy) |
-| Magic numbers | ~8 konštánt bez pomenovaných premenných |
+| Metrika               | Hodnota                                     |
+|-----------------------|---------------------------------------------|
+| Celkový počet riadkov | 567                                         |
+| Počet metód           | 11                                          |
+| Najdlhšia metóda      | `ApplyTurnoutStateColoring()` - 103 riadkov |
+| Priemerná zložitosť   | Nízka (väčšinou lineárne prechody)          |
+| Duplicitný kód        | ~5% (outline úpravy)                        |
+| Magic numbers         | ~8 konštánt bez pomenovaných premenných     |
 
 ---
 
@@ -213,12 +240,14 @@ ApplyOutlineStyle(innerOutline, isTurnout);
 **Celkové hodnotenie:** ⭐⭐⭐⭐☆ (4/5)
 
 **Silné stránky:**
+
 - ✅ Funkčne kompletné (všetky požiadavky splnené)
 - ✅ Výkon dobrý pre štandardné layouty (< 100 prvkov)
 - ✅ Vizuálne zhodné s editorom (vrátane rotácií, Z-ordering)
 - ✅ Správne zvýraznenie aktívnych/neaktívnych prvkov
 
 **Oblasti na zlepšenie:**
+
 - ⚠️ Mierny duplicitný kód (outline logika)
 - ⚠️ Magické čísla (farby, hrúbky)
 - ⚠️ Mikroskopické rozdiely v odtieňoch sivej (vizuálne akceptovateľné)
@@ -227,5 +256,6 @@ ApplyOutlineStyle(innerOutline, isTurnout);
 
 ---
 
-**Poznámka:** Táto analýza bola vytvorená 2026-04-20 po sérii iterácií zameraných na zjednotenie farieb neaktívnych prvkov.
+**Poznámka:** Táto analýza bola vytvorená 2026-04-20 po sérii iterácií zameraných na zjednotenie farieb neaktívnych
+prvkov.
 

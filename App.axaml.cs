@@ -12,12 +12,14 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Microsoft.Win32;
 using System.Reflection;
+using System.Threading;
 
 namespace TrackFlow;
 
 public partial class App : Application
 {
     private bool _globalExceptionHandlersRegistered;
+    private int _desktopExitCleanupStarted;
 
     // Referencia pre núdzové uvoľnenie COM portov pri pádoch a ProcessExit
     private static MainWindowViewModel? _emergencyCleanupVm;
@@ -35,8 +37,18 @@ public partial class App : Application
             // Stop the SystemEvents thread if it was started.
             // On some framework versions there is no public API, so we fall back to reflection.
             var t = typeof(SystemEvents);
-            var shutdown = t.GetMethod("Shutdown", BindingFlags.NonPublic | BindingFlags.Static)
-                           ?? t.GetMethod("Dispose", BindingFlags.NonPublic | BindingFlags.Static);
+            var shutdown = t.GetMethod(
+                               "Shutdown",
+                               BindingFlags.NonPublic | BindingFlags.Static,
+                               binder: null,
+                               types: Type.EmptyTypes,
+                               modifiers: null)
+                           ?? t.GetMethod(
+                               "Dispose",
+                               BindingFlags.NonPublic | BindingFlags.Static,
+                               binder: null,
+                               types: Type.EmptyTypes,
+                               modifiers: null);
             shutdown?.Invoke(null, null);
         }
         catch
@@ -47,7 +59,9 @@ public partial class App : Application
         try
         {
             // Best-effort: tear down any WinForms message loop remnants.
-            (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
+            // IMPORTANT: Do not call desktop.Shutdown() from Exit handler cleanup,
+            // it can recursively re-enter Exit and keep shutdown spinning.
+            System.Windows.Forms.Application.Exit();
             System.Windows.Forms.Application.ExitThread();
         }
         catch
@@ -135,6 +149,10 @@ public partial class App : Application
                 // Registrujeme až PO úspešnom vytvorení MainWindow
                 desktop.Exit += (s, e) =>
                 {
+                    // Exit can be re-entered by nested shutdown paths; run cleanup only once.
+                    if (Interlocked.Exchange(ref _desktopExitCleanupStarted, 1) != 0)
+                        return;
+
                     try
                     {
                         // Best-effort: ensure no auxiliary windows keep the dispatcher alive.
@@ -193,6 +211,10 @@ public partial class App : Application
                         // Important: prevent WinForms / SystemEvents foreground thread from
                         // keeping the process alive after all Avalonia windows are closed.
                         BestEffortShutdownWinFormsInfrastructure();
+
+                        // Rider/Avalonia may keep project-specific preview host processes alive
+                        // even after the app window closes. Terminate only TrackFlow-bound hosts.
+                        AvaloniaDesignerHostCleanup.CleanupForCurrentProject("desktop-exit");
 
                         try
                         {

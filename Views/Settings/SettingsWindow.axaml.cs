@@ -1,11 +1,11 @@
-﻿using System;
+﻿using System.ComponentModel;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using TrackFlow.Models;
 using TrackFlow.ViewModels.Settings;
+using TrackFlow.Views.Settings.SettingsPages;
 
 namespace TrackFlow.Views.Settings;
 
@@ -14,31 +14,23 @@ public partial class SettingsWindow : Window
     private SettingsViewModel? _vm;
     private const int DccTabIndex = 1;
     private bool _dccTabInitialSelectionApplied;
-    private IDisposable? _tabIndexSubscription;
+    private GeneralSettingsView? _generalPage;
+    private DccSettingsView? _dccPage;
+    private ModelClockSettingsView? _clockPage;
+    private ColorsSettingsView? _colorsPage;
 
     public SettingsWindow()
     {
         AvaloniaXamlLoader.Load(this);
 
-        // IMPORTANT:
-        // TabControl.SelectionChanged is a routed event and SelectionChanged from nested controls
-        // (e.g. the centrals ListBox) may bubble up and look like a tab selection change.
-        // That used to re-select the first central, effectively "freezing" list selection.
-        // We only react to changes of TabControl.SelectedIndex.
-        if (this.FindControl<TabControl>("SettingsTabs") is { } tabs)
-        {
-            _tabIndexSubscription?.Dispose();
-            _tabIndexSubscription = tabs.GetObservable(TabControl.SelectedIndexProperty)
-                .Subscribe(_ => FocusFirstCentralWhenDccTabShown());
-        }
-
         DataContextChanged += (_, _) =>
         {
             AttachToVm(DataContext as SettingsViewModel);
 
-            // Pri otvorení okna vždy refresh, aby sa HasProject/UseProject... nastavili podľa aktuálneho projektu
-            _vm?.Load();
+            // ViewModel is freshly created for each open and already calls Load() in its ctor.
+            // Running Load() again here causes redundant heavy refresh cycles.
             _dccTabInitialSelectionApplied = false;
+            UpdateCurrentSettingsPage();
             FocusFirstCentralWhenDccTabShown();
         };
 
@@ -53,13 +45,6 @@ public partial class SettingsWindow : Window
                 // best-effort
             }
 
-            // Subscription drží lambdu so zachyteným `this` – bez explicitného Dispose
-            // by každé znovu-otvorenie Settings nechalo starú inštanciu zaháknutú na
-            // observable, čo postupne zaberá pamäť (memory leak rastúci s počtom otvorení).
-            try { _tabIndexSubscription?.Dispose(); }
-            catch { /* best-effort */ }
-            _tabIndexSubscription = null;
-
             AttachToVm(null);
         };
 
@@ -69,15 +54,43 @@ public partial class SettingsWindow : Window
     private void AttachToVm(SettingsViewModel? vm)
     {
         if (_vm != null)
+        {
             _vm.CloseRequested -= OnCloseRequested;
+            _vm.PropertyChanged -= OnVmPropertyChanged;
+        }
 
         _vm = vm;
 
         if (_vm != null)
         {
             _vm.CloseRequested += OnCloseRequested;
+            _vm.PropertyChanged += OnVmPropertyChanged;
             _vm.SetCentralEditDialogFactory(ShowCentralEditDialog);
         }
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsViewModel.SelectedSettingsTabIndex))
+        {
+            UpdateCurrentSettingsPage();
+            FocusFirstCentralWhenDccTabShown();
+        }
+    }
+
+    private void UpdateCurrentSettingsPage()
+    {
+        var host = this.FindControl<ContentControl>("SettingsPageHost");
+        if (host == null || _vm == null)
+            return;
+
+        host.Content = _vm.SelectedSettingsTabIndex switch
+        {
+            1 => _dccPage ??= new DccSettingsView(),
+            2 => _clockPage ??= new ModelClockSettingsView(),
+            3 => _colorsPage ??= new ColorsSettingsView(),
+            _ => _generalPage ??= new GeneralSettingsView()
+        };
     }
 
     private async Task<DccCentralProfile?> ShowCentralEditDialog(DccCentralProfile? existing)
@@ -94,7 +107,8 @@ public partial class SettingsWindow : Window
         if (_vm == null)
             return;
 
-        if (this.FindControl<TabControl>("SettingsTabs") is not { SelectedIndex: DccTabIndex })
+        // Check if DCC tab (index 1) is selected
+        if (_vm.SelectedSettingsTabIndex != DccTabIndex)
             return;
 
         if (_vm.ConfiguredCentrals.Count == 0)

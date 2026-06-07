@@ -7,823 +7,1177 @@
              x:DataType="vm:MainWindowViewModel"
              x:CompileBindings="False">
 
-<UserControl.Styles>
-    <Style Selector="Button.blueBtn">
-      <Setter Property="Background" Value="#e8f3ff"/>
-      <Setter Property="BorderBrush" Value="Blue"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="CornerRadius" Value="3"/>
-      <Setter Property="HorizontalAlignment" Value="Stretch"/>
-    </Style>
+    <UserControl.Styles>
 
-    <Style Selector="Button.blueBtn:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#d1e8ff" /> <Setter Property="BorderBrush" Value="Blue" />     <Setter Property="Foreground" Value="Black" />    </Style>
+        <Style Selector="TabControl#RibbonTabs">
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs /template/ TabStrip">
+            <Setter Property="Margin" Value="0,4,0,0" />
+            <Setter Property="Background" Value="#DEEAF7" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs TabItem">
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="Background" Value="#DEEAF7" />
+            <Setter Property="BorderBrush" Value="#B5B5B5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="2,2,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs TabItem:selected">
+            <Setter Property="Background" Value="#DEEAF7" />
+            <Setter Property="BorderThickness" Value="1,1,1,0" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs TabItem:pointerover">
+            <Setter Property="Background" Value="#DEEAF7" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs TabItem:not(:selected)">
+            <Setter Property="Margin" Value="0,2,4,0" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs TabItem TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+        <Style Selector="TabControl#RibbonTabs /template/ ContentPresenter">
+            <Setter Property="Background" Value="#DEEAF7" />
+            <Setter Property="BorderBrush" Value="#B5B5B5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
 
-    <Style Selector="Button.blueBtn:pressed /template/ ContentPresenter">
-      <Setter Property="Background" Value="#a1c4fd" />
-      <Setter Property="BorderBrush" Value="DarkBlue" />
-    </Style>
-  </UserControl.Styles>
 
-  <Border Background="#F2F2F2"
-          BorderBrush="#D0D0D0"
-          BorderThickness="0,0,0,1"
-          ClipToBounds="True"
-          Height="160"
-          MinHeight="160">
-
-    <TabControl x:Name="RibbonTabs"
-                Classes="tc-tabs"
-                Margin="6,6,6,0"
-                SelectedIndex="1">
-
-      <!-- =========================================================
-           Tabs: Súbor / Upraviť / Železnica / Koľaje / Doplnky
-           ========================================================= -->
-
-      <TabItem Header="Súbor">
-        <!-- Obsah sa tu už nezobrazuje – klik otvorí backstage okno -->
-        <Border Margin="10">
-          <TextBlock Foreground="#666" Text=""/>
-        </Border>
-      </TabItem>
-
-      <TabItem Header="Upraviť">
-        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
-
-          <!-- Skupina: Nastavenia -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,14,0">
-            <StackPanel>
-              <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="Nastavenia" Margin="0,0,0,6"/>
-              <Button Content="Nastavenia" Command="{Binding OpenSettingsCommand}" Width="120" Height="34"/>
-            </StackPanel>
-          </Border>
-
-          <!-- Skupina: Undo/Redo -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,14,0">
-            <StackPanel>
-              <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="Undo/Redo" Margin="0,0,0,6"/>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Command="{Binding UndoCommand}" Width="80" Height="34">
-                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Image Source="avares://TrackFlow/Assets/Appicons/32/prev.png" Width="18" Height="18"/>
-                    <TextBlock Text="Undo" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <Button Command="{Binding RedoCommand}" Width="80" Height="34">
-                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Image Source="avares://TrackFlow/Assets/Appicons/32/next.png" Width="18" Height="18"/>
-                    <TextBlock Text="Redo" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-              </StackPanel>
-            </StackPanel>
-          </Border>
-
-          <!-- Skupina: Lokomotívy a vlaky (tvoje tlačidlá nechávam bez zmeny) -->
-          <StackPanel>
-            <StackPanel Orientation="Vertical" Spacing="8">
-              <Button Content="Lokomotívy"
-                      Classes="blueBtn"
-                      Command="{Binding OpenLocomotivesCommand}"
-                      FontFamily="Segoe UI"
-                      FontSize="14"
-                      BorderBrush="Blue"
-                      Background="#e8f3ff"
-                      Padding="10,0,0,0"
-                      Width="110"
-                      Height="22"
-                      VerticalContentAlignment="Center"/>
-
-              <Button Content="Vozidlá"
-                      Classes="blueBtn"
-                      Command="{Binding OpenVehiclesCommand}"
-                      FontFamily="Segoe UI"
-                      Padding="10,0,0,0"
-                      FontSize="14"
-                      BorderBrush="Blue"
-                      Background="#e8f3ff"
-                      Width="110"
-                      Height="22"
-                      VerticalContentAlignment="Center"/>
-
-              <Button Content="Vlaky"
-                      Classes="blueBtn"
-                      Command="{Binding OpenTrainsCommand}"
-                      FontFamily="Segoe UI"
-                      Padding="10,0,0,0"
-                      FontSize="14"
-                      BorderBrush="Blue"
-                      Background="#e8f3ff"
-                      Width="110"
-                      Height="22"
-                      VerticalContentAlignment="Center"/>
-
-              <TextBlock FontWeight="SemiBold"
-                         FontSize="11"
-                         Foreground="#666"
-                         Text="Lokomotívy a vlaky"
-                         Margin="6,0,0,0"/>
-            </StackPanel>
-          </StackPanel>
-
-        </StackPanel>
-      </TabItem>
-
-      <TabItem Header="Železnica">
-        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
-          <StackPanel>
-            <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="DCC" Margin="0,0,0,6"/>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="{Binding Ribbon.ConnectButtonText}"
-                      Command="{Binding ToggleConnectCommand}"
-                      Width="90"
-                      Height="34"/>
-              <Button Content="STOP"
-                      Command="{Binding StopCommand}"
-                      Width="70"
-                      Height="34"
-                      Background="#E53935"
-                      Foreground="White"
-                      FontWeight="Bold"/>
-            </StackPanel>
-          </StackPanel>
-        </StackPanel>
-      </TabItem>
-
-      <TabItem Header="Koľaje">
-
-        <TabItem.Resources>
-          <!-- Konvertor: porovná SelectedMarkerKey s CommandParameter -->
-          <conv:EqualsStringConverter x:Key="EqStr"/>
-        </TabItem.Resources>
-
-        <TabItem.Styles>
-
-          <!-- ══════════════════════════════════════════════════════════════════
-               Riešenie pre FluentTheme: FluentTheme aplikuje hover INTERNE cez
-               svoj ControlTemplate (nie cez externé selektory). Aby sme ho 
-               prepísali, nastavíme vlastný jednoduchý Template s TemplateBinding
-               na Background a BorderBrush – potom externé pseudo-class selektory
-               fungujú správne a šedý hover FluentTheme zmizne.
-               ══════════════════════════════════════════════════════════════════ -->
-
-          <!-- ── Button.marker: vlastný template ───────────────────────────── -->
-          <Style Selector="Button.marker">
-            <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius"    Value="3"/>
-            <Setter Property="Padding"         Value="2"/>
-            <Setter Property="Width"           Value="28"/>
-            <Setter Property="Height"          Value="28"/>
-            <Setter Property="Cursor"          Value="Hand"/>
+        <Style Selector="Button.marker">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
-              <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}">
-                  <ContentPresenter Content="{TemplateBinding Content}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                </Border>
-              </ControlTemplate>
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
             </Setter>
-          </Style>
-          <!-- Hover: modré podfarbenie + tmavší lem -->
-          <Style Selector="Button.marker:pointerover">
-            <Setter Property="Background"  Value="#CCE4FF"/>
-            <Setter Property="BorderBrush" Value="#1565C0"/>
-          </Style>
-          <!-- Pressed: tmavšie modré -->
-          <Style Selector="Button.marker:pressed">
-            <Setter Property="Background"  Value="#A8D1FF"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <!-- Aktívny marker: trvalé modré + tmavý lem -->
-          <Style Selector="Button.marker.active">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <!-- Aktívny hover: zostáva modré -->
-          <Style Selector="Button.marker.active:pointerover">
-            <Setter Property="Background"  Value="#64B5F6"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
+        </Style>
 
-          <!-- ── Button.selectBtn: vlastný template, žiadny hover ──────────── -->
-          <Style Selector="Button.selectBtn">
-            <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius"    Value="3"/>
-            <Setter Property="Padding"         Value="4"/>
-            <Setter Property="Width"           Value="44"/>
-            <Setter Property="Height"          Value="44"/>
+        <Style Selector="Button.marker:pointerover">
+            <Setter Property="Background" Value="#CCE4FF" />
+            <Setter Property="BorderBrush" Value="#1565C0" />
+        </Style>
+        <Style Selector="Button.marker:pressed">
+            <Setter Property="Background" Value="#A8D1FF" />
+            <Setter Property="BorderBrush" Value="#0D47A1" />
+        </Style>
+        <Style Selector="Button.marker.active">
+            <Setter Property="Background" Value="#90CAF9" />
+            <Setter Property="BorderBrush" Value="#0D47A1" />
+        </Style>
+        <Style Selector="Button.marker.active:pointerover">
+            <Setter Property="Background" Value="#64B5F6" />
+            <Setter Property="BorderBrush" Value="#0D47A1" />
+        </Style>
+        <Style Selector="Button.selectBtn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
             <Setter Property="Template">
-              <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}">
-                  <ContentPresenter Content="{TemplateBinding Content}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                </Border>
-              </ControlTemplate>
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
             </Setter>
-          </Style>
-          <!-- Žiadny hover efekt (transparentné zostáva) -->
-          <Style Selector="Button.selectBtn:pointerover">
-            <Setter Property="Background"  Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-          </Style>
-          <!-- Zapnutý stav: modré podfarbenie + tmavší lem -->
-          <Style Selector="Button.selectBtn.active">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <!-- Zapnutý hover: zostáva modré (bez zmeny) -->
-          <Style Selector="Button.selectBtn.active:pointerover">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-
-        </TabItem.Styles>
-
-        <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,4">
-
-          <!-- ── Undo / Redo ────────────────────────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0" VerticalAlignment="Center">
-              <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,0,4">
-                <Button Command="{Binding UndoCommand}" Width="30" Height="30" Padding="3"
-                        Background="Transparent" BorderBrush="Transparent"
-                        ToolTip.Tip="Späť (Ctrl+Z)">
-                  <Image Source="avares://TrackFlow/Assets/Appicons/32/prev.png"
-                         Width="18" Height="18" Stretch="Uniform"/>
-                </Button>
-                <Button Command="{Binding RedoCommand}" Width="30" Height="30" Padding="3"
-                        Background="Transparent" BorderBrush="Transparent"
-                        ToolTip.Tip="Znova (Ctrl+Y)">
-                  <Image Source="avares://TrackFlow/Assets/Appicons/32/next.png"
-                         Width="18" Height="18" Stretch="Uniform"/>
-                </Button>
-              </StackPanel>
-              <TextBlock Text="Undo/Redo" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          <!-- ── Výber ──────────────────────────────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0" VerticalAlignment="Center">
-              <Button Classes="selectBtn"
-                      Classes.active="{Binding LayoutEditor.IsSelectToolActive}"
-                      Command="{Binding LayoutEditor.SelectToolCommand}"
-                      Width="44" Height="44"
-                      ToolTip.Tip="Výber (V)">
-                <Canvas Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <Path Fill="#333" Stroke="Transparent"
-                        Data="M4,2 L4,18 L8,14 L11,20 L13,19 L10,13 L16,13 Z"/>
-                </Canvas>
-              </Button>
-              <TextBlock Text="Výber" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          <!-- ── Koľaje: 3 riadky × 2 stĺpce ───────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28" RowDefinitions="28,28,28">
-
-                <!-- R1C1: Priama -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TrackSegment}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="TrackSegment"
-                        ToolTip.Tip="Priama koľaj">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerTrackSegment x:Name="Outline1" Opacity="0.8"/>
-                    <mk:MarkerTrackSegment/>
-                  </Grid>
-                </Button>
-
-                <!-- R1C2: Zarážadlo -->
-                <Button Grid.Row="0" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bumper}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Bumper"
-                        ToolTip.Tip="Zarážadlo">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerBumper x:Name="Outline2" Opacity="0.8"/>
-                    <mk:MarkerBumper/>
-                  </Grid>
-                </Button>
-
-                <!-- R2C1: Oblúk 45° -->
-                <Button Grid.Row="1" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Curve_45}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Curve_45"
-                        ToolTip.Tip="Oblúk 45°">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerCurve45 x:Name="Outline3" Opacity="0.8"/>
-                    <mk:MarkerCurve45/>
-                  </Grid>
-                </Button>
-
-                <!-- R2C2: prázdne -->
-
-                <!-- R3C1: Oblúk 90° -->
-                <Button Grid.Row="2" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Curve_90}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Curve_90"
-                        ToolTip.Tip="Oblúk 90°">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerCurve90 x:Name="Outline4" Opacity="0.8"/>
-                    <mk:MarkerCurve90/>
-                  </Grid>
-                </Button>
-
-
-              </Grid>
-              <TextBlock Text="Koľaje" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          <!-- ── Výhybky: 3 riadky × 3 stĺpce ──────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28,6,28" RowDefinitions="28,28,28">
-
-                <!-- R1C1: Výhybka ľavá -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_L}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Turnout_L"
-                        Padding="2,2,0,2"
-                        ToolTip.Tip="Výhybka ľavá">
-                  <mk:MarkerTurnoutL Width="24" Height="24"/>
-                </Button>
-
-                <!-- R1C2: Výhybka pravá -->
-                <Button Grid.Row="0" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_R}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Turnout_R"
-                        Padding="0,2,15,2"
-                        ToolTip.Tip="Výhybka pravá">
-                  <mk:MarkerTurnoutR Width="24" Height="24"/>
-                </Button>
-
-                <!-- R1C3: Y-výhybka -->
-                <Button Grid.Row="0" Grid.Column="4" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_Y}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Turnout_Y"  
-                        Padding="2,2,4,2"
-                        ToolTip.Tip="Y-výhybka">
-                  <mk:MarkerTurnoutY Width="24" Height="24"/>
-                </Button>
-
-                <!-- R2C1: Výhybka ľavá 90° -->
-                <Button Grid.Row="1" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutL90}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="TurnoutL90"
-                        Padding="4,2,0,2"
-                        ToolTip.Tip="Výhybka ľavá 90°">
-                  <mk:MarkerTurnoutL90 Width="24" Height="24"/>
-                </Button>
-
-                <!-- R2C2: Výhybka pravá 90° -->
-                <Button Grid.Row="1" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutR90}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="TurnoutR90"
-                        Padding="0,2,15,2"
-                        ToolTip.Tip="Výhybka pravá 90°">
-                  <mk:MarkerTurnoutR90 Width="24" Height="24"/>
-                </Button>
-
-                <!-- R2C3: 3-cestná výhybka -->
-                <Button Grid.Row="1" Grid.Column="4" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_3W}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Turnout_3W"
-                        ToolTip.Tip="3-cestná výhybka">
-                  <mk:MarkerTurnout3W Width="24" Height="24"/>
-                </Button>
-
-                <!-- R3C1: Oblúková výhybka ľavá -->
-                <Button Grid.Row="2" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutCurve_L}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="TurnoutCurve_L"
-                        Padding="4,2,0,2"
-                        ToolTip.Tip="Oblúková výhybka ľavá">
-                  <mk:MarkerTurnoutCurveL Width="24" Height="24"/>
-                </Button>
-
-                <!-- R3C2: Oblúková výhybka pravá -->
-                <Button Grid.Row="2" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutCurve_R}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="TurnoutCurve_R"
-                        Padding="0,2,15,2"
-                        ToolTip.Tip="Oblúková výhybka pravá">
-                  <mk:MarkerTurnoutCurveR Width="24" Height="24"/>
-                </Button>
-
-              </Grid>
-              <TextBlock Text="Výhybky" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          <!-- ── Križovatky a mosty: 3 riadky × 2 stĺpce ────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28" RowDefinitions="28,28,28">
-
-                <!-- R1C1: Križovatka 90° -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Cross90}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Cross90" ToolTip.Tip="Križovatka 90°">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerCross90 x:Name="Outline11" Opacity="0.8"/>
-                    <mk:MarkerCross90/>
-                  </Grid>
-                </Button>
-
-                <!-- R1C2: Križovatka 45° -->
-                <Button Grid.Row="0" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Cross45}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Cross45" ToolTip.Tip="Križovatka 45°">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerCross45 x:Name="Outline12" Opacity="0.8"/>
-                    <mk:MarkerCross45/>
-                  </Grid>
-                </Button>
-
-                <!-- R2C1: Double Slip -->
-                <Button Grid.Row="1" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=DoubleSlip}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="DoubleSlip" ToolTip.Tip="Križovatková výhybka">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerDoubleSlip x:Name="Outline13" Opacity="0.8"/>
-                    <mk:MarkerDoubleSlip/>
-                  </Grid>
-                </Button>
-
-                <!-- R2C2: Most 90° -->
-                <Button Grid.Row="1" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge90}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Bridge90" ToolTip.Tip="Most 90°">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerBridge90 x:Name="Outline14" Opacity="0.8"/>
-                    <mk:MarkerBridge90/>
-                  </Grid>
-                </Button>
-
-                <!-- R3C1: Most 45° ľavý -->
-                <Button Grid.Row="2" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge45L}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Bridge45L" ToolTip.Tip="Most 45° ľavý">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerBridge45L x:Name="Outline15" Opacity="0.8"/>
-                    <mk:MarkerBridge45L/>
-                  </Grid>
-                </Button>
-
-                <!-- R3C2: Most 45° pravý -->
-                <Button Grid.Row="2" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge45R}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Bridge45R" ToolTip.Tip="Most 45° pravý">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerBridge45R x:Name="Outline16" Opacity="0.8"/>
-                    <mk:MarkerBridge45R/>
-                  </Grid>
-                </Button>
-
-              </Grid>
-              <TextBlock Text="Križovatky a mosty" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          
-            <!-- ── Bloky a senzory: 3 riadky × 2 stĺpce ────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28" RowDefinitions="28,28,28">
-			  
-		
-                <!-- R1C2: Senzor obsadenosti -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Sensor}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Sensor" ToolTip.Tip="Senzor obsadenosti">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerSensor x:Name="OutlineSensor" Opacity="0.8"/>
-                    <mk:MarkerSensor/>
-                  </Grid>
-                </Button>
-
-                <!-- R2C1: Blok -->
-                <Button Grid.Row="1" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Block}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Block" ToolTip.Tip="Blok">
-                  <!-- Mini náhľad bloku v tlačidle (zmenšený) -->
-                  <Border Width="24" Height="10" 
-                          Background="#FFFFDC" 
-                          BorderBrush="#003366" 
-                          BorderThickness="1"
-                          CornerRadius="1">
-                    <TextBlock Text="Blok" FontSize="8" FontWeight="Normal" 
-                               Foreground="#333" 
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center"/>
-                  </Border>
-                </Button>
-			  
-			 
-			  </Grid>
-              <TextBlock Text="Bloky a senzory" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-          
-          <!-- ── Návestidla: 3 riadky × 2 stĺpce ────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28" RowDefinitions="28,28,28">
-			  
-                <!-- R1C1: Vchodové 5-znakové -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal5}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal5" ToolTip.Tip="Vchodové návestidlo (5-znakové)">
-                  <mk:MarkerSignalRibbon Width="9" Height="24"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"/>
-                </Button>
-                
-                <!-- R1C2: Odchodové 5-znakové -->
-                <Button Grid.Row="0" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal4}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal4" ToolTip.Tip="Odchodové návestidlo (5-znakové, plné SR)">
-                  <mk:MarkerSignalRibbon Width="9" Height="24"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"/>
-                </Button>
-                
-                <!-- R2C1: Hlavné 2-znakové (červená-zelená) -->
-                <Button Grid.Row="1" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Main}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal2Main" ToolTip.Tip="Hlavné návestidlo (2-znakové)">
-                  <mk:MarkerSignal2Main Width="9" Height="13"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"/>
-                </Button>
-                
-                <!-- R2C2: Zriaďovacie 2-znakové (modrá-biela) -->
-                <Button Grid.Row="1" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Shunt}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal2Shunt" ToolTip.Tip="Zriaďovacie návestidlo (2-znakové)">
-                   <mk:MarkerSignal2Shunt Width="9" Height="15"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"/>
-                </Button>
-
-                <!-- R3C1: Cestové 2-znakové (červená-biela) -->
-                <Button Grid.Row="2" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Route}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal2Route" ToolTip.Tip="Cestové návestidlo (2-znakové)">
-                  <mk:MarkerSignal2Route Width="9" Height="15"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"/>
-                </Button>
-
-                <!-- R3C2: Vchodové 3-znakové (zelená-červená-biela) -->
-                <Button Grid.Row="2" Grid.Column="2" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal3Entry}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Signal3Entry" ToolTip.Tip="Vchodové návestidlo (3-znakové)">
-                  <mk:MarkerSignal3Entry Width="9" Height="18"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"/>
-                </Button>
-                
-              </Grid>
-              <TextBlock Text="Návestidlá" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-          
-          
-          <!-- ── Príslušenstvo: 3 riadky × 2 stĺpce ─────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28,6,28" RowDefinitions="28,28,28">
-
-                <!-- R1C1: Text -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, 
-                        Converter={StaticResource EqStr}, 
-                        ConverterParameter=Text}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Text" 
-                        ToolTip.Tip="Textový popis">
-                  <Grid Width="24" Height="12">
-                    <mk:MarkerText/>
-                  </Grid>
-                </Button>
-
-              </Grid>
-              <TextBlock Text="Popisy a grafika" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-          <!-- ── Uložiť schému ────────────────────────────────────────── -->
-          <StackPanel VerticalAlignment="Center">
-            <Button Command="{Binding LayoutEditor.SaveToProjectCommand}"
-                    Height="34" Padding="12,0"
-                    Background="#1565C0" Foreground="White"
-                    FontWeight="SemiBold" FontSize="11"
-                    ToolTip.Tip="Uložiť schému do projektu">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="💾" FontSize="14" VerticalAlignment="Center"/>
-                <TextBlock Text="Uložiť schému" VerticalAlignment="Center"/>
-              </StackPanel>
-            </Button>
-          </StackPanel>
-
-        </StackPanel>
-      </TabItem>
-
-          <TabItem Header="Príslušenstvo">
+        </Style>
         
-        <TabItem.Resources>
-          <conv:EqualsStringConverter x:Key="EqStr"/>
-        </TabItem.Resources>
+        <Style Selector="Button.selectBtn:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.selectBtn.active">
+            <Setter Property="Background" Value="#90CAF9" />
+            <Setter Property="BorderBrush" Value="#0D47A1" />
+        </Style>
+        <Style Selector="Button.selectBtn.active:pointerover">
+            <Setter Property="Background" Value="#90CAF9" />
+            <Setter Property="BorderBrush" Value="#0D47A1" />
+        </Style>
 
-        <TabItem.Styles>
-          <!-- ── Button.marker: vlastný template ───────────────────────────── -->
-          <Style Selector="Button.marker">
-            <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius"    Value="3"/>
-            <Setter Property="Padding"         Value="2"/>
-            <Setter Property="Width"           Value="28"/>
-            <Setter Property="Height"          Value="28"/>
-            <Setter Property="Cursor"          Value="Hand"/>
-            <Setter Property="Template">
-              <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}">
-                  <ContentPresenter Content="{TemplateBinding Content}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                </Border>
-              </ControlTemplate>
+        <Style Selector="Button.connectBtn">
+            <Setter Property="Background" Value="#E1ECF4" />
+            <Setter Property="BorderBrush" Value="#A4B9CC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#1C3D5A" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.connectBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D2E2EE" />
+            <Setter Property="BorderBrush" Value="#8FAEC7" />
+        </Style>
+
+        <Style Selector="Button.stopBtn">
+            <Setter Property="Background" Value="#C62828" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.stopBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#B71C1C" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle /template/ ContentPresenter">
+            <Setter Property="Background" Value="#df9e60" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#1A3B5C" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D68C45" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle">
+            <Setter Property="Content" Value="LIVE" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle:checked /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2f608c" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#132537" />
+            <Setter Property="BorderThickness" Value="1.5" />
+
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle:checked:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#265279" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="ToggleButton.modeToggle:checked">
+            <Setter Property="Content" Value="SIMULÁTOR" />
+        </Style>
+
+        <Style Selector="Button[Background=Transparent]:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        
+        <Style Selector="Button.zoomBtn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="ClipToBounds" Value="False" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                </Transitions>
             </Setter>
-          </Style>
-          <Style Selector="Button.marker:pointerover">
-            <Setter Property="Background"  Value="#CCE4FF"/>
-            <Setter Property="BorderBrush" Value="#1565C0"/>
-          </Style>
-          <Style Selector="Button.marker:pressed">
-            <Setter Property="Background"  Value="#A8D1FF"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <Style Selector="Button.marker.active">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <Style Selector="Button.marker.active:pointerover">
-            <Setter Property="Background"  Value="#64B5F6"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
+        </Style>
 
-          <!-- ── Button.selectBtn: vlastný template ──────────────────────── -->
-          <Style Selector="Button.selectBtn">
-            <Setter Property="Background"      Value="Transparent"/>
-            <Setter Property="BorderBrush"     Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius"    Value="3"/>
-            <Setter Property="Padding"         Value="4"/>
-            <Setter Property="Width"           Value="44"/>
-            <Setter Property="Height"          Value="44"/>
-            <Setter Property="Template">
-              <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}">
-                  <ContentPresenter Content="{TemplateBinding Content}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+        <Style Selector="Button.zoomBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <Style Selector="Button.zoomBtn:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.12)" />
+        </Style>
+
+    </UserControl.Styles>
+
+    <Border Background="#99c0ea"
+            BorderBrush="#E0E8F3"
+            BorderThickness="0,0,0,1"
+            ClipToBounds="True"
+            Height="110"
+            MinHeight="110">
+
+        <Grid ColumnDefinitions="*, Auto" RowDefinitions="*">
+
+            <TabControl x:Name="RibbonTabs"
+                        Grid.Column="0"
+                        Margin="0"
+                        Padding="0"
+                        SelectedIndex="1">
+
+                <TabItem Header="Súbor">
+                    <Border Margin="10">
+                        <TextBlock Foreground="#666" Text="" />
+                    </Border>
+                </TabItem>
+
+                <TabItem Header="Upraviť">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="14"
+                                Margin="10">
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,15,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <Button 
+                                        Classes="zoomBtn"
+                                        Command="{Binding OpenSettingsCommand}"
+                                        Width="34"
+                                        Height="34"
+                                        Margin="0,12,0,0"
+                                        HorizontalAlignment="Center"
+                                        ToolTip.Tip="Upraviť nastavenia aplikácie"
+                                        Cursor="Hand">
+                                    <Image Source="avares://TrackFlow/Assets/Appicons/32/setup.png"
+                                           Width="32"
+                                           Height="32" />
+                                </Button>
+                                <TextBlock Text="Nastavenia"
+                                           FontSize="9"
+                                           Foreground="#666" HorizontalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                            </StackPanel>
+
+                        </Border>
+
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Editor koľajiska">
+                    <TabItem.Resources>
+                        <conv:EqualsStringConverter x:Key="EqStr" />
+                    </TabItem.Resources>
+
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="10"
+                                Margin="6,4">
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Orientation="Vertical"
+                                        Spacing="6">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8">
+                                    <Button Classes="zoomBtn"
+                                            Command="{Binding OpenLocomotivesCommand}"
+                                            Margin="0,15,0,0"
+                                            Width="32"
+                                            Height="32"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Lokomotívy"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/48/loco.png"
+                                               Width="32"
+                                               Height="32"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                    <Button Classes="zoomBtn"
+                                            Command="{Binding OpenVehiclesCommand}"
+                                            BorderThickness="0"
+                                            Margin="0,15,0,0"
+                                            Width="32"
+                                            Height="32"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Vagóny"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/48/car.png"
+                                               Width="32"
+                                               Height="32"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                    <Button Classes="zoomBtn"
+                                            Command="{Binding OpenTrainsCommand}"
+                                            BorderThickness="0"
+                                            Margin="0,15,0,0"
+                                            Width="32"
+                                            Height="32"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Vlaky"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/48/train.png"
+                                               Width="32"
+                                               Height="32"
+                                               Stretch="Uniform" />
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Text="Správa vozidiel a vlakov"
+                                           FontSize="10"
+                                           Foreground="#666"
+                                           Padding="0,11,0,0"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <StackPanel Orientation="Vertical"
+                                            Spacing="2"
+                                            Margin="0,5,0,4">
+
+                                    <Button Classes="zoomBtn"
+                                            Command="{Binding UndoCommand}"
+                                            Margin="0,0,0,0"
+                                            Width="27"
+                                            Height="27"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Späť (Ctrl+Z)"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/32/prev.png"
+                                               Width="18"
+                                               Height="18"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                    <Button Classes="zoomBtn"
+                                            Command="{Binding RedoCommand}"
+                                            Width="27"
+                                            Height="27"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Znova (Ctrl+Y)"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/32/next.png"
+                                               Width="18"
+                                               Height="18"
+                                               Stretch="Uniform" />
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Text="História"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,15,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <Button Classes="selectBtn"
+                                        Classes.active="{Binding LayoutEditor.IsSelectToolActive}"
+                                        Command="{Binding LayoutEditor.SelectToolCommand}"
+                                        Width="34"
+                                        Height="44"
+                                        Margin="0,5,0,0"
+                                        ToolTip.Tip="Výber (V)">
+                                    <Canvas Width="22"
+                                            Height="22"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                        <Path Fill="#333"
+                                              Stroke="Transparent"
+                                              Data="M4,2 L4,18 L8,14 L11,20 L13,19 L10,13 L16,13 Z" />
+                                    </Canvas>
+                                </Button>
+                                <TextBlock Text="Výber"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,16,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28"
+                                      RowDefinitions="28,28">
+                                   
+                                    <!-- Špeciálna Classes="zoomBtn" trieda pre efekt zväčšenia ikony pri hoveri, vymenené za  Classes="marker" -->
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TrackSegment}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="TrackSegment"
+                                            ToolTip.Tip="Priama koľaj">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerTrackSegment x:Name="Outline1"
+                                                                   Opacity="0.8" />
+                                            <mk:MarkerTrackSegment />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bumper}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Bumper"
+                                            ToolTip.Tip="Zarážadlo">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerBumper x:Name="Outline2"
+                                                             Opacity="0.8" />
+                                            <mk:MarkerBumper />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Curve_45}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Curve_45"
+                                            ToolTip.Tip="Oblúk 45°">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerCurve45 x:Name="Outline3"
+                                                              Opacity="0.8" />
+                                            <mk:MarkerCurve45 />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Curve_90}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Curve_90"
+                                            ToolTip.Tip="Oblúk 90°">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerCurve90 x:Name="Outline4"
+                                                              Opacity="0.8" />
+                                            <mk:MarkerCurve90 />
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="Koľaje"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28,6,28,6,28"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_L}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Turnout_L"
+                                            Padding="2,2,0,2"
+                                            ToolTip.Tip="Výhybka ľavá">
+                                        <mk:MarkerTurnoutL
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_R}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Turnout_R"
+                                            Padding="0,2,15,2"
+                                            ToolTip.Tip="Výhybka pravá">
+                                        <mk:MarkerTurnoutR
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_Y}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Turnout_Y"
+                                            Padding="2,2,4,2"
+                                            ToolTip.Tip="Y-výhybka">
+                                        <mk:MarkerTurnoutY
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutL90}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="TurnoutL90"
+                                            Padding="4,2,0,2"
+                                            ToolTip.Tip="Výhybka ľavá 90°">
+                                        <mk:MarkerTurnoutL90
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutR90}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="TurnoutR90"
+                                            Padding="0,2,15,2"
+                                            ToolTip.Tip="Výhybka pravá 90°">
+                                        <mk:MarkerTurnoutR90
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Turnout_3W}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Turnout_3W"
+                                            ToolTip.Tip="3-cestná výhybka">
+                                        <mk:MarkerTurnout3W
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="6"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutCurve_L}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="TurnoutCurve_L"
+                                            Padding="4,2,0,2"
+                                            ToolTip.Tip="Oblúková výhybka ľavá">
+                                        <mk:MarkerTurnoutCurveL
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="6"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=TurnoutCurve_R}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="TurnoutCurve_R"
+                                            Padding="0,2,15,2"
+                                            ToolTip.Tip="Oblúková výhybka pravá">
+                                        <mk:MarkerTurnoutCurveR
+                                            Width="24"
+                                            Height="24" />
+                                    </Button>
+                                    
+                                </Grid>
+                                <TextBlock Text="Výhybky"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28,6,28"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Cross90}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Cross90" ToolTip.Tip="Križovatka 90°">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerCross90 x:Name="Outline11"
+                                                              Opacity="0.8" />
+                                            <mk:MarkerCross90 />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Cross45}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Cross45" ToolTip.Tip="Križovatka 45°">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerCross45 x:Name="Outline12"
+                                                              Opacity="0.8" />
+                                            <mk:MarkerCross45 />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=DoubleSlip}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="DoubleSlip"
+                                            ToolTip.Tip="Križovatková výhybka">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerDoubleSlip x:Name="Outline13"
+                                                                 Opacity="0.8" />
+                                            <mk:MarkerDoubleSlip />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge90}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Bridge90"
+                                            ToolTip.Tip="Most 90°">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerBridge90 x:Name="Outline14"
+                                                               Opacity="0.8" />
+                                            <mk:MarkerBridge90 />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge45L}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Bridge45L"
+                                            ToolTip.Tip="Most 45° ľavý">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerBridge45L x:Name="Outline15"
+                                                                Opacity="0.8" />
+                                            <mk:MarkerBridge45L />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Bridge45R}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Bridge45R"
+                                            ToolTip.Tip="Most 45° pravý">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerBridge45R x:Name="Outline16"
+                                                                Opacity="0.8" />
+                                            <mk:MarkerBridge45R />
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="Križovatky a mosty"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Sensor}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Sensor"
+                                            ToolTip.Tip="Senzor obsadenosti">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerSensor x:Name="OutlineSensor"
+                                                             Opacity="0.8" />
+                                            <mk:MarkerSensor />
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Block}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Block"
+                                            ToolTip.Tip="Blok">
+                                        <Border Width="24"
+                                                Height="10"
+                                                Background="#FFFFDC"
+                                                BorderBrush="#003366"
+                                                BorderThickness="1"
+                                                CornerRadius="1">
+                                            <TextBlock Text="Blok"
+                                                       FontSize="8"
+                                                       FontWeight="Normal"
+                                                       Foreground="#333"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="Bloky a senzory"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="15,8,15,8,24"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal5}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal5"
+                                            ToolTip.Tip="Vchodové návestidlo (5-znakové)">
+                                        <mk:MarkerSignalRibbon
+                                            Width="9"
+                                            Height="24"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal4}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal4"
+                                            ToolTip.Tip="Odchodové návestidlo (5-znakové, plné SR)">
+                                        <mk:MarkerSignalRibbon
+                                            Width="9"
+                                            Height="24"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Main}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal2Main"
+                                            ToolTip.Tip="Hlavné návestidlo (2-znakové)">
+                                        <mk:MarkerSignal2Main Width="9"
+                                                              Height="13"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="2"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Shunt}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal2Shunt"
+                                            ToolTip.Tip="Zriaďovacie návestidlo (2-znakové)">
+                                        <mk:MarkerSignal2Shunt Width="9"
+                                                               Height="15"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="0"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal2Route}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal2Route"
+                                            ToolTip.Tip="Cestové návestidlo (2-znakové)">
+                                        <mk:MarkerSignal2Route Width="9"
+                                                               Height="15"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                    </Button>
+                                    
+                                    <Button Grid.Row="1"
+                                            Grid.Column="4"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Signal3Entry}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Signal3Entry"
+                                            ToolTip.Tip="Vchodové návestidlo (3-znakové)">
+                                        <mk:MarkerSignal3Entry Width="9"
+                                                               Height="18"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="Návestidlá"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+
+                        <StackPanel VerticalAlignment="Center">
+                            <Button Command="{Binding LayoutEditor.SaveToProjectCommand}"
+                                    Height="34"
+                                    Padding="12,0"
+                                    Background="#1565C0"
+                                    Foreground="White"
+                                    FontWeight="SemiBold"
+                                    FontSize="11"
+                                    ToolTip.Tip="Uložiť schému do projektu">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <TextBlock Text="💾"
+                                               FontSize="14"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="Uložiť schému"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Príslušenstvo">
+                    <TabItem.Resources>
+                        <conv:EqualsStringConverter x:Key="EqStr" />
+                    </TabItem.Resources>
+
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="10"
+                                Margin="6,4">
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,15,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <Button Classes="selectBtn"
+                                        Classes.active="{Binding LayoutEditor.IsSelectToolActive}"
+                                        Command="{Binding LayoutEditor.SelectToolCommand}"
+                                        Width="34"
+                                        Height="44"
+                                        Margin="0,5,0,0"
+                                        ToolTip.Tip="Výber (V)"
+                                        Cursor="Hand">
+                                    <Canvas Width="22"
+                                            Height="22"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                        <Path Fill="#333"
+                                              Stroke="Transparent"
+                                              Data="M4,2 L4,18 L8,14 L11,20 L13,19 L10,13 L16,13 Z" />
+                                    </Canvas>
+                                </Button>
+                                <TextBlock Text="Výber"
+                                           FontSize="9"
+                                           Foreground="#666" HorizontalAlignment="Center"
+                                           Margin="0,16,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Route}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Route"
+                                            ToolTip.Tip="Cesta"
+                                            Cursor="Hand">
+                                        <Grid Width="24"
+                                              Height="24">
+                                            <mk:MarkerRoute Opacity="0.8" />
+                                            <mk:MarkerRoute />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Grid.Column="0"
+                                            Grid.Row="1"
+                                            Classes="zoomBtn"
+                                            Width="27"
+                                            Height="27"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Závory (už čoskoro)"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/32/crossing_gate.png"
+                                               Width="24"
+                                               Height="24"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                    <Button Grid.Column="2"
+                                            Grid.Row="0"
+                                            Classes="zoomBtn"
+                                            Width="27"
+                                            Height="27"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Točna (už čoskoro)"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/24/turntable.png"
+                                               Width="24"
+                                               Height="24"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                </Grid>
+                                <TextBlock Text="Príslušenstvo"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,10,0">
+                            <StackPanel Spacing="0">
+                                <Grid ColumnDefinitions="28,6,28"
+                                      RowDefinitions="28,28">
+                                    <Button Grid.Row="0"
+                                            Grid.Column="0"
+                                            Classes="zoomBtn"
+                                            Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Text}"
+                                            Command="{Binding LayoutEditor.PlaceElementCommand}"
+                                            CommandParameter="Text"
+                                            ToolTip.Tip="Textový popis">
+                                        <Grid Width="24"
+                                              Height="12">
+                                            <mk:MarkerText />
+                                        </Grid>
+                                    </Button>
+
+                                    <!-- Command="{Binding PictureCommand}" -->
+                                    <Button Grid.Column="0"
+                                            Grid.Row="1"
+                                            Classes="zoomBtn"
+                                            Width="27"
+                                            Height="27"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            ToolTip.Tip="Obrázok (už čoskoro)"
+                                            Cursor="Hand">
+                                        <Image Source="avares://TrackFlow/Assets/Appicons/32/picture.png"
+                                               Width="24"
+                                               Height="24"
+                                               Stretch="Uniform" />
+                                    </Button>
+
+                                </Grid>
+                                <TextBlock Text="Popisy a grafika"
+                                           FontSize="9"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Operácie">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="14"
+                                Margin="10">
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,15,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <Button Classes="zoomBtn"
+                                        Command="{Binding OpenClockWindowCommand}"
+                                        Width="32"
+                                        Height="32"
+                                        Margin="0,12,0,0"
+                                        HorizontalAlignment="Center"
+                                        ToolTip.Tip="Hodiny - zobrazenie a nastavenie času simulácie"
+                                        Cursor="Hand">
+                                    <Image Source="avares://TrackFlow/Assets/Appicons/32/time.png"
+                                           Width="32"
+                                           Height="32" />
+                                </Button>
+                                <TextBlock Text="Hodiny"
+                                           FontSize="9"
+                                           Foreground="#666" HorizontalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                            </StackPanel>
+
+                        </Border>
+
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Cesty a plány">
+
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="14"
+                                Margin="10">
+
+                        <Border BorderBrush="#D0D0D0"
+                                BorderThickness="0,0,1,0"
+                                Padding="0,0,15,0">
+                            <StackPanel Spacing="0"
+                                        VerticalAlignment="Center">
+                                <Button Classes="zoomBtn"
+                                        Command="{Binding OpenRoutesManagerCommand}"
+                                        Width="34"
+                                        Height="34"
+                                        Margin="0,12,0,0"
+                                        HorizontalAlignment="Center"
+                                        ToolTip.Tip="Správa ciest a plánov"
+                                        Cursor="Hand">
+                                    <Image Source="avares://TrackFlow/Assets/Appicons/32/route.png"
+                                           Width="32"
+                                           Height="32" />
+                                </Button>
+                                <TextBlock Text="Správa ciest"
+                                           FontSize="9"
+                                           Foreground="#666" HorizontalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                </TabItem>
+
+            </TabControl>
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Vertical"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Right"
+                        Margin="0,4,6,0"
+                        Spacing="4">
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6">
+                    <Button Classes="connectBtn"
+                            Command="{Binding ToggleConnectCommand}"
+                            HorizontalContentAlignment="Center"
+                            Width="110"
+                            Height="30">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6"
+                                    VerticalAlignment="Center">
+                            <Grid Width="24"
+                                  Height="24"
+                                  ClipToBounds="True">
+                                <Image Width="48"
+                                       Height="24"
+                                       HorizontalAlignment="Left"
+                                       Stretch="Fill"
+                                       Source="avares://TrackFlow/Assets/Appicons/24/plug.png"
+                                       Classes.connected="{Binding Ribbon.IsConnected}">
+                                    <Image.Styles>
+                                        <Style Selector="Image">
+                                            <Setter Property="RenderTransform" Value="translate(-24px, 0px)" />
+                                        </Style>
+                                        <Style Selector="Image.connected">
+                                            <Setter Property="RenderTransform" Value="translate(0px, 0px)" />
+                                        </Style>
+                                    </Image.Styles>
+                                </Image>
+                            </Grid>
+                            <TextBlock Text="{Binding Ribbon.ConnectButtonText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="stopBtn"
+                            Content="STOP"
+                            HorizontalContentAlignment="Center"
+                            Command="{Binding StopCommand}"
+                            Width="70"
+                            Height="30" />
+                </StackPanel>
+
+                <Border Padding="6,4"
+                        CornerRadius="4"
+                        Background="#E6EEF4"
+                        BorderThickness="1"
+                        BorderBrush="#B8C9D6"
+                        HorizontalAlignment="Center">
+
+                    <StackPanel Orientation="Vertical"
+                                Spacing="3"
+                                Height="60">
+                        <TextBlock Text="REŽIM PREVÁDZKY"
+                                   Foreground="#556A7A"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center" />
+
+                        <ToggleButton Classes="modeToggle"
+                                      IsChecked="{Binding Tabs.Operation.IsSimulationMode}"
+                                      Width="174"
+                                      Height="29"
+                                      CornerRadius="3"
+                                      HorizontalContentAlignment="Center"
+                                      VerticalContentAlignment="Center" />
+
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="11"
+                                   Foreground="#4A5A66"
+                                   Text="{Binding Tabs.Operation.IsSimulationMode,
+                            Converter={StaticResource BoolToStringConverter},
+                            ConverterParameter='Bez DCC centrály|Reálna centrála'}" />
+                    </StackPanel>
                 </Border>
-              </ControlTemplate>
-            </Setter>
-          </Style>
-          <Style Selector="Button.selectBtn:pointerover">
-            <Setter Property="Background"  Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-          </Style>
-          <Style Selector="Button.selectBtn.active">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-          <Style Selector="Button.selectBtn.active:pointerover">
-            <Setter Property="Background"  Value="#90CAF9"/>
-            <Setter Property="BorderBrush" Value="#0D47A1"/>
-          </Style>
-        </TabItem.Styles>
-
-        <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,4">
-
-          <!-- ── Výber ──────────────────────────────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0" VerticalAlignment="Center">
-              <Button Classes="selectBtn"
-                      Classes.active="{Binding LayoutEditor.IsSelectToolActive}"
-                      Command="{Binding LayoutEditor.SelectToolCommand}"
-                      Width="44" Height="44"
-                      ToolTip.Tip="Výber (V)">
-                <Canvas Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <Path Fill="#333" Stroke="Transparent"
-                        Data="M4,2 L4,18 L8,14 L11,20 L13,19 L10,13 L16,13 Z"/>
-                </Canvas>
-              </Button>
-              <TextBlock Text="Výber" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
             </StackPanel>
-          </Border>
 
-          <!-- ── Cesty: marker ─────────────────────────────────────── -->
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,10,0">
-            <StackPanel Spacing="0">
-              <Grid ColumnDefinitions="28" RowDefinitions="28,28,28">
-                <!-- R1C1: Cesta -->
-                <Button Grid.Row="0" Grid.Column="0" Classes="marker"
-                        Classes.active="{Binding LayoutEditor.SelectedMarkerKey, Converter={StaticResource EqStr}, ConverterParameter=Route}"
-                        Command="{Binding LayoutEditor.PlaceElementCommand}"
-                        CommandParameter="Route"
-                        ToolTip.Tip="Cesta">
-                  <Grid Width="24" Height="24">
-                    <mk:MarkerRoute Opacity="0.8"/>
-                    <mk:MarkerRoute/>
-                  </Grid>
-                </Button>
-              </Grid>
-              <TextBlock Text="Cesty" FontSize="9" Foreground="#666" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-          </Border>
-
-        </StackPanel>
-      </TabItem>
-      
-      <TabItem Header="Operácie">
-        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
-          <TextBlock Foreground="#666" Text="(pripravené pre Operácie)"/>
-        </StackPanel>
-      </TabItem>
-      
-      <TabItem Header="Cesty a plány">
-        <StackPanel Orientation="Horizontal" Spacing="14" Margin="10">
-          <Border BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Padding="0,0,14,0">
-            <StackPanel>
-              <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#666" Text="Správa" Margin="0,0,0,6"/>
-              <Button Content="Správca ciest a plánov"
-                      Command="{Binding OpenRoutesManagerCommand}"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      Width="180" Height="34"
-                      Padding="20,8"
-                      FontSize="12"/>
-            </StackPanel>
-          </Border>
-        </StackPanel>
-      </TabItem>
-      
-     
-    </TabControl>
-  </Border>
+        </Grid>
+    </Border>
 </UserControl>
