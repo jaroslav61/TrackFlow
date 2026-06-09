@@ -195,7 +195,34 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private bool openLastProjectOnStartup = false;
 
     [ObservableProperty]
+    private bool autoSaveEnabled;
+
+    [ObservableProperty]
+    private int autoSaveIntervalMinutes;
+
+    [ObservableProperty]
+    private bool showTooltipsInApp = true;
+
+    [ObservableProperty]
+    private bool showClockOnStartup;
+
+    [ObservableProperty]
+    private bool showClockStartPauseButton = true;
+
+    [ObservableProperty]
+    private bool setModelClockTimeOnStartup;
+
+    [ObservableProperty]
+    private int startupModelClockHour = 8;
+
+    [ObservableProperty]
+    private int startupModelClockMinute;
+
+    [ObservableProperty]
     private int visibleWagonsInTrain = 0; // 0 = všetky, 1-4 = konkrétny počet
+
+    [ObservableProperty]
+    private string defaultProjectsDirectory = string.Empty;
 
     private bool _enableTransientRouteMessages = true;
     public bool EnableTransientRouteMessages
@@ -631,6 +658,35 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _mgr.Dirty.MarkDirty("dcc-autoconnect");
     }
 
+    partial void OnAutoSaveEnabledChanged(bool value)
+    {
+        if (value && AutoSaveIntervalMinutes <= 0)
+            AutoSaveIntervalMinutes = 5;
+    }
+
+    partial void OnAutoSaveIntervalMinutesChanged(int value)
+    {
+        if (!AutoSaveEnabled)
+            return;
+
+        if (value <= 0)
+            AutoSaveIntervalMinutes = 5;
+    }
+
+    partial void OnStartupModelClockHourChanged(int value)
+    {
+        var normalized = Math.Clamp(value, 0, 23);
+        if (normalized != value)
+            StartupModelClockHour = normalized;
+    }
+
+    partial void OnStartupModelClockMinuteChanged(int value)
+    {
+        var normalized = Math.Clamp(value, 0, 59);
+        if (normalized != value)
+            StartupModelClockMinute = normalized;
+    }
+
     partial void OnUseProjectForDccChanged(bool value)
     {
         if (!_suppressAutoDefaults && HasProject && _mgr.Project != null)
@@ -693,6 +749,15 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         Language = _mgr.App.Language;
         AccentColor = _mgr.App.AccentColor;
         OpenLastProjectOnStartup = _mgr.App.OpenLastProjectOnStartup;
+        DefaultProjectsDirectory = _mgr.App.DefaultProjectsDirectory ?? string.Empty;
+        AutoSaveEnabled = _mgr.App.AutoSaveEnabled;
+        AutoSaveIntervalMinutes = Math.Clamp(_mgr.App.AutoSaveIntervalMinutes, 0, 120);
+        ShowTooltipsInApp = _mgr.App.ShowTooltipsInApp;
+        ShowClockOnStartup = _mgr.App.ShowClockOnStartup;
+        ShowClockStartPauseButton = _mgr.App.ShowClockStartPauseButton;
+        SetModelClockTimeOnStartup = _mgr.App.SetModelClockTimeOnStartup;
+        StartupModelClockHour = Math.Clamp(_mgr.App.StartupModelClockHour, 0, 23);
+        StartupModelClockMinute = Math.Clamp(_mgr.App.StartupModelClockMinute, 0, 59);
         VisibleWagonsInTrain = _mgr.App.VisibleWagonsInTrain;
         EnableTransientRouteMessages = _mgr.App.EnableTransientRouteMessages;
         ShowTelemetryInStatusBar = _mgr.App.ShowTelemetryInStatusBar;
@@ -835,6 +900,19 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         _mgr.App.Language = Language;
         _mgr.App.AccentColor = AccentColor;
         _mgr.App.OpenLastProjectOnStartup = OpenLastProjectOnStartup;
+        _mgr.App.DefaultProjectsDirectory = DefaultProjectsDirectory?.Trim() ?? string.Empty;
+        var normalizedAutoSaveInterval = Math.Clamp(AutoSaveIntervalMinutes, 0, 120);
+        if (AutoSaveEnabled && normalizedAutoSaveInterval <= 0)
+            normalizedAutoSaveInterval = 5;
+
+        _mgr.App.AutoSaveEnabled = AutoSaveEnabled;
+        _mgr.App.AutoSaveIntervalMinutes = normalizedAutoSaveInterval;
+        _mgr.App.ShowTooltipsInApp = ShowTooltipsInApp;
+        _mgr.App.ShowClockOnStartup = ShowClockOnStartup;
+        _mgr.App.ShowClockStartPauseButton = ShowClockStartPauseButton;
+        _mgr.App.SetModelClockTimeOnStartup = SetModelClockTimeOnStartup;
+        _mgr.App.StartupModelClockHour = Math.Clamp(StartupModelClockHour, 0, 23);
+        _mgr.App.StartupModelClockMinute = Math.Clamp(StartupModelClockMinute, 0, 59);
         _mgr.App.VisibleWagonsInTrain = VisibleWagonsInTrain;
         _mgr.App.EnableTransientRouteMessages = EnableTransientRouteMessages;
         _mgr.App.ShowTelemetryInStatusBar = ShowTelemetryInStatusBar;

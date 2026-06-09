@@ -212,6 +212,7 @@
                    VerticalAlignment="Center"/>
         <Button Classes="clockButton"
                 Content="{Binding PauseResumeText}"
+                IsVisible="{Binding ShowStartPauseButton}"
                 Command="{Binding TogglePauseCommand}"/>
       </StackPanel>
       </StackPanel>

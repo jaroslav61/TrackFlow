@@ -141,6 +141,7 @@ public partial class App : Application
                 {
                     DataContext = new MainWindowViewModel()
                 };
+                TooltipPreferenceService.Attach(mw);
                 desktop.MainWindow = mw;
                 _emergencyCleanupVm = mw.DataContext as MainWindowViewModel;
                 Log.Information("MainWindow initialized successfully.");

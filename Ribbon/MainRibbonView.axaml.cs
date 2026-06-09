@@ -3,6 +3,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Avalonia.Markup.Xaml;
+using TrackFlow.Services;
 using TrackFlow.ViewModels;
 using TrackFlow.ViewModels.Backstage;
 using TrackFlow.Views.Backstage;
@@ -39,6 +40,7 @@ public partial class MainRibbonView : UserControl
                     {
                         DataContext = new FileBackstageViewModel(vm)
                     };
+                    TooltipPreferenceService.Attach(dlg);
 
                     if (owner != null)
                         await dlg.ShowDialog(owner);

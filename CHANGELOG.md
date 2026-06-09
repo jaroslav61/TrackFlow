@@ -28,6 +28,23 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-09 19:10
+===================
+**Oblasť:** `Views/Settings/SettingsPages/GeneralSettingsView.axaml`, `Views/Settings/SettingsPages/GeneralSettingsView.axaml.cs`, `Views/Settings/SettingsPages/ModelClockSettingsView.axaml`, `ViewModels/Settings/SettingsViewModel.cs`, `Models/AppSettingsData.cs`, `Views/MainWindow.axaml.cs`, `ViewModels/MainWindowViewModel.cs`, `Services/TooltipPreferenceService.cs`, `App.axaml`, `Views/ClockView.axaml`, `Views/ClockView.axaml.cs`, `ViewModels/ClockViewModel.cs`
+**Zmena:** Dokončené oživenie praktických nastavení v kategóriách Všeobecné a Modelové hodiny: predvolený adresár projektov, auto-save interval, globálne tooltips, otvorenie hodín pri štarte, zobrazenie tlačidla Štart/Pauza a voľba „Nastaviť čas na".
+**Dôvod:** Viaceré položky UI boli iba vizuálne placeholdery alebo sa aplikovali až po reštarte. Cieľ bol dostať všetky relevantné prepínače do plne funkčného stavu s okamžitým runtime efektom.
+**Riešenie:**
+• `GeneralSettingsView` dostal funkčný picker predvoleného adresára projektov s perzistenciou do `AppSettingsData`; Open/Save pickery používajú tento adresár ako preferovaný štart.
+• Auto-save bol napojený end-to-end (`AutoSaveEnabled`, `AutoSaveIntervalMinutes`) vrátane runtime `DispatcherTimer` v `MainWindowViewModel` a ochrany proti intervalu `0` pri zapnutí (normalizácia na minimálne 5 min).
+• Nastavenie tooltipov bolo centralizované cez `TooltipPreferenceService`; preferencia `ShowTooltipsInApp` sa aplikuje globálne pre všetky okná aj pri štarte aplikácie.
+• V `ModelClockSettingsView` boli oživené posledné 3 voľby: `ShowClockOnStartup`, `ShowClockStartPauseButton`, `SetModelClockTimeOnStartup` + `StartupModelClockHour/Minute`.
+• `MainWindow` po štarte otvorí okno hodín podľa nastavenia; `ClockView` reaguje na preferenciu zobrazenia tlačidla Štart/Pauza aj za behu.
+• Čas hodín sa nastaví na konfigurovaný čas okamžite po `Uložiť` (ak je voľba zapnutá), bez čakania na reštart; pri vypnutej voľbe sa tento preset čas neaplikuje.
+**Výsledok:**
+• Nastavenia sú funkčné globálne aj runtime (nielen uložené do JSON).
+• Kritické regresie z používateľského testu boli opravené: tooltip režim po cold štarte, modelové hodiny a okamžité aplikovanie času po uložení nastavení.
+• Kompilácia overená opakovane buildmi do separátnych výstupov (`verify-tooltip-final2`, `verify-model-clock-settings`, `verify-model-clock-startup-toggle-fix`, `verify-model-clock-apply-on-save`).
+
 ## 2026-06-07 23:20
 ===================
 **Oblasť:** `Views/Settings/SettingsWindow.axaml`, `Views/Settings/SettingsWindow.axaml.cs`, `Views/Settings/SettingsPages/GeneralSettingsView.axaml`, `Views/Settings/SettingsPages/ModelClockSettingsView.axaml`, `ViewModels/Settings/SettingsViewModel.cs`, `Views/MainWindow.axaml.cs`

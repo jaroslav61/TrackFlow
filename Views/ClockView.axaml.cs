@@ -9,9 +9,17 @@ namespace TrackFlow.Views;
 public partial class ClockView : Window
 {
     public ClockView()
+        : this(showStartPauseButton: true)
+    {
+    }
+
+    public ClockView(bool showStartPauseButton)
     {
         AvaloniaXamlLoader.Load(this);
-        DataContext = new ClockViewModel();
+        DataContext = new ClockViewModel
+        {
+            ShowStartPauseButton = showStartPauseButton
+        };
 
         Closed += (_, _) =>
         {
@@ -33,6 +41,12 @@ public partial class ClockView : Window
     private void OnCloseClick(object? sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    public void SetStartPauseButtonVisible(bool isVisible)
+    {
+        if (DataContext is ClockViewModel vm)
+            vm.ShowStartPauseButton = isVisible;
     }
 }
 

@@ -30,6 +30,8 @@ namespace TrackFlow.ViewModels;
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
+    private readonly DispatcherTimer _autoSaveTimer = new();
+    private bool _isAutoSaveInProgress;
     
     private static string CN(DccCentralType t) => DccCentralDisplayName.Get(t);
 
@@ -266,6 +268,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         SettingsManager = new SettingsManager();
         // Load settings/project at startup
         SettingsManager.LoadApp();
+        ApplyStartupModelClockTimeIfEnabled();
 
         Ribbon = new MainRibbonViewModel();
         CabHost = new CabStripHostViewModel();
@@ -340,12 +343,95 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         // Step 10: Centralizovaný dirty tracker → titul + status hint sa obnovia z jedného miesta
         SettingsManager.Dirty.DirtyChanged += OnProjectDirtyChanged;
         SettingsManager.ProjectChanged += SyncTimeServiceFromSettings;
+
+        _autoSaveTimer.Tick += OnAutoSaveTimerTick;
+        RefreshAutoSaveTimerFromSettings();
+    }
+
+    private void RefreshAutoSaveTimerFromSettings()
+    {
+        var enabled = SettingsManager.App.AutoSaveEnabled;
+        var minutes = Math.Clamp(SettingsManager.App.AutoSaveIntervalMinutes, 0, 120);
+
+        _autoSaveTimer.Stop();
+        if (!enabled || minutes <= 0)
+            return;
+
+        _autoSaveTimer.Interval = TimeSpan.FromMinutes(minutes);
+        _autoSaveTimer.Start();
+    }
+
+    private void OnAutoSaveTimerTick(object? sender, EventArgs e)
+    {
+        _ = AutoSaveProjectIfNeededAsync();
+    }
+
+    private async Task AutoSaveProjectIfNeededAsync()
+    {
+        if (_disposed || _isAutoSaveInProgress)
+            return;
+
+        if (!SettingsManager.App.AutoSaveEnabled || SettingsManager.App.AutoSaveIntervalMinutes <= 0)
+            return;
+
+        if (SettingsManager.CurrentProject == null || string.IsNullOrWhiteSpace(SettingsManager.CurrentProjectPath))
+            return;
+
+        if (SettingsManager.CurrentProject.IsDirty != true)
+            return;
+
+        _isAutoSaveInProgress = true;
+        try
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => SettingsManager.SaveProject());
+            RequestProjectHintUpdate?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Automatic project save failed.");
+        }
+        finally
+        {
+            _isAutoSaveInProgress = false;
+        }
     }
 
     private void SyncTimeServiceFromSettings()    {
         TimeService.Instance.SimulationSpeedFactor =
             SettingsManager.CurrentProject?.Settings.SimulationSpeedFactor
             ?? ProjectSettingsData.DefaultSimulationSpeedFactor;
+    }
+
+    private void ApplyStartupModelClockTimeIfEnabled()
+    {
+        if (SettingsManager.App.SetModelClockTimeOnStartup)
+        {
+            var hour = Math.Clamp(SettingsManager.App.StartupModelClockHour, 0, 23);
+            var minute = Math.Clamp(SettingsManager.App.StartupModelClockMinute, 0, 59);
+            var startupTime = DateTime.Today.AddHours(hour).AddMinutes(minute);
+            TimeService.Instance.SetCurrentModelTime(startupTime);
+            return;
+        }
+
+        // When startup-time preset is disabled, initialize from current real time
+        // so we do not implicitly fall back to the TimeService default (08:00).
+        var now = DateTime.Now;
+        var currentTime = DateTime.Today
+            .AddHours(now.Hour)
+            .AddMinutes(now.Minute)
+            .AddSeconds(now.Second);
+        TimeService.Instance.SetCurrentModelTime(currentTime);
+    }
+
+    private void ApplyModelClockTimeFromSettingsIfEnabled()
+    {
+        if (!SettingsManager.App.SetModelClockTimeOnStartup)
+            return;
+
+        var hour = Math.Clamp(SettingsManager.App.StartupModelClockHour, 0, 23);
+        var minute = Math.Clamp(SettingsManager.App.StartupModelClockMinute, 0, 59);
+        var configuredTime = DateTime.Today.AddHours(hour).AddMinutes(minute);
+        TimeService.Instance.SetCurrentModelTime(configuredTime);
     }
 
     private void OnProjectDirtyChanged()
@@ -703,6 +789,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         var before = _settingsBeforeEdit ?? SettingsManager.GetEffective();
+        RefreshAutoSaveTimerFromSettings();
+        ApplyModelClockTimeFromSettingsIfEnabled();
         SyncTimeServiceFromSettings();
         var res = await Dcc.ApplyDccAfterSettingsSavedAsync(before);
 
@@ -1067,6 +1155,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         var progressWindow = new ProgressWindow();
+        TooltipPreferenceService.Attach(progressWindow);
         progressWindow.Show();
 
         try
@@ -1260,6 +1349,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         if (_disposed) return;
+
+        _autoSaveTimer.Stop();
+        _autoSaveTimer.Tick -= OnAutoSaveTimerTick;
 
         CloseTelemetryWidget();
 

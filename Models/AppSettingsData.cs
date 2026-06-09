@@ -36,6 +36,15 @@ public sealed class AppSettingsData
     public string DefaultScale { get; set; } = "H0";
 
     // Projektová navigácia
+    public string DefaultProjectsDirectory { get; set; } = string.Empty;
+    public bool AutoSaveEnabled { get; set; } = false;
+    public int AutoSaveIntervalMinutes { get; set; } = 0;
+    public bool ShowTooltipsInApp { get; set; } = true;
+    public bool ShowClockOnStartup { get; set; } = false;
+    public bool ShowClockStartPauseButton { get; set; } = true;
+    public bool SetModelClockTimeOnStartup { get; set; } = false;
+    public int StartupModelClockHour { get; set; } = 8;
+    public int StartupModelClockMinute { get; set; } = 0;
     public string? LastProjectPath { get; set; }
     public List<string> RecentProjectPaths { get; set; } = new();
 }

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using TrackFlow.Models;
+using TrackFlow.Services;
 using TrackFlow.ViewModels.Settings;
 using TrackFlow.Views.Settings.SettingsPages;
 
@@ -97,6 +98,7 @@ public partial class SettingsWindow : Window
     {
         var editVm = new DccCentralEditViewModel(existing);
         var dialog = new DccCentralEditWindow { DataContext = editVm };
+        TooltipPreferenceService.Attach(dialog);
         var accepted = await dialog.ShowDialog<bool>(this);
         return accepted ? editVm.Result : null;
     }

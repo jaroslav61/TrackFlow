@@ -200,6 +200,7 @@ public partial class LocomotivesWindow : Window
 
             // 3) Otvor progres-dialóg a priebežne aplikuj každú úspešne načítanú CV hodnotu.
             var dialog = new ReadDecoderValuesWindow();
+            TooltipPreferenceService.Attach(dialog);
             void OnDialogOpened(object? sender, EventArgs args)
             {
                 dialog.Opened -= OnDialogOpened;

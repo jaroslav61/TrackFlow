@@ -31,6 +31,13 @@ public sealed class ClockViewModel : ObservableObject, IDisposable
     public string StateText => _timeService.StateText;
     public bool IsPaused => _timeService.IsPaused;
 
+    private bool _showStartPauseButton = true;
+    public bool ShowStartPauseButton
+    {
+        get => _showStartPauseButton;
+        set => SetProperty(ref _showStartPauseButton, value);
+    }
+
     public Point CenterPoint => new(Center, Center);
     public Point HourHandEnd => GetHandEnd(HourAngle, HourHandLength);
     public Point MinuteHandEnd => GetHandEnd(MinuteAngle, MinuteHandLength);

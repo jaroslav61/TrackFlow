@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using System;
+using TrackFlow.Services;
 using TrackFlow.ViewModels.Library;
 using TrackFlow.Views.Dialogs;
 
@@ -138,6 +139,7 @@ public partial class LocomotiveCalibrationWindow : Window
             var dialog = new ConfirmDialog(
                 "Inicializovať profil",
                 "Naozaj chcete inicializovať profil? Všetky doteraz namerané RAW dáta pre oba smery budú vymazané.");
+            TooltipPreferenceService.Attach(dialog);
             await dialog.ShowDialog(this);
             if (dialog.Result != ConfirmDialog.DialogResult.Yes)
                 return;

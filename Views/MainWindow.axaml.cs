@@ -13,6 +13,9 @@ using TrackFlow.Views.Library;
 using TrackFlow.Views.Settings;
 using TrackFlow.ViewModels.Library;
 using Avalonia.Markup.Xaml;
+using System.IO;
+using System.Linq;
+using Avalonia.VisualTree;
 
 namespace TrackFlow.Views;
 
@@ -24,6 +27,7 @@ public partial class MainWindow : Window
     private bool _isSettingsDialogOpen;
     private bool _isClosePromptInProgress;
     private bool _allowCloseWithoutPrompt;
+    private bool _startupClockChecked;
 
     public MainWindow()
     {
@@ -40,6 +44,9 @@ public partial class MainWindow : Window
         
         // Ochrana pred stratou neuložených zmien pri zatváraní
         Closing += OnWindowClosing;
+
+        // Startup automation that depends on loaded app settings.
+        Opened += OnMainWindowOpened;
         
         // Dispose resources pri zatvorení okna
         Closed += OnWindowClosed;
@@ -55,6 +62,7 @@ public partial class MainWindow : Window
                 ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
+            TooltipPreferenceService.Attach(_doctorWindow);
 
             _doctorWindow.Closed += (_, _) =>
             {
@@ -74,11 +82,13 @@ public partial class MainWindow : Window
     {
         if (_clockView == null || !_clockView.IsVisible)
         {
-            _clockView = new ClockView
+            var showStartPauseButton = _vm?.SettingsManager.App.ShowClockStartPauseButton ?? true;
+            _clockView = new ClockView(showStartPauseButton)
             {
                 ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
+            TooltipPreferenceService.Attach(_clockView);
 
             _clockView.Closed += (_, _) =>
             {
@@ -89,8 +99,21 @@ public partial class MainWindow : Window
         }
         else
         {
+            if (_vm != null)
+                _clockView.SetStartPauseButtonVisible(_vm.SettingsManager.App.ShowClockStartPauseButton);
+
             _clockView.Activate();
         }
+    }
+
+    private void OnMainWindowOpened(object? sender, EventArgs e)
+    {
+        if (_startupClockChecked)
+            return;
+
+        _startupClockChecked = true;
+        if (_vm?.SettingsManager.App.ShowClockOnStartup == true)
+            OpenOrFocusClockView();
     }
 
     private void AttachVm(MainWindowViewModel? vm)
@@ -109,6 +132,9 @@ public partial class MainWindow : Window
             _vm.RequestProjectHintUpdate = null;
             _vm.ShowDoctorWindow = null;
             _vm.ShowClockWindow = null;
+
+            _vm.SettingsManager.ProjectChanged -= OnProjectChanged;
+            _vm.SettingsManager.AppSettingsChanged -= OnAppSettingsChanged;
         }
 
         _vm = vm;
@@ -169,6 +195,9 @@ public partial class MainWindow : Window
         
         // Sledovanie zmien projektu pre aktualizáciu titulku (dirty flag)
         _vm.SettingsManager.ProjectChanged += OnProjectChanged;
+        _vm.SettingsManager.AppSettingsChanged += OnAppSettingsChanged;
+
+        ApplyTooltipPreference();
         
         UpdateProjectHint();
     }
@@ -179,6 +208,57 @@ public partial class MainWindow : Window
         {
             Dispatcher.UIThread.Post(() => _vm.UpdateWindowTitle());
         }
+    }
+
+    private void OnAppSettingsChanged()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            ApplyTooltipPreference();
+
+            if (_vm != null && _clockView != null)
+                _clockView.SetStartPauseButtonVisible(_vm.SettingsManager.App.ShowClockStartPauseButton);
+        });
+    }
+
+    private void ApplyTooltipPreference()
+    {
+        if (_vm == null)
+            return;
+
+        var showTooltips = _vm.SettingsManager.App.ShowTooltipsInApp;
+        TooltipPreferenceService.SetEnabled(showTooltips);
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            foreach (var window in desktop.Windows)
+                ApplyTooltipPreferenceToWindow(window, showTooltips);
+            return;
+        }
+
+        ApplyTooltipPreferenceToWindow(this, showTooltips);
+    }
+
+    private void ApplyTooltipPreferenceToWindowFromCurrentSettings(Window window)
+    {
+        if (_vm == null)
+            return;
+
+        ApplyTooltipPreferenceToWindow(window, _vm.SettingsManager.App.ShowTooltipsInApp);
+    }
+
+    private static void ApplyTooltipPreferenceToWindow(Window window, bool showTooltips)
+    {
+        const string disabledClass = "tooltips-disabled";
+        if (showTooltips)
+            window.Classes.Remove(disabledClass);
+        else if (!window.Classes.Contains(disabledClass))
+            window.Classes.Add(disabledClass);
+
+        // Hard-apply to all controls so the global setting wins even for already materialized visuals.
+        window.SetValue(ToolTip.ServiceEnabledProperty, showTooltips);
+        foreach (var ctrl in window.GetVisualDescendants().OfType<Control>())
+            ctrl.SetValue(ToolTip.ServiceEnabledProperty, showTooltips);
     }
 
     // =====================================================================================
@@ -204,6 +284,7 @@ public partial class MainWindow : Window
                     _vm.LayoutBlocksChangedByFeedback += OnFeedbackBlocksChanged;
 
                 var dlg = new LocomotivesWindow { DataContext = locoVm };
+                TooltipPreferenceService.Attach(dlg);
 
                 try
                 {
@@ -234,6 +315,7 @@ public partial class MainWindow : Window
                 {
                     DataContext = _vm == null ? null : new VagonsWindowViewModel(_vm.SettingsManager)
                 };
+                TooltipPreferenceService.Attach(dlg);
 
                 await dlg.ShowDialog(this);
             });
@@ -248,6 +330,7 @@ public partial class MainWindow : Window
     private async Task ShowTrainsDialogAsync()
     {
         var dlg = new TrainsWindow();
+        TooltipPreferenceService.Attach(dlg);
         await dlg.ShowDialog(this);
     }
 
@@ -255,6 +338,7 @@ public partial class MainWindow : Window
     {
         var vm = new ViewModels.Editor.RoutesManagerViewModel(_vm!.SettingsManager, _vm.Tabs.LayoutEditor, _vm.Tabs.Operation);
         var dlg = new Editor.RoutesManagerWindow { DataContext = vm };
+        TooltipPreferenceService.Attach(dlg);
         await dlg.ShowDialog(this);
     }
 
@@ -265,6 +349,7 @@ public partial class MainWindow : Window
     private async Task<bool> ShowConfirmDialogAsync(string title, string message)
     {
         var dialog = new Views.Dialogs.ConfirmDialog(title, message);
+        TooltipPreferenceService.Attach(dialog);
         await dialog.ShowDialog(this);
         return dialog.Result == Views.Dialogs.ConfirmDialog.DialogResult.Yes;
     }
@@ -287,6 +372,7 @@ public partial class MainWindow : Window
         {
             dlg = new SettingsWindow();
             dlg.DataContext = settingsVm;
+            TooltipPreferenceService.Attach(dlg);
 
             var result = await dlg.ShowDialog<bool>(owner);
             return result;
@@ -317,10 +403,13 @@ public partial class MainWindow : Window
         if (sp == null)
             return null;
 
+        var suggestedStart = await ResolveSuggestedProjectsFolderAsync(_);
+
         var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Otvoriť projekt",
             AllowMultiple = false,
+            SuggestedStartLocation = suggestedStart,
             FileTypeFilter = new List<FilePickerFileType>
             {
                 new("TrackFlow projekt") { Patterns = new[] { "*.json" } },
@@ -340,10 +429,13 @@ public partial class MainWindow : Window
         if (sp == null)
             return null;
 
+        var suggestedStart = await ResolveSuggestedProjectsFolderAsync(_);
+
         var file = await sp.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Uložiť projekt ako…",
             SuggestedFileName = suggestedName,
+            SuggestedStartLocation = suggestedStart,
             FileTypeChoices = new List<FilePickerFileType>
             {
                 new("TrackFlow projekt") { Patterns = new[] { "*.json" } },
@@ -352,6 +444,27 @@ public partial class MainWindow : Window
         });
 
         return file?.TryGetLocalPath();
+    }
+
+    private async Task<IStorageFolder?> ResolveSuggestedProjectsFolderAsync(MainWindowViewModel vm)
+    {
+        var sp = StorageProvider;
+        if (sp == null)
+            return null;
+
+        var configured = vm.SettingsManager.App.DefaultProjectsDirectory;
+        if (!string.IsNullOrWhiteSpace(configured) && Directory.Exists(configured))
+            return await sp.TryGetFolderFromPathAsync(configured);
+
+        var currentProject = vm.SettingsManager.CurrentProjectPath;
+        var currentDir = !string.IsNullOrWhiteSpace(currentProject)
+            ? Path.GetDirectoryName(currentProject)
+            : null;
+
+        if (!string.IsNullOrWhiteSpace(currentDir) && Directory.Exists(currentDir))
+            return await sp.TryGetFolderFromPathAsync(currentDir);
+
+        return null;
     }
 
     private void UpdateProjectHint()
@@ -394,6 +507,7 @@ public partial class MainWindow : Window
             var dialog = new Views.Dialogs.ConfirmDialog(
                 "Máte neuložené zmeny",
                 message);
+            ApplyTooltipPreferenceToWindowFromCurrentSettings(dialog);
 
             await dialog.ShowDialog(this);
 
