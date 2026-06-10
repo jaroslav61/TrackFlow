@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Settings"
+             x:Class="TrackFlow.Views.Settings.SettingsPages.ColorsSettingsView"
+             x:DataType="vm:SettingsViewModel"
+             d:DesignWidth="680"
+             d:DesignHeight="500">
+
+  <Border Background="#F4F6F9"
+          BorderBrush="#D1D5DB"
+          BorderThickness="1"
+          CornerRadius="8"
+          Margin="15,10,10,10"
+          Padding="8,8"
+          HorizontalAlignment="Stretch">
+      
+    <Grid RowDefinitions="Auto,Auto"
+          ColumnDefinitions="180,Auto"
+          ColumnSpacing="10"
+          RowSpacing="10"
+          Margin="10,10,10,10">
+
+      
+      
+      <TextBlock Grid.Row="0" 
+                 Grid.Column="0"
+                 Width="180"
+                 VerticalAlignment="Center" 
+                 Text="Accent"/>
+      
+      <TextBox Grid.Row="0" 
+               Grid.Column="1" 
+               Width="180"
+               Text="{Binding AccentColor}"/>
+      
+      <TextBlock Grid.Column="0" 
+                 Grid.Row="1"  
+                 VerticalAlignment="Center" 
+                 Text="Farba hodín"/>
+      
+      <ColorPicker Grid.Column="1"  
+                   Grid.Row="1"
+                   Width="180">
+      </ColorPicker>
+
+    </Grid> 
+  </Border> 
+  
+
+</UserControl>
+

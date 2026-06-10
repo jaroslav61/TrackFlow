@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TrackFlow.ViewModels.Settings"
+             x:Class="TrackFlow.Views.Settings.SettingsPages.ModelClockSettingsView"
+             x:DataType="vm:SettingsViewModel"
+             d:DesignWidth="680"
+             d:DesignHeight="500">
+
+    <Grid ColumnDefinitions="Auto,Auto" VerticalAlignment="Top">
+    
+        <Border Grid.Column="0"
+                Background="#F4F6F9"
+                BorderBrush="#D1D5DB"
+                BorderThickness="1"
+                CornerRadius="8"
+                Margin="15,10,5,10"
+                Padding="8,8"
+                HorizontalAlignment="Stretch">
+            
+            <Grid RowDefinitions="Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,Auto,Auto,Auto,Auto"
+                  ColumnSpacing="6"
+                  RowSpacing="10"
+                  Margin="10,10">
+
+                <ToggleSwitch Grid.Row="0" Grid.Column="0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding ShowClockOnStartup}"
+                              OnContent="" OffContent="" />
+                
+                <TextBlock Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+                           VerticalAlignment="Center"
+                           Text="Zobraziť hodiny pri spustení aplikácie" />
+                
+                <ToggleSwitch Grid.Row="1" Grid.Column="0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding ShowClockStartPauseButton}"
+                              OnContent="" OffContent="" />
+                
+                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
+                           VerticalAlignment="Center"
+                           Text="Zobraziť tlačidlo  Štart/Pauza v hodinách" />
+                
+                
+                <ToggleSwitch Grid.Row="2" Grid.Column="0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding SetModelClockTimeOnStartup}"
+                              OnContent="" OffContent="" />
+                
+                <TextBlock Grid.Row="2" Grid.Column="1" 
+                           VerticalAlignment="Center"
+                           Text="Nastaviť čas na: " />
+                
+                <NumericUpDown Grid.Row="2" Grid.Column="2" 
+                               Width="60"
+                               IsEnabled="{Binding SetModelClockTimeOnStartup}"
+                               Minimum="0"
+                               Maximum="23"
+                               Increment="1"
+                               Value="{Binding StartupModelClockHour, Mode=TwoWay}"
+                               FormatString="00"/>
+           
+                
+                <TextBlock Grid.Row="2" Grid.Column="3"  
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" 
+                           Text=":" 
+                           FontWeight="Bold" />
+                
+                <NumericUpDown Grid.Row="2" Grid.Column="4" 
+                               Width="60"
+                               IsEnabled="{Binding SetModelClockTimeOnStartup}"
+                               Minimum="0"
+                               Maximum="59"
+                               Increment="1"
+                               Value="{Binding StartupModelClockMinute, Mode=TwoWay}"
+                               FormatString="00"/>
+           </Grid>
+        </Border> 
+            
+        <Border Grid.Column="1"
+                Background="#F4F6F9"
+                BorderBrush="#D1D5DB"
+                BorderThickness="1"
+                CornerRadius="8"
+                Margin="5,10,10,10"
+                Padding="8,8"
+                HorizontalAlignment="Stretch">
+            
+            <Grid RowDefinitions="Auto"
+                  ColumnDefinitions="Auto,Auto,Auto"
+                  ColumnSpacing="10"
+                  RowSpacing="10"
+                  Margin="10,10"> <Control Grid.Row="0" Grid.Column="0" Height="26" />
+
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Text="Zrýchlenie simulácie"/>
+
+                <NumericUpDown Grid.Row="0" Grid.Column="1" 
+                               Width="80"
+                               IsEnabled="{Binding HasOpenProject}"
+                               Minimum="1"
+                               Maximum="5"
+                               Increment="0.1"
+                               FormatString="F1"
+                               Value="{Binding SimulationSpeedFactor, Mode=TwoWay}"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="2" 
+                           VerticalAlignment="Center" 
+                           Text="x"/>
+            </Grid>
+        </Border> 
+        
+    </Grid>
+</UserControl>
