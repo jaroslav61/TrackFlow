@@ -64,11 +64,11 @@
 
                                             <TextBlock HorizontalAlignment="Center"
                                                        FontWeight="Bold"
-                                                       Text="754"/>
+                                                       Text="754" />
 
                                             <TextBlock HorizontalAlignment="Center"
                                                        FontSize="10"
-                                                       Text="054"/>
+                                                       Text="054" />
 
                                         </StackPanel>
 
@@ -83,7 +83,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bdt"/>
+                                                   Text="Bdt" />
 
                                     </Border>
 
@@ -96,7 +96,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bdt"/>
+                                                   Text="Bdt" />
 
                                     </Border>
 
@@ -109,7 +109,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bdt"/>
+                                                   Text="Bdt" />
 
                                     </Border>
 
@@ -122,7 +122,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="BDs"/>
+                                                   Text="BDs" />
 
                                     </Border>
 
@@ -134,24 +134,24 @@
                                         Height="28"
                                         Padding="0"
                                         Content="⋯">
-    
+
                                     <Button.ContextMenu>
 
                                         <ContextMenu>
 
-                                            <MenuItem Header="Premenovať súpravu"/>
+                                            <MenuItem Header="Premenovať súpravu" />
 
-                                            <Separator/>
+                                            <Separator />
 
-                                            <MenuItem Header="Rozpustiť súpravu"/>
+                                            <MenuItem Header="Rozpustiť súpravu" />
 
                                         </ContextMenu>
 
                                     </Button.ContextMenu>
 
                                 </Button>
-                                
-                                
+
+
                             </Grid>
 
                         </Border>
@@ -189,11 +189,11 @@
 
                                             <TextBlock HorizontalAlignment="Center"
                                                        FontWeight="Bold"
-                                                       Text="350"/>
+                                                       Text="350" />
 
                                             <TextBlock HorizontalAlignment="Center"
                                                        FontSize="10"
-                                                       Text="002"/>
+                                                       Text="002" />
 
                                         </StackPanel>
 
@@ -208,7 +208,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bee"/>
+                                                   Text="Bee" />
 
                                     </Border>
 
@@ -221,7 +221,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bee"/>
+                                                   Text="Bee" />
 
                                     </Border>
 
@@ -234,7 +234,7 @@
 
                                         <TextBlock HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
-                                                   Text="Bee"/>
+                                                   Text="Bee" />
 
                                     </Border>
 
@@ -246,29 +246,29 @@
                                         Height="28"
                                         Padding="0"
                                         Content="⋯">
-    
+
                                     <Button.ContextMenu>
 
                                         <ContextMenu>
 
-                                            <MenuItem Header="Premenovať súpravu"/>
+                                            <MenuItem Header="Premenovať súpravu" />
 
-                                            <Separator/>
+                                            <Separator />
 
-                                            <MenuItem Header="Rozpustiť súpravu"/>
+                                            <MenuItem Header="Rozpustiť súpravu" />
 
                                         </ContextMenu>
 
                                     </Button.ContextMenu>
 
                                 </Button>
-                                
+
                             </Grid>
 
                         </Border>
 
                     </StackPanel>
-               
+
 
                 </ScrollViewer>
 
@@ -296,75 +296,94 @@
                                FontSize="16"
                                Text="Vlaky" />
 
-                      <DataGrid Grid.Row="1"
+                    <DataGrid Grid.Row="1"
                               Margin="8"
-                              ItemsSource="{Binding Trains}">
+                              ItemsSource="{Binding Trains}"
+                              SelectedItem="{Binding VybranyVlak}">
 
-                          <DataGrid.Columns>
+                        <DataGrid.Columns>
 
-                              <DataGridTextColumn Header="Číslo vlaku"
-                                                  Binding="{Binding TrainNumber}"
-                                                  Width="120"/>
+                            <DataGridTextColumn Header="Číslo vlaku"
+                                                Binding="{Binding TrainNumber}"
+                                                Width="120" />
 
-                              <DataGridTextColumn Header="Názov vlaku"
-                                                  Binding="{Binding TrainName}"
-                                                  Width="*"/>
+                            <DataGridTextColumn Header="Názov vlaku"
+                                                Binding="{Binding TrainName}"
+                                                Width="*" />
 
-                              <DataGridTextColumn Header="Typ"
-                                                  Binding="{Binding TrainType}"
-                                                  Width="100"/>
+                            <DataGridTemplateColumn Header="Typ"
+                                                    Width="120">
 
-                              <DataGridTextColumn Header="Súprava"
-                                                  Binding="{Binding TrainSet}"
-                                                  Width="80"/>
+                                <DataGridTemplateColumn.CellTemplate>
 
-                              <DataGridTextColumn Header="Platí od"
-                                                  Binding="{Binding ValidFrom}"
-                                                  Width="100"/>
+                                    <DataTemplate>
 
-                              <DataGridTextColumn Header="Platí do"
-                                                  Binding="{Binding ValidTo}"
-                                                  Width="100"/>
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="6">
 
-                              <DataGridTemplateColumn Header="Akcie"
-                                                      Width="45">
+                                            <TextBlock Text="{Binding TrainTypeIcon}" VerticalAlignment="Center" />
 
-                                  <DataGridTemplateColumn.CellTemplate>
+                                            <TextBlock Text="{Binding TrainType}" VerticalAlignment="Center" />
 
-                                      <DataTemplate>
+                                        </StackPanel>
 
-                                          <Button Width="28"
-                                                  Height="28"
-                                                  Padding="0"
-                                                  Background="Transparent"
-                                                  Content="⋯">
+                                    </DataTemplate>
 
-                                              <Button.ContextMenu>
+                                </DataGridTemplateColumn.CellTemplate>
 
-                                                  <ContextMenu>
+                            </DataGridTemplateColumn>
 
-                                                      <MenuItem Header="Upraviť vlak"/>
+                            <DataGridTextColumn Header="Súprava"
+                                                Binding="{Binding TrainSet}"
+                                                Width="80" />
 
-                                                      <MenuItem Header="Duplikovať vlak"/>
+                            <DataGridTextColumn Header="Platí od"
+                                                Binding="{Binding ValidFrom}"
+                                                Width="100" />
 
-                                                      <Separator/>
+                            <DataGridTextColumn Header="Platí do"
+                                                Binding="{Binding ValidTo}"
+                                                Width="100" />
 
-                                                      <MenuItem Header="Zmazať vlak"/>
+                            <DataGridTemplateColumn Header="Akcie"
+                                                    Width="45">
 
-                                                  </ContextMenu>
+                                <DataGridTemplateColumn.CellTemplate>
 
-                                              </Button.ContextMenu>
+                                    <DataTemplate>
 
-                                          </Button>
+                                        <Button Width="28"
+                                                Height="28"
+                                                Padding="0"
+                                                Background="Transparent"
+                                                Content="⋯">
 
-                                      </DataTemplate>
+                                            <Button.ContextMenu>
 
-                                  </DataGridTemplateColumn.CellTemplate>
+                                                <ContextMenu>
 
-                              </DataGridTemplateColumn>
+                                                    <MenuItem Header="Upraviť vlak" />
 
-                          </DataGrid.Columns>
-                          
+                                                    <MenuItem Header="Duplikovať vlak" />
+
+                                                    <Separator />
+
+                                                    <MenuItem Header="Zmazať vlak" />
+
+                                                </ContextMenu>
+
+                                            </Button.ContextMenu>
+
+                                        </Button>
+
+                                    </DataTemplate>
+
+                                </DataGridTemplateColumn.CellTemplate>
+
+                            </DataGridTemplateColumn>
+
+                        </DataGrid.Columns>
+
                     </DataGrid>
 
                 </Grid>
@@ -384,76 +403,74 @@
                                FontWeight="Bold"
                                FontSize="16"
                                Text="Detail vlaku" />
-                    
+
                     <Border Grid.Row="0"
                             Margin="12,40,12,0"
                             Height="1"
-                            Background="#D1D5DB"/>
-                    
-                    <StackPanel Grid.Row="1"
+                            Background="#D1D5DB" />
+
+                      <StackPanel Grid.Row="1"
                                 Margin="12">
 
                         <TextBlock Margin="0,0,0,2"
-                                   Text="Súprava"/>
+                                   Text="Súprava" />
 
-                        <ComboBox SelectedIndex="0">
+                        <TextBox Text="{Binding SupravaVlaku}" />
 
-                            <ComboBoxItem Content="S001 – Osobná súprava 754.054"/>
-                            <ComboBoxItem Content="S002 – Rýchliková súprava 350.002"/>
+                         </StackPanel>
 
-                        </ComboBox>
-
-                    </StackPanel>
-
-                    <Grid Grid.Row="2"
+                        <Grid Grid.Row="2"
                           Margin="12"
                           ColumnDefinitions="*,12,*">
 
-                        <StackPanel Grid.Column="0">
+                          <StackPanel Grid.Column="0">
 
                             <TextBlock Margin="0,0,0,4"
-                                       Text="Číslo vlaku"/>
+                                       Text="Číslo vlaku" />
 
-                            <TextBox Watermark="Os 5001"/>
+                            <TextBox Text="{Binding CisloVlaku}" />
 
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
 
                             <TextBlock Margin="0,0,0,4"
-                                       Text="Názov vlaku"/>
+                                       Text="Názov vlaku" />
 
-                            <TextBox Watermark="Os Košice – Lipany"/>
+                            <TextBox Text="{Binding NazovVlaku}" />
 
-                        </StackPanel>
+                         </StackPanel>
 
-                    </Grid>
+                       </Grid>
 
-                    <Grid Grid.Row="3"
+                       <Grid Grid.Row="3"
                           Margin="12">
 
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0"
                                    Margin="0,0,0,8"
-                                   Text="Typ vlaku"/>
+                                   Text="Typ vlaku" />
 
                         <StackPanel Grid.Row="1"
                                     Orientation="Horizontal"
                                     Spacing="20">
 
                             <RadioButton Content="Osobný"
-                                         IsChecked="True"/>
+                                         IsChecked="{Binding JeOsobny}" />
 
-                            <RadioButton Content="Rýchlik"/>
+                            <RadioButton Content="Rýchlik"
+                                         IsChecked="{Binding JeRychlik}" />
 
-                            <RadioButton Content="Nákladný"/>
+                            <RadioButton Content="Nákladný"
+                                         IsChecked="{Binding JeNakladny}" />
 
-                            <RadioButton Content="Posun"/>
+                            <RadioButton Content="Posun"
+                                         IsChecked="{Binding JePosun}" />
 
                         </StackPanel>
 
@@ -462,14 +479,14 @@
                                     Orientation="Horizontal"
                                     Spacing="20">
 
-                            <RadioButton Content="Služobný"/>
+                            <RadioButton Content="Služobný" />
 
-                            <RadioButton Content="Mimoriadny"/>
+                            <RadioButton Content="Mimoriadny" />
 
                         </StackPanel>
 
                     </Grid>
-                    
+
                     <Grid Grid.Row="4"
                           Margin="12"
                           ColumnDefinitions="*,12,*">
@@ -477,25 +494,25 @@
                         <StackPanel Grid.Column="0">
 
                             <TextBlock Margin="0,0,0,4"
-                                       Text="Platí od"/>
-                            
-                            <TextBox Watermark="dd.MM.yyyy"/>
+                                       Text="Platí od" />
 
-                         
+                            <TextBox Text="{Binding PlatiOd}" />
+
+
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
 
                             <TextBlock Margin="0,0,0,4"
-                                       Text="Platí do"/>
+                                       Text="Platí do" />
 
-                            <TextBox Watermark="dd.MM.yyyy"/>
+                            <TextBox Text="{Binding PlatiDo}" />
 
                         </StackPanel>
+  
+                      </Grid>
 
-                    </Grid>
-                    
-                    <StackPanel Grid.Row="5"
+                      <StackPanel Grid.Row="5"
                                 Margin="12"
                                 Orientation="Horizontal"
                                 Spacing="8"
@@ -503,19 +520,19 @@
 
                         <Button Content="Vytvoriť vlak"
                                 Width="140"
-                                Height="36"/>
+                                Height="36" />
 
                         <Button Content="Zrušiť"
                                 Width="100"
-                                Height="36"/>
+                                Height="36" />
 
-                    </StackPanel>
+                         </StackPanel>
 
-                </Grid>
+                      </Grid>
 
-            </Border>
+                      </Border>
 
-        </Grid>
+                      </Grid>
 
     </Grid>
 
