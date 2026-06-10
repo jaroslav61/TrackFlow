@@ -24,6 +24,31 @@ public partial class App : Application
     // Referencia pre núdzové uvoľnenie COM portov pri pádoch a ProcessExit
     private static MainWindowViewModel? _emergencyCleanupVm;
 
+    private static void PersistAppSettingsBestEffort(string reason)
+    {
+        try
+        {
+            var vm = _emergencyCleanupVm;
+            if (vm == null)
+                return;
+
+            var ok = vm.SettingsManager.SaveApp();
+            if (!ok)
+                Log.Warning("Failed to persist app settings during {Reason}.", reason);
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                Log.Warning(ex, "Error while persisting app settings during {Reason}.", reason);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+    }
+
     private static void BestEffortShutdownWinFormsInfrastructure()
     {
         // TrackFlow uses some WinForms dialogs (FontDialog/ColorDialog).
@@ -176,6 +201,8 @@ public partial class App : Application
 
                         if (desktop.MainWindow?.DataContext is MainWindowViewModel mwvm)
                         {
+                            PersistAppSettingsBestEffort("desktop-exit");
+
                             // Zavolať Dispose na OperationViewModel
                             mwvm.Tabs?.Operation?.Dispose();
                             
@@ -269,6 +296,7 @@ public partial class App : Application
         // Odchytenie štandardného ukončenia procesu (aj po páde, aj pri normálnom Exit)
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
+            PersistAppSettingsBestEffort("process-exit");
             CleanUpDccResources("process-exit");
         };
     }

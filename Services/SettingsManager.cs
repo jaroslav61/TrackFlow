@@ -300,12 +300,11 @@ public sealed class SettingsManager
             return false;
 
         if (string.IsNullOrWhiteSpace(CurrentProjectPath))
-        {
-            CurrentProject.Locomotives = ProjectLocomotives.ToList();
-            CurrentProject.Wagons = ProjectWagons.ToList();
-
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var fallback = Path.Combine(baseDir, "MyLayout.trackflow.json");
+         {
+             CurrentProject.Locomotives = ProjectLocomotives.ToList();
+             CurrentProject.Wagons = ProjectWagons.ToList();
+ 
+             var fallback = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
             var ok = _projectStore.Save(fallback, CurrentProject);
             if (ok)
             {

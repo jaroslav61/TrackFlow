@@ -461,42 +461,7 @@ public static class BlockTrainRenderer
     /// </summary>
     private static Image? LoadIconImage(string iconName)
     {
-        if (string.IsNullOrEmpty(iconName)) return null;
-
-        // 1) IconRegistry â€“ custom absolĂştne cesty (user icons, importy 3rd party)
-        try
-        {
-            if (IconRegistry.TryGet(iconName, out var registeredPath) &&
-                !string.IsNullOrWhiteSpace(registeredPath) &&
-                File.Exists(registeredPath))
-            {
-                return new Image { Source = new Bitmap(registeredPath) };
-            }
-        }
-        catch
-        {
-            // fallback na avares
-        }
-
-        // 2) Embedded avares â€“ LocoIcons, fallback VagonIcons
-        try
-        {
-            var uriLoco = new Uri($"avares://TrackFlow/Assets/LocoIcons/{iconName}");
-            try
-            {
-                var bmp = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriLoco));
-                return new Image { Source = bmp };
-            }
-            catch
-            {
-                var uriVagon = new Uri($"avares://TrackFlow/Assets/VagonIcons/{iconName}");
-                var bmp = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriVagon));
-                return new Image { Source = bmp };
-            }
-        }
-        catch
-        {
-            return null;
-        }
+        var bitmap = VehicleIconLoader.TryLoadBitmap(iconName);
+        return bitmap == null ? null : new Image { Source = bitmap };
     }
 }

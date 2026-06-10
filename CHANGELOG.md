@@ -28,6 +28,23 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-10 14:00
+===================
+**Oblasť:** `Services/AppSettingsStore.cs`, `App.axaml.cs`, `TrackFlow.Tests/AppSettingsStorePathTests.cs`, `Services/VehicleIconLoader.cs`, `Views/Shared/BlockTrainRenderer.cs`, `Views/Operation/OperationView.axaml.cs`, `Views/Editor/LayoutEditorView.axaml.cs`, `Converters/IconNameToPathConverter.cs`, `ViewModels/Library/LocomotivesWindowViewModel.cs`
+**Zmena:** Stabilizované načítanie/ukladanie `settings.json` aj po publish a dokončené publish-safe zobrazovanie ikon lokomotív/vagónov (vrátane ComboBoxu v editore lokomotív).
+**Dôvod:** V publikovanej aplikácii sa konfigurácia nenačítavala/nevytvárala spoľahlivo po prvom spustení a ikony sa stratili v častiach UI, ktoré sa spoliehali na fyzický priečinok `Assets`.
+**Riešenie:**
+• `AppSettingsStore` teraz normalizuje relatívne cesty voči `AppDomain.CurrentDomain.BaseDirectory`; `settings.json` sa číta/zapisuje konzistentne vedľa `.exe`.
+• Pri ukončení aplikácie sa explicitne volá persist app nastavení (`desktop.Exit` + `ProcessExit` fallback), aby sa súbor vytvoril aj bez manuálnych zmien používateľa.
+• Zavedený centralizovaný `VehicleIconLoader` s fallbackmi: absolútna cesta → `IconRegistry` → priame `avares://` → embedded `Assets/LocoIcons` + `Assets/VagonIcons`.
+• Vykresľovanie ikon v `BlockTrainRenderer`, `OperationView`, `LayoutEditorView` a `IconNameToPathConverter` bolo prepojené na nový loader.
+• `VehicleIconLoader` používa case-insensitive mapu URI z `AssetLoader.GetAssets(...)`, aby fungovalo aj v single-file publish a pri rozdieloch v zápise názvov.
+• `LocomotivesWindowViewModel.LoadAvailableIcons()` doplnený o publish fallback: zoznam ikon sa načíta aj z embedded resource, takže ikony sa zobrazia aj v ComboBoxe „Ikona“ v editore lokomotív.
+**Výsledok:**
+• `settings.json` sa po publish správne nájde/vytvorí a perzistuje medzi spusteniami.
+• Ikony lokomotív a vagónov sa zobrazujú v Smart páse aj v editore lokomotív (vrátane výberového ComboBoxu).
+• Overené build/test behmi po úpravách (fokus na `AppSettingsStorePathTests`; kompilácia riešenia prešla).
+
 ## 2026-06-09 19:10
 ===================
 **Oblasť:** `Views/Settings/SettingsPages/GeneralSettingsView.axaml`, `Views/Settings/SettingsPages/GeneralSettingsView.axaml.cs`, `Views/Settings/SettingsPages/ModelClockSettingsView.axaml`, `ViewModels/Settings/SettingsViewModel.cs`, `Models/AppSettingsData.cs`, `Views/MainWindow.axaml.cs`, `ViewModels/MainWindowViewModel.cs`, `Services/TooltipPreferenceService.cs`, `App.axaml`, `Views/ClockView.axaml`, `Views/ClockView.axaml.cs`, `ViewModels/ClockViewModel.cs`

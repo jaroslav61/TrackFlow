@@ -1268,11 +1268,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrWhiteSpace(current))
         {
             var name = IOPath.GetFileName(current);
-            if (!string.IsNullOrWhiteSpace(name))
-                return name;
-        }
-
-        return "MyLayout.trackflow.json";
+             if (!string.IsNullOrWhiteSpace(name))
+                 return name;
+         }
+ 
+         return "settings.json";
     }
 
     // =====================================================================================

@@ -530,36 +530,12 @@ public partial class LayoutEditorView : UserControl
             return new Image { Source = cachedBitmap };
         }
 
-        try
-        {
-            Bitmap? bitmap = null;
-            
-            // Skúsime LocoIcons
-            var uriLoco = new Uri($"avares://TrackFlow/Assets/LocoIcons/{iconName}");
-            try
-            {
-                bitmap = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriLoco));
-            }
-            catch
-            {
-                // Skúsime VagonIcons
-                var uriVagon = new Uri($"avares://TrackFlow/Assets/VagonIcons/{iconName}");
-                bitmap = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriVagon));
-            }
-            
-            // Ulož do cache
-            if (bitmap != null)
-            {
-                _iconCache[iconName] = bitmap;
-                return new Image { Source = bitmap };
-            }
-            
+        var bitmap = VehicleIconLoader.TryLoadBitmap(iconName);
+        if (bitmap == null)
             return null;
-        }
-        catch
-        {
-            return null;
-        }
+
+        _iconCache[iconName] = bitmap;
+        return new Image { Source = bitmap };
     }
 
     /// <summary>

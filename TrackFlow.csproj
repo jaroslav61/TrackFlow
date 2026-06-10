@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>WinExe</OutputType>
         <TargetFramework>net9.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+	<ApplicationIcon>Assets\Appicons\AppIcon.ico</ApplicationIcon>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <AvaloniaNameGeneratorAttachDevTools>false</AvaloniaNameGeneratorAttachDevTools>
         <!-- Produkuj reference assembly (obj\...\ref\TrackFlow.dll) aj pre WinExe,
@@ -51,6 +52,7 @@
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
         <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.20"/>
         <PackageReference Version="11.3.0" Include="Avalonia.Svg.Skia"/>
+	<PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.3.9" />
     </ItemGroup>
 
     <ItemGroup>
@@ -63,25 +65,5 @@
         <Folder Include="Assets\LocoIcons\"/>
         <Folder Include="Assets\Appicons\"/>
     </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="Assets\Appicons\**\*.*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-        <AvaloniaResource Update="Assets\LocoIcons\loco1_40.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </AvaloniaResource>
-        <AvaloniaResource Update="Assets\LocoIcons\loco2_40.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </AvaloniaResource>
-        <AvaloniaResource Update="Assets\LocoIcons\loco3_40.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </AvaloniaResource>
-        <AvaloniaResource Update="Assets\LocoIcons\loco4_40.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </AvaloniaResource>
-    </ItemGroup>
+   
 </Project>

@@ -21,7 +21,19 @@ public sealed class AppSettingsStore
 
     public AppSettingsStore(string? filePath = null)
     {
-        FilePath = filePath ?? GetFilePath();
+        FilePath = ResolveFilePath(filePath);
+    }
+
+    private static string ResolveFilePath(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return GetFilePath();
+
+        if (Path.IsPathRooted(filePath))
+            return Path.GetFullPath(filePath);
+
+        // Relative paths are anchored to the executable directory, not to process working directory.
+        return Path.Combine(GetBaseDirectory(), filePath);
     }
 
     public AppSettingsData Load()
@@ -95,7 +107,20 @@ public sealed class AppSettingsStore
 
     public static string GetFilePath()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory ?? AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
-        return Path.Combine(baseDir, FileName);
+        return Path.Combine(GetBaseDirectory(), FileName);
+    }
+
+    private static string GetBaseDirectory()
+    {
+        var exePath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(exePath))
+        {
+            var dir = Path.GetDirectoryName(exePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                return dir;
+            }
+        }
+        return AppDomain.CurrentDomain.BaseDirectory;
     }
 }

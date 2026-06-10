@@ -1132,29 +1132,8 @@ public partial class OperationView : UserControl
     /// <summary>Načíta ikonu vozidla z Assets/LocoIcons alebo Assets/VagonIcons.</summary>
     private static Image? LoadIconImage(string iconName)
     {
-        if (string.IsNullOrEmpty(iconName)) return null;
-
-        try
-        {
-            // Skúsime LocoIcons
-            var uriLoco = new Uri($"avares://TrackFlow/Assets/LocoIcons/{iconName}");
-            try
-            {
-                var bmpLoco = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriLoco));
-                return new Image { Source = bmpLoco };
-            }
-            catch
-            {
-                // Skúsime VagonIcons
-                var uriVagon = new Uri($"avares://TrackFlow/Assets/VagonIcons/{iconName}");
-                var bmpVagon = new Bitmap(Avalonia.Platform.AssetLoader.Open(uriVagon));
-                return new Image { Source = bmpVagon };
-            }
-        }
-        catch
-        {
-            return null;
-        }
+        var bitmap = VehicleIconLoader.TryLoadBitmap(iconName);
+        return bitmap == null ? null : new Image { Source = bitmap };
     }
     
     // ═══════════════════════════════════════════════════════════════════════════

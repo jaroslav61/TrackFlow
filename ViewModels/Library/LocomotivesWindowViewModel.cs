@@ -933,6 +933,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     {
         try
         {
+            AvailableIcons.Clear();
+
             var start = AppDomain.CurrentDomain.BaseDirectory;
             var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 { ".png", ".jpg", ".jpeg", ".webp", ".bmp" };
@@ -959,6 +961,16 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 }
 
                 dir = Path.GetDirectoryName(dir) ?? dir;
+            }
+
+            // Publish/single-file fallback: load icon names from embedded avares resources.
+            foreach (var fileName in VehicleIconLoader.GetEmbeddedVehicleIconFileNames())
+            {
+                if (!allowedExt.Contains(Path.GetExtension(fileName)))
+                    continue;
+
+                if (!AvailableIcons.Any(x => string.Equals(x.Name, fileName, StringComparison.OrdinalIgnoreCase)))
+                    AvailableIcons.Add(new IconItem(fileName, fileName));
             }
         }
         catch
