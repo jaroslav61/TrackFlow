@@ -35,11 +35,6 @@ public partial class TrainsWindowViewModel : ObservableObject
             RezimVlaku.Uprava => "Úprava vlaku",
             _ => "Nový vlak"
         };
-
-    public string TextHlavnehoTlacidla =>
-        Rezim == RezimVlaku.Uprava
-            ? "Uložiť zmeny"
-            : "Vytvoriť vlak";
     public string TextDruhehoTlacidla => "Zrušiť";
     
     
@@ -110,7 +105,7 @@ public partial class TrainsWindowViewModel : ObservableObject
         Rezim = RezimVlaku.Uprava;
 
         OnPropertyChanged(nameof(NadpisDetailu));
-        OnPropertyChanged(nameof(TextHlavnehoTlacidla));
+   
     }
     
     public TrainsWindowViewModel()
@@ -208,9 +203,19 @@ public partial class TrainsWindowViewModel : ObservableObject
     }
     
     [RelayCommand]
+    private void NovyVlak()
+    {
+        VycistitFormular();
+
+        Rezim = RezimVlaku.Novy;
+
+        OnPropertyChanged(nameof(NadpisDetailu));
+    }
+    
+    [RelayCommand]
     public void UlozZmeny()
     {
-        if (VybranyVlak is null)
+        if (Rezim == RezimVlaku.Novy)
         {
             var novyVlak = new TrainRow
             {
@@ -279,7 +284,7 @@ public partial class TrainsWindowViewModel : ObservableObject
         Rezim = RezimVlaku.Prehliadanie;
 
         OnPropertyChanged(nameof(NadpisDetailu));
-        OnPropertyChanged(nameof(TextHlavnehoTlacidla));
+      
     }
     
     private void VycistitFormular()
@@ -311,8 +316,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             Rezim = RezimVlaku.Prehliadanie;
 
             OnPropertyChanged(nameof(NadpisDetailu));
-            OnPropertyChanged(nameof(TextHlavnehoTlacidla));
-
+         
             return;
         }
 
@@ -334,7 +338,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             Rezim = RezimVlaku.Novy;
 
             OnPropertyChanged(nameof(NadpisDetailu));
-            OnPropertyChanged(nameof(TextHlavnehoTlacidla));
+          
         }
     }
     
