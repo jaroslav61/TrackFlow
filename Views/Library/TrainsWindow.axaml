@@ -402,14 +402,14 @@
                     <TextBlock Margin="12"
                                FontWeight="Bold"
                                FontSize="16"
-                               Text="Detail vlaku" />
+                               Text="{Binding NadpisDetailu}" />
 
                     <Border Grid.Row="0"
                             Margin="12,40,12,0"
                             Height="1"
                             Background="#D1D5DB" />
 
-                      <StackPanel Grid.Row="1"
+                    <StackPanel Grid.Row="1"
                                 Margin="12">
 
                         <TextBlock Margin="0,0,0,2"
@@ -417,13 +417,13 @@
 
                         <TextBox Text="{Binding SupravaVlaku}" />
 
-                         </StackPanel>
+                    </StackPanel>
 
-                        <Grid Grid.Row="2"
+                    <Grid Grid.Row="2"
                           Margin="12"
                           ColumnDefinitions="*,12,*">
 
-                          <StackPanel Grid.Column="0">
+                        <StackPanel Grid.Column="0">
 
                             <TextBlock Margin="0,0,0,4"
                                        Text="Číslo vlaku" />
@@ -439,11 +439,11 @@
 
                             <TextBox Text="{Binding NazovVlaku}" />
 
-                         </StackPanel>
+                        </StackPanel>
 
-                       </Grid>
+                    </Grid>
 
-                       <Grid Grid.Row="3"
+                    <Grid Grid.Row="3"
                           Margin="12">
 
                         <Grid.RowDefinitions>
@@ -509,30 +509,36 @@
                             <TextBox Text="{Binding PlatiDo}" />
 
                         </StackPanel>
-  
-                      </Grid>
 
-                      <StackPanel Grid.Row="5"
+                    </Grid>
+
+                    <StackPanel Grid.Row="5"
                                 Margin="12"
                                 Orientation="Horizontal"
                                 Spacing="8"
                                 VerticalAlignment="Bottom">
 
-                        <Button Content="Vytvoriť vlak"
-                                Width="140"
+                        <Button Content="{Binding TextHlavnehoTlacidla}"
+                                Command="{Binding UlozZmenyCommand}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Width="125"
                                 Height="36" />
 
                         <Button Content="Zrušiť"
-                                Width="100"
+                                Command="{Binding ZrusitUpravuCommand}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Width="125"
                                 Height="36" />
 
-                         </StackPanel>
+                    </StackPanel>
 
-                      </Grid>
+                </Grid>
 
-                      </Border>
+            </Border>
 
-                      </Grid>
+        </Grid>
 
     </Grid>
 
