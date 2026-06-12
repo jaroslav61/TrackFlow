@@ -9,6 +9,28 @@
         Height="1000"
         WindowStartupLocation="CenterOwner">
 
+    <Window.Resources>
+        <!-- Farby pre horný zoznam vlakových súprav.
+             Používajú sa priamo v štýloch pre `Border.trainSetRow` nižšie.
+             - TrainSetSelectedBorderBrush: rámik vybraného riadku súpravy.
+             - TrainSetSelectedBackgroundBrush: podklad vybraného riadku súpravy.
+             - TrainSetRowBorderBrush: rámik nevybraného riadku súpravy. -->
+        <SolidColorBrush x:Key="TrainSetSelectedBorderBrush" Color="#2B78E4" />
+        <SolidColorBrush x:Key="TrainSetSelectedBackgroundBrush" Color="#EEF5FF" />
+        <SolidColorBrush x:Key="TrainSetRowBorderBrush" Color="#D8D8D8" />
+
+        <!-- Farby pre dolnú tabuľku vlakov.
+             - TrainGridRelatedRowBackgroundBrush: podklad vlakov, ktoré používajú
+               aktuálne vybranú súpravu.
+             - TrainGridSelectedRowBackgroundBrush: podklad aktuálne vybraného vlaku.
+             - TrainGridRowSeparatorBrush: oddeľovacia čiara medzi riadkami tabuľky.
+             - TrainGridSelectedRowForegroundBrush: farba textu v aktuálne vybranom vlaku. -->
+        <SolidColorBrush x:Key="TrainGridRelatedRowBackgroundBrush" Color="#EEF5FF" />
+        <SolidColorBrush x:Key="TrainGridSelectedRowBackgroundBrush" Color="#FFF4CC" />
+        <SolidColorBrush x:Key="TrainGridRowSeparatorBrush" Color="#E5E7EB" />
+        <SolidColorBrush x:Key="TrainGridSelectedRowForegroundBrush" Color="#1F2937" />
+    </Window.Resources>
+
     <Grid Margin="12"
           RowDefinitions="2.2*,1.8*">
 
@@ -27,56 +49,90 @@
                            FontSize="16"
                            Text="Vlakové súpravy" />
 
-                <ScrollViewer Grid.Row="1"
-                              Margin="8">
+                <ListBox Grid.Row="1"
+                         Margin="8"
+                         ItemsSource="{Binding TrainSets}"
+                         SelectedItem="{Binding VybranaSupravaVZozname, Mode=TwoWay}"
+                         SelectionMode="Single"
+                         Background="Transparent"
+                         BorderThickness="0">
 
-                    <StackPanel Spacing="6">
-
-                        <!-- Súprava 1 -->
-
-                        <ItemsControl ItemsSource="{Binding TrainSets}">
-
-                            <ItemsControl.ItemTemplate>
-
-                                <DataTemplate>
-
-                                    <Border BorderBrush="#D8D8D8"
-                                            BorderThickness="1"
-                                            CornerRadius="3"
-                                            Padding="8"
-                                            Margin="0,0,0,6">
-
-                                        <Grid ColumnDefinitions="80,*"
-                                              VerticalAlignment="Center">
-
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding Code}"
-                                                       FontWeight="Bold"
-                                                       Foreground="Blue"
-                                                       VerticalAlignment="Center" />
-
-                                            <shared:VehicleStripItem
-                                                Grid.Column="1"
-                                                Height="24"
-                                                DataContext="{Binding Locomotive}"
-                                                IconName="{Binding IconName}"
-                                                Title="{Binding DisplayName}"
-                                                IsLoco="True" />
-
-                                        </Grid>
-
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="MinHeight" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Template">
+                                <ControlTemplate>
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="{TemplateBinding CornerRadius}"
+                                            Padding="{TemplateBinding Padding}"
+                                            Margin="{TemplateBinding Margin}">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
                                     </Border>
+                                </ControlTemplate>
+                            </Setter>
+                        </Style>
 
-                                </DataTemplate>
+                        <Style Selector="ListBoxItem:selected">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                        </Style>
 
-                            </ItemsControl.ItemTemplate>
+                        <Style Selector="Border.trainSetRow">
+                            <Setter Property="BorderBrush" Value="{StaticResource TrainSetRowBorderBrush}" />
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="CornerRadius" Value="3" />
+                            <Setter Property="Padding" Value="8" />
+                            <Setter Property="Margin" Value="0,0,0,6" />
+                        </Style>
 
-                        </ItemsControl>
+                        <Style Selector="Border.trainSetRow.selected">
+                            <Setter Property="BorderBrush" Value="{StaticResource TrainSetSelectedBorderBrush}" />
+                            <Setter Property="BorderThickness" Value="2" />
+                            <Setter Property="Background" Value="{StaticResource TrainSetSelectedBackgroundBrush}" />
+                        </Style>
+                    </ListBox.Styles>
 
-                    </StackPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TrainsWindowViewModel+TrainSetRow">
+                            <Border Classes="trainSetRow"
+                                    Classes.selected="{Binding IsSelected}">
+                                <Grid ColumnDefinitions="80,*"
+                                      VerticalAlignment="Center">
 
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Code}"
+                                               FontWeight="Bold"
+                                               Foreground="Blue"
+                                               VerticalAlignment="Center" />
 
-                </ScrollViewer>
+                                    <shared:VehicleStripItem
+                                        Grid.Column="1"
+                                        Height="24"
+                                        IsHitTestVisible="False"
+                                        DataContext="{Binding Locomotive}"
+                                        IconName="{Binding IconName}"
+                                        Title="{Binding DisplayName}"
+                                        IsLoco="True" />
+
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+
+                </ListBox>
 
             </Grid>
 
@@ -107,82 +163,134 @@
                               ItemsSource="{Binding Trains}"
                               SelectedItem="{Binding VybranyVlak}"
                               IsReadOnly="True">
-                        
+                        <DataGrid.Styles>
+                            <Style Selector="DataGridCell">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="BorderBrush" Value="{StaticResource TrainGridRowSeparatorBrush}" />
+                                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            </Style>
+
+                            <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+                                <Setter Property="Fill" Value="Transparent" />
+                                <Setter Property="Opacity" Value="0" />
+                            </Style>
+
+                            <Style Selector="DataGridRow:selected:focus /template/ Rectangle#BackgroundRectangle">
+                                <Setter Property="Fill" Value="Transparent" />
+                                <Setter Property="Opacity" Value="0" />
+                            </Style>
+
+                            <Style Selector="Border.trainCellBackground">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Padding" Value="6,4" />
+                                <Setter Property="Margin" Value="0,0,0,1" />
+                            </Style>
+
+                            <Style Selector="Border.trainCellBackground.relatedTrainSet">
+                                <Setter Property="Background" Value="{StaticResource TrainGridRelatedRowBackgroundBrush}" />
+                            </Style>
+
+                            <Style Selector="DataGridRow:selected Border.trainCellBackground">
+                                <Setter Property="Background" Value="{StaticResource TrainGridSelectedRowBackgroundBrush}" />
+                            </Style>
+
+                            <Style Selector="DataGridRow:selected DataGridCell">
+                                <Setter Property="Foreground" Value="{StaticResource TrainGridSelectedRowForegroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource TrainGridRowSeparatorBrush}" />
+                                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            </Style>
+                        </DataGrid.Styles>
 
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Číslo vlaku"
-                                                Binding="{Binding TrainNumber}"
-                                                Width="120" />
-
-                            <DataGridTextColumn Header="Názov vlaku"
-                                                Binding="{Binding TrainName}"
-                                                Width="*" />
-
-                            <DataGridTemplateColumn Header="Typ"
-                                                    Width="120">
-
+                            <DataGridTemplateColumn Header="Číslo vlaku" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
-
-                                        <StackPanel Orientation="Horizontal"
-                                                    Spacing="6">
-
-                                            <TextBlock Text="{Binding TrainTypeIcon}" VerticalAlignment="Center" />
-
-                                            <TextBlock Text="{Binding TrainType}" VerticalAlignment="Center" />
-
-                                        </StackPanel>
-
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <TextBlock Text="{Binding TrainNumber}" VerticalAlignment="Center" />
+                                        </Border>
                                     </DataTemplate>
-
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="Súprava"
-                                                Binding="{Binding TrainSet.Code}"
-                                                Width="80" />
-
-                            <DataGridTextColumn Header="Platí od"
-                                                Binding="{Binding ValidFrom}"
-                                                Width="100" />
-
-                            <DataGridTextColumn Header="Platí do"
-                                                Binding="{Binding ValidTo}"
-                                                Width="100" />
-
-                            <DataGridTemplateColumn Header="Akcie"
-                                                    Width="45">
-
+                            <DataGridTemplateColumn Header="Názov vlaku" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <TextBlock Text="{Binding TrainName}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 
-                                        <Button Width="28"
-                                                Height="28"
-                                                Padding="0"
-                                                Background="Transparent"
-                                                Content="⋯">
+                            <DataGridTemplateColumn Header="Typ" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding TrainTypeIcon}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding TrainType}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 
-                                            <Button.ContextMenu>
+                            <DataGridTemplateColumn Header="Súprava" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <TextBlock Text="{Binding TrainSet.Code}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 
-                                                <ContextMenu>
+                            <DataGridTemplateColumn Header="Platí od" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <TextBlock Text="{Binding ValidFrom}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 
-                                                    <MenuItem Header="Upraviť vlak" />
+                            <DataGridTemplateColumn Header="Platí do" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <TextBlock Text="{Binding ValidTo}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 
-                                                    <MenuItem Header="Duplikovať vlak" />
-
-                                                    <Separator />
-
-                                                    <MenuItem Header="Zmazať vlak" />
-
-                                                </ContextMenu>
-
-                                            </Button.ContextMenu>
-
-                                        </Button>
-
+                            <DataGridTemplateColumn Header="Akcie" Width="45">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="trainCellBackground"
+                                                Classes.relatedTrainSet="{Binding IsHighlightedBySelectedTrainSet}">
+                                            <Button Width="28"
+                                                    Height="28"
+                                                    Padding="0"
+                                                    Background="Transparent"
+                                                    Content="⋯">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Upraviť vlak" />
+                                                        <MenuItem Header="Duplikovať vlak" />
+                                                        <Separator />
+                                                        <MenuItem Header="Zmazať vlak" />
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </Border>
                                     </DataTemplate>
 
                                 </DataGridTemplateColumn.CellTemplate>

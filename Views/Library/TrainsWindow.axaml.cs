@@ -1,6 +1,5 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using TrackFlow.ViewModels.Library;
 
 namespace TrackFlow.Views.Library;
 

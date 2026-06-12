@@ -28,6 +28,21 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-12 12:00
+===================
+**Oblasť:** `Views/Library/TrainsWindow.axaml`
+**Zmena:** Doriešené vizuálne správanie horného zoznamu súprav a dolnej tabuľky vlakov: odstránený nechcený default selected overlay z `ListBox`, zjednotený spôsob kreslenia riadkov súprav a upravené komentáre pri farebných resource tak, aby presne popisovali reálne použitie farieb.
+**Dôvod:** Pri výbere súpravy a vlaku sa v UI miešali cudzie selected vrstvy témy s vlastnými farbami, čo spôsobovalo nejednoznačný a zavádzajúci výsledok. Zároveň boli v resource komentároch nepresné formulácie o tom, čo ktorá farba v skutočnosti pokrýva.
+**Riešenie:**
+• Horný `ListBox` bol pre výber súpravy prepnutý na vlastný jednoduchý template, aby selected vizuál neprebíjal definované farby.
+• Zoznam súprav ostal konfigurovateľný cez tri farby na začiatku súboru (`TrainSetSelectedBorderBrush`, `TrainSetSelectedBackgroundBrush`, `TrainSetRowBorderBrush`).
+• Dolný `DataGrid` dostal vlastné štýly pre oddelenie riadkov, farbu textu vo vybranom vlaku a oddelené podfarbenie „vlak patrí do vybranej súpravy“ vs. „vlak je aktuálne vybraný“.
+• Komentáre v `Window.Resources` boli upratané a zjednodušené tak, aby bolo jasné, čo sa kde reálne prejaví v UI.
+**Výsledok:**
+• Výber súpravy aj vlakov je vizuálne čitateľný a farby sa menia na očakávanom mieste.
+• Zostalo zachované centrálne miesto pre úpravu farieb na začiatku súboru.
+• Build riešenia prešiel po úpravách.
+
 ## 2026-06-10 14:00
 ===================
 **Oblasť:** `Services/AppSettingsStore.cs`, `App.axaml.cs`, `TrackFlow.Tests/AppSettingsStorePathTests.cs`, `Services/VehicleIconLoader.cs`, `Views/Shared/BlockTrainRenderer.cs`, `Views/Operation/OperationView.axaml.cs`, `Views/Editor/LayoutEditorView.axaml.cs`, `Converters/IconNameToPathConverter.cs`, `ViewModels/Library/LocomotivesWindowViewModel.cs`

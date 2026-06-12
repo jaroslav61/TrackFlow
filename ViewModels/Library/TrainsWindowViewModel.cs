@@ -80,6 +80,12 @@ public partial class TrainsWindowViewModel : ObservableObject
 
     [ObservableProperty] private TrainSetRow? vybranaSupravaVZozname;
 
+    partial void OnVybranaSupravaVZoznameChanged(TrainSetRow? value)
+    {
+        RefreshTrainSetSelectionState(value);
+        RefreshTrainHighlightState(value);
+    }
+
     [ObservableProperty] private bool jeOsobny;
 
     partial void OnJeOsobnyChanged(bool value)
@@ -151,6 +157,9 @@ public partial class TrainsWindowViewModel : ObservableObject
 
             foreach (var loco in locomotives)
             {
+                // Súprava = lokomotíva + aspoň jeden vagón.
+                // Samostatné lokomotívy bez vagónov sa do zoznamu súprav
+                // nezahŕňajú.
                 if (loco.AttachedWagons.Count == 0)
                     continue;
 
@@ -164,12 +173,26 @@ public partial class TrainsWindowViewModel : ObservableObject
             }
         }
 
-        InitializeDemoData();
+        RefreshTrainSetSelectionState(VybranaSupravaVZozname);
+        RefreshTrainHighlightState(VybranaSupravaVZozname);
 
         JeEditorPovoleny = false;
+
+        // ##### DEMO_TRAINS_BEGIN #####
+        // TODO[DEMO_TRAINS]: Dočasné demo vlaky na účely manuálneho testovania
+        // okna "Vlaky". Po implementácii perzistencie vlakov (ukladanie /
+        // načítanie zo settings.json alebo z projektu) ODSTRÁNIŤ celý blok
+        // medzi značkami DEMO_TRAINS_BEGIN a DEMO_TRAINS_END vrátane volania
+        // SeedDemoTrains() vyššie a samotnej metódy SeedDemoTrains() nižšie.
+        // Vyhľadávacia značka v repo: "DEMO_TRAINS".
+        SeedDemoTrains();
+        // ##### DEMO_TRAINS_END #####
     }
 
-    private void InitializeDemoData()
+    // ##### DEMO_TRAINS_BEGIN #####
+    // TODO[DEMO_TRAINS]: Dočasná metóda. Po pridaní reálnej perzistencie
+    // vlakov ODSTRÁNIŤ celú metódu aj jej volanie v konštruktore.
+    private void SeedDemoTrains()
     {
         Trains.Add(new TrainRow
         {
@@ -204,6 +227,8 @@ public partial class TrainsWindowViewModel : ObservableObject
             ValidTo = "-"
         });
     }
+    // ##### DEMO_TRAINS_END #####
+
 
     partial void OnVybranyVlakChanged(TrainRow? value)
     {
@@ -263,6 +288,7 @@ public partial class TrainsWindowViewModel : ObservableObject
         [ObservableProperty] private TrainSetRow? trainSet;
         [ObservableProperty] private string validFrom = "";
         [ObservableProperty] private string validTo = "";
+        [ObservableProperty] private bool isHighlightedBySelectedTrainSet;
     }
 
     public partial class TrainSetRow : ObservableObject
@@ -272,7 +298,7 @@ public partial class TrainsWindowViewModel : ObservableObject
         public string DisplayName => Locomotive.DisplayName;
         public ObservableCollection<Wagon> AttachedWagons => Locomotive.AttachedWagons;
         public Guid Id { get; set; } = Guid.NewGuid();
-        public bool IsSelected { get; set; }
+        [ObservableProperty] private bool isSelected;
 
         [ObservableProperty] private string code = "";
 
@@ -299,6 +325,18 @@ public partial class TrainsWindowViewModel : ObservableObject
     private void VyberSupravu(TrainSetRow? suprava)
     {
         VybranaSupravaVZozname = suprava;
+    }
+
+    private void RefreshTrainSetSelectionState(TrainSetRow? selectedTrainSet)
+    {
+        foreach (var item in TrainSets)
+            item.IsSelected = ReferenceEquals(item, selectedTrainSet);
+    }
+
+    private void RefreshTrainHighlightState(TrainSetRow? selectedTrainSet)
+    {
+        foreach (var train in Trains)
+            train.IsHighlightedBySelectedTrainSet = selectedTrainSet != null && ReferenceEquals(train.TrainSet, selectedTrainSet);
     }
 
     [RelayCommand]
@@ -337,6 +375,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             }
 
             Trains.Add(novyVlak);
+            RefreshTrainHighlightState(VybranaSupravaVZozname);
 
             VybranyVlak = novyVlak;
 
@@ -376,6 +415,8 @@ public partial class TrainsWindowViewModel : ObservableObject
             VybranyVlak.TrainType = "Posun";
             VybranyVlak.TrainTypeIcon = "🟣";
         }
+
+        RefreshTrainHighlightState(VybranaSupravaVZozname);
 
         Rezim = RezimVlaku.Prehliadanie;
 

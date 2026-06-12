@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using TrackFlow.Models;
+using TrackFlow.ViewModels.Library;
 using TrackFlow.Views.Shared;
 using Xunit;
 
@@ -243,6 +246,48 @@ public class BlockTrainRendererTests
                 : BlockTrainRenderer.DotCorner.TopRight;
             Assert.Equal(expected, plan.DotCorner);
         }
+    }
+}
+
+public class TrainsWindowViewModelSelectionTests
+{
+    [Fact]
+    public void SelectedTrainSet_UpdatesSelectionState_AndHighlightsMatchingTrains()
+    {
+        var loco1 = new Locomotive("loco-1", "Loco 1");
+        loco1.AttachedWagons.Add(new Wagon("wag-1", "Wagon 1"));
+
+        var loco2 = new Locomotive("loco-2", "Loco 2");
+        loco2.AttachedWagons.Add(new Wagon("wag-2", "Wagon 2"));
+
+        var vm = new TrainsWindowViewModel(
+            locomotives: new ObservableCollection<Locomotive> { loco1, loco2 });
+
+        var first = Assert.Single(vm.TrainSets, s => s.Code == "S001");
+        var second = Assert.Single(vm.TrainSets, s => s.Code == "S002");
+
+
+        vm.VybranaSupravaVZozname = first;
+
+        Assert.Same(first, vm.VybranaSupravaVZozname);
+        Assert.True(first.IsSelected);
+        Assert.False(second.IsSelected);
+
+        Assert.Collection(vm.Trains,
+            train => Assert.True(train.IsHighlightedBySelectedTrainSet),
+            train => Assert.True(train.IsHighlightedBySelectedTrainSet),
+            train => Assert.False(train.IsHighlightedBySelectedTrainSet));
+
+        vm.VybranaSupravaVZozname = second;
+
+        Assert.Same(second, vm.VybranaSupravaVZozname);
+        Assert.False(first.IsSelected);
+        Assert.True(second.IsSelected);
+
+        Assert.Collection(vm.Trains,
+            train => Assert.False(train.IsHighlightedBySelectedTrainSet),
+            train => Assert.False(train.IsHighlightedBySelectedTrainSet),
+            train => Assert.True(train.IsHighlightedBySelectedTrainSet));
     }
 }
 

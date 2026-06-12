@@ -540,7 +540,7 @@ public partial class VehicleStripItem : UserControl, INotifyPropertyChanged
             _pendingWagon = wagon;
             _pendingLoco = null;
             // uchopiť ukazovateľ pre sledovanie pohybu
-            try { e.Pointer.Capture(this); }
+             try { e.Pointer.Capture(this); }
             catch (Exception ex)
             {
                 Program.ReportUnhandledException("VehicleStripItem.OnPointerPressed.WagonPointerCapture", ex, isTerminating: false);
