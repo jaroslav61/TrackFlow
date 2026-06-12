@@ -9,7 +9,5 @@ public partial class TrainsWindow : Window
     public TrainsWindow()
     {
         AvaloniaXamlLoader.Load(this);
-
-        DataContext = new TrainsWindowViewModel();
     }
 }

@@ -329,7 +329,17 @@ public partial class MainWindow : Window
 
     private async Task ShowTrainsDialogAsync()
     {
-        var dlg = new TrainsWindow();
+        var trainsVm = _vm == null
+            ? null
+            : new TrainsWindowViewModel(
+                _vm.SettingsManager,
+                _vm.SmartStrips.Locomotives);
+
+        var dlg = new TrainsWindow
+        {
+            DataContext = trainsVm
+        };
+
         TooltipPreferenceService.Attach(dlg);
         await dlg.ShowDialog(this);
     }

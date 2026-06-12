@@ -1,13 +1,19 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Linq;
 using System.Collections.ObjectModel;
+using TrackFlow.Models;
+using TrackFlow.Services;
 
 namespace TrackFlow.ViewModels.Library;
 
 public partial class TrainsWindowViewModel : ObservableObject
-{
+ {
     public ObservableCollection<TrainRow> Trains { get; } = new();
+    public ObservableCollection<TrainSetRow> TrainSets { get; } = new();
+
+    [ObservableProperty] private TrainSetRow? vybranaSuprava;
 
     [ObservableProperty] private TrainRow? vybranyVlak;
 
@@ -18,18 +24,16 @@ public partial class TrainsWindowViewModel : ObservableObject
         Uprava
     }
 
-    [ObservableProperty]
-    private RezimVlaku rezim = RezimVlaku.Novy;
-    
+    [ObservableProperty] private RezimVlaku rezim = RezimVlaku.Novy;
+
     public bool JeNovyVlak => Rezim == RezimVlaku.Novy;
 
     public bool JeVybranyVlak => Rezim == RezimVlaku.Prehliadanie;
 
     public bool JeUpravaVlaku => Rezim == RezimVlaku.Uprava;
-    
-    [ObservableProperty]
-    private bool jeEditorPovoleny;
-    
+
+    [ObservableProperty] private bool jeEditorPovoleny;
+
     public string NadpisDetailu =>
         Rezim switch
         {
@@ -38,59 +42,67 @@ public partial class TrainsWindowViewModel : ObservableObject
             RezimVlaku.Uprava => "Úprava vlaku",
             _ => "Nový vlak"
         };
+
     public string TextDruhehoTlacidla => "Zrušiť";
+
     public string TextAkcnehoTlacidla =>
         Rezim == RezimVlaku.Uprava
             ? "Uložiť"
             : "Zmazať";
-    
+
     public bool JeAkcneTlacidloPovolene =>
         Rezim == RezimVlaku.Prehliadanie ||
         Rezim == RezimVlaku.Uprava;
-    
+
     public bool JeTlacidloZrusitPovolene =>
         Rezim != RezimVlaku.Novy;
-    
+
     [ObservableProperty] private string cisloVlaku = "";
+
     partial void OnCisloVlakuChanged(string value)
     {
         AktivujRezimUpravy();
     }
 
     [ObservableProperty] private string nazovVlaku = "";
-    
+
     partial void OnNazovVlakuChanged(string value)
-    {
-      AktivujRezimUpravy();
-    }
-
-    [ObservableProperty] private string typVlaku = "";
-
-    [ObservableProperty] private string supravaVlaku = "";
-    partial void OnSupravaVlakuChanged(string value)
     {
         AktivujRezimUpravy();
     }
 
+    [ObservableProperty] private string typVlaku = "";
+
+    partial void OnVybranaSupravaChanged(TrainSetRow? value)
+    {
+        AktivujRezimUpravy();
+    }
+
+    [ObservableProperty] private TrainSetRow? vybranaSupravaVZozname;
+
     [ObservableProperty] private bool jeOsobny;
+
     partial void OnJeOsobnyChanged(bool value)
     {
         AktivujRezimUpravy();
     }
 
     [ObservableProperty] private bool jeRychlik;
+
     partial void OnJeRychlikChanged(bool value)
     {
         AktivujRezimUpravy();
     }
 
     [ObservableProperty] private bool jeNakladny;
+
     partial void OnJeNakladnyChanged(bool value)
     {
         AktivujRezimUpravy();
     }
 
     [ObservableProperty] private bool jePosun;
+
     partial void OnJePosunChanged(bool value)
     {
         AktivujRezimUpravy();
@@ -99,33 +111,65 @@ public partial class TrainsWindowViewModel : ObservableObject
     [ObservableProperty] private string platiOd = "";
 
     [ObservableProperty] private string platiDo = "";
+
     partial void OnPlatiDoChanged(string value)
     {
         AktivujRezimUpravy();
     }
 
+    [ObservableProperty] private string diagnostika = "";
+
     [ObservableProperty] private bool upravujeSaVlak;
     private bool nacitavamFormular;
 
- private void AktivujRezimUpravy()
- {
-     if (nacitavamFormular)
-         return;
- 
-     if (Rezim == RezimVlaku.Novy ||
-         Rezim == RezimVlaku.Prehliadanie)
-     {
-         Rezim = RezimVlaku.Uprava;
-     }
- 
-     OnPropertyChanged(nameof(NadpisDetailu));
-     OnPropertyChanged(nameof(JeEditorPovoleny));
-     OnPropertyChanged(nameof(TextAkcnehoTlacidla));
-     OnPropertyChanged(nameof(JeAkcneTlacidloPovolene));
-     OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
- }
-    
-    public TrainsWindowViewModel()
+    private void AktivujRezimUpravy()
+    {
+        if (nacitavamFormular)
+            return;
+
+        if (Rezim == RezimVlaku.Novy ||
+            Rezim == RezimVlaku.Prehliadanie)
+        {
+            Rezim = RezimVlaku.Uprava;
+        }
+
+        OnPropertyChanged(nameof(NadpisDetailu));
+        OnPropertyChanged(nameof(JeEditorPovoleny));
+        OnPropertyChanged(nameof(TextAkcnehoTlacidla));
+        OnPropertyChanged(nameof(JeAkcneTlacidloPovolene));
+        OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
+    }
+
+
+    public TrainsWindowViewModel(
+        SettingsManager? settingsManager = null,
+        ObservableCollection<Locomotive>? locomotives = null)
+    {
+        if (locomotives != null)
+        {
+            int index = 1;
+
+            foreach (var loco in locomotives)
+            {
+                if (loco.AttachedWagons.Count == 0)
+                    continue;
+
+                TrainSets.Add(new TrainSetRow
+                {
+                    Code = $"S{index:000}",
+                    Locomotive = loco
+                });
+
+                index++;
+            }
+        }
+
+        InitializeDemoData();
+
+        JeEditorPovoleny = false;
+    }
+
+    private void InitializeDemoData()
     {
         Trains.Add(new TrainRow
         {
@@ -133,7 +177,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             TrainName = "Košice – Lipany",
             TrainTypeIcon = "🟢",
             TrainType = "Osobný",
-            TrainSet = "S001",
+            TrainSet = TrainSets.FirstOrDefault(x => x.Code == "S001"),
             ValidFrom = "01.01.2026",
             ValidTo = "-"
         });
@@ -144,7 +188,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             TrainName = "Prešov – Košice",
             TrainTypeIcon = "🟢",
             TrainType = "Osobný",
-            TrainSet = "S001",
+            TrainSet = TrainSets.FirstOrDefault(x => x.Code == "S001"),
             ValidFrom = "01.01.2026",
             ValidTo = "-"
         });
@@ -155,11 +199,10 @@ public partial class TrainsWindowViewModel : ObservableObject
             TrainName = "Tatran",
             TrainTypeIcon = "🔵",
             TrainType = "Rýchlik",
-            TrainSet = "S002",
+            TrainSet = TrainSets.FirstOrDefault(x => x.Code == "S002"),
             ValidFrom = "01.01.2026",
             ValidTo = "-"
         });
-        JeEditorPovoleny = false;
     }
 
     partial void OnVybranyVlakChanged(TrainRow? value)
@@ -173,14 +216,14 @@ public partial class TrainsWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(TextAkcnehoTlacidla));
         OnPropertyChanged(nameof(JeAkcneTlacidloPovolene));
         OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
-        
+
         UpravujeSaVlak = value != null;
-        
+
         if (value != null)
         {
             Rezim = RezimVlaku.Prehliadanie;
             JeEditorPovoleny = true;
-            
+
             OnPropertyChanged(nameof(NadpisDetailu));
             OnPropertyChanged(nameof(JeNovyVlak));
             OnPropertyChanged(nameof(JeVybranyVlak));
@@ -191,14 +234,14 @@ public partial class TrainsWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
         }
     }
-    
+
     private void NacitajVlakDoFormulara(TrainRow value)
     {
         nacitavamFormular = true;
         CisloVlaku = value.TrainNumber;
         NazovVlaku = value.TrainName;
         TypVlaku = value.TrainType;
-        SupravaVlaku = value.TrainSet;
+        VybranaSuprava = value.TrainSet;
         PlatiOd = value.ValidFrom;
         PlatiDo = value.ValidTo;
 
@@ -207,28 +250,36 @@ public partial class TrainsWindowViewModel : ObservableObject
         JeNakladny = value.TrainType == "Nákladný";
         JePosun = value.TrainType == "Posun";
         nacitavamFormular = false;
-     }
+    }
 
     public partial class TrainRow : ObservableObject
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [ObservableProperty] private string trainNumber = "";
-
         [ObservableProperty] private string trainName = "";
-
         [ObservableProperty] private string trainType = "";
-
         [ObservableProperty] private string trainTypeIcon = "";
-
-        [ObservableProperty] private string trainSet = "";
-
+        [ObservableProperty] private TrainSetRow? trainSet;
         [ObservableProperty] private string validFrom = "";
-
         [ObservableProperty] private string validTo = "";
     }
-    
-    [RelayCommand]
+
+    public partial class TrainSetRow : ObservableObject
+    {
+        public string IconName => Locomotive.IconName;
+
+        public string DisplayName => Locomotive.DisplayName;
+        public ObservableCollection<Wagon> AttachedWagons => Locomotive.AttachedWagons;
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public bool IsSelected { get; set; }
+
+        [ObservableProperty] private string code = "";
+
+        [ObservableProperty] private Locomotive locomotive = null!;
+    }
+
+ [RelayCommand]
     private void NovyVlak()
     {
         VycistitFormular();
@@ -237,13 +288,19 @@ public partial class TrainsWindowViewModel : ObservableObject
         JeEditorPovoleny = true;
 
         OnPropertyChanged(nameof(NadpisDetailu));
-        
+
         OnPropertyChanged(nameof(TextAkcnehoTlacidla));
         OnPropertyChanged(nameof(JeAkcneTlacidloPovolene));
         OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
         OnPropertyChanged(nameof(JeEditorPovoleny));
     }
-    
+
+    [RelayCommand]
+    private void VyberSupravu(TrainSetRow? suprava)
+    {
+        VybranaSupravaVZozname = suprava;
+    }
+
     [RelayCommand]
     public void UlozZmeny()
     {
@@ -253,7 +310,7 @@ public partial class TrainsWindowViewModel : ObservableObject
             {
                 TrainNumber = CisloVlaku,
                 TrainName = NazovVlaku,
-                TrainSet = SupravaVlaku,
+                TrainSet = VybranaSuprava,
                 ValidFrom = PlatiOd,
                 ValidTo = PlatiDo
             };
@@ -291,13 +348,11 @@ public partial class TrainsWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
 
             return;
-
-            return; 
         }
-        
+
         VybranyVlak.TrainNumber = CisloVlaku;
         VybranyVlak.TrainName = NazovVlaku;
-        VybranyVlak.TrainSet = SupravaVlaku;
+        VybranyVlak.TrainSet = VybranaSuprava;
         VybranyVlak.ValidFrom = PlatiOd;
         VybranyVlak.ValidTo = PlatiDo;
 
@@ -325,20 +380,19 @@ public partial class TrainsWindowViewModel : ObservableObject
         Rezim = RezimVlaku.Prehliadanie;
 
         OnPropertyChanged(nameof(NadpisDetailu));
-        
+
         OnPropertyChanged(nameof(TextAkcnehoTlacidla));
         OnPropertyChanged(nameof(JeAkcneTlacidloPovolene));
         OnPropertyChanged(nameof(JeTlacidloZrusitPovolene));
-      
     }
-    
+
     private void VycistitFormular()
     {
         VybranyVlak = null;
 
         CisloVlaku = "";
         NazovVlaku = "";
-        SupravaVlaku = "";
+        VybranaSuprava = null;
         PlatiOd = "";
         PlatiDo = "";
 
@@ -347,7 +401,7 @@ public partial class TrainsWindowViewModel : ObservableObject
         JeNakladny = false;
         JePosun = false;
     }
-    
+
     [RelayCommand]
     private void ZrusitUpravu()
     {
@@ -375,7 +429,7 @@ public partial class TrainsWindowViewModel : ObservableObject
 
             CisloVlaku = "";
             NazovVlaku = "";
-            SupravaVlaku = "";
+            VybranaSuprava = null;
             PlatiOd = "";
             PlatiDo = "";
 

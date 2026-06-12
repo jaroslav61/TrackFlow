@@ -1,5 +1,6 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shared="clr-namespace:TrackFlow.Views.Shared;assembly=TrackFlow"
         xmlns:vm="using:TrackFlow.ViewModels.Library"
         x:Class="TrackFlow.Views.Library.TrainsWindow"
         x:DataType="vm:TrainsWindowViewModel"
@@ -33,239 +34,44 @@
 
                         <!-- Súprava 1 -->
 
-                        <Border BorderBrush="#D8D8D8"
-                                BorderThickness="1"
-                                CornerRadius="3"
-                                Padding="8">
+                        <ItemsControl ItemsSource="{Binding TrainSets}">
 
-                            <Grid ColumnDefinitions="70,90,*,40">
+                            <ItemsControl.ItemTemplate>
 
-                                <TextBlock Grid.Column="0"
-                                           VerticalAlignment="Center"
-                                           FontWeight="Bold"
-                                           Text="S001" />
+                                <DataTemplate>
 
-                                <TextBlock Grid.Column="1"
-                                           VerticalAlignment="Center"
-                                           Text="Osobná" />
-
-                                <StackPanel Grid.Column="2"
-                                            Orientation="Horizontal"
-                                            Spacing="6">
-
-                                    <Border Width="90"
-                                            Height="40"
+                                    <Border BorderBrush="#D8D8D8"
+                                            BorderThickness="1"
                                             CornerRadius="3"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
+                                            Padding="8"
+                                            Margin="0,0,0,6">
 
-                                        <StackPanel VerticalAlignment="Center"
-                                                    HorizontalAlignment="Center">
+                                        <Grid ColumnDefinitions="80,*"
+                                              VerticalAlignment="Center">
 
-                                            <TextBlock HorizontalAlignment="Center"
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Code}"
                                                        FontWeight="Bold"
-                                                       Text="754" />
+                                                       Foreground="Blue"
+                                                       VerticalAlignment="Center" />
 
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       FontSize="10"
-                                                       Text="054" />
+                                            <shared:VehicleStripItem
+                                                Grid.Column="1"
+                                                Height="24"
+                                                DataContext="{Binding Locomotive}"
+                                                IconName="{Binding IconName}"
+                                                Title="{Binding DisplayName}"
+                                                IsLoco="True" />
 
-                                        </StackPanel>
-
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bdt" />
+                                        </Grid>
 
                                     </Border>
 
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
+                                </DataTemplate>
 
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bdt" />
+                            </ItemsControl.ItemTemplate>
 
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bdt" />
-
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#F4E5E5"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="BDs" />
-
-                                    </Border>
-
-                                </StackPanel>
-
-                                <Button Grid.Column="3"
-                                        Background="Transparent"
-                                        Width="28"
-                                        Height="28"
-                                        Padding="0"
-                                        Content="⋯">
-
-                                    <Button.ContextMenu>
-
-                                        <ContextMenu>
-
-                                            <MenuItem Header="Premenovať súpravu" />
-
-                                            <Separator />
-
-                                            <MenuItem Header="Rozpustiť súpravu" />
-
-                                        </ContextMenu>
-
-                                    </Button.ContextMenu>
-
-                                </Button>
-
-
-                            </Grid>
-
-                        </Border>
-
-                        <!-- Súprava 2 -->
-
-                        <Border BorderBrush="#D8D8D8"
-                                BorderThickness="1"
-                                CornerRadius="3"
-                                Padding="8">
-
-                            <Grid ColumnDefinitions="70,90,*,40">
-
-                                <TextBlock Grid.Column="0"
-                                           VerticalAlignment="Center"
-                                           FontWeight="Bold"
-                                           Text="S002" />
-
-                                <TextBlock Grid.Column="1"
-                                           VerticalAlignment="Center"
-                                           Text="Rýchliková" />
-
-                                <StackPanel Grid.Column="2"
-                                            Orientation="Horizontal"
-                                            Spacing="6">
-
-                                    <Border Width="90"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <StackPanel VerticalAlignment="Center"
-                                                    HorizontalAlignment="Center">
-
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       FontWeight="Bold"
-                                                       Text="350" />
-
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       FontSize="10"
-                                                       Text="002" />
-
-                                        </StackPanel>
-
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bee" />
-
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bee" />
-
-                                    </Border>
-
-                                    <Border Width="70"
-                                            Height="40"
-                                            CornerRadius="3"
-                                            Background="#E9F2E9"
-                                            BorderBrush="#808080"
-                                            BorderThickness="1">
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   Text="Bee" />
-
-                                    </Border>
-
-                                </StackPanel>
-
-                                <Button Grid.Column="3"
-                                        Background="Transparent"
-                                        Width="28"
-                                        Height="28"
-                                        Padding="0"
-                                        Content="⋯">
-
-                                    <Button.ContextMenu>
-
-                                        <ContextMenu>
-
-                                            <MenuItem Header="Premenovať súpravu" />
-
-                                            <Separator />
-
-                                            <MenuItem Header="Rozpustiť súpravu" />
-
-                                        </ContextMenu>
-
-                                    </Button.ContextMenu>
-
-                                </Button>
-
-                            </Grid>
-
-                        </Border>
+                        </ItemsControl>
 
                     </StackPanel>
 
@@ -299,10 +105,11 @@
                     <DataGrid Grid.Row="1"
                               Margin="8"
                               ItemsSource="{Binding Trains}"
-                              SelectedItem="{Binding VybranyVlak}">
+                              SelectedItem="{Binding VybranyVlak}"
+                              IsReadOnly="True">
+                        
 
                         <DataGrid.Columns>
-
                             <DataGridTextColumn Header="Číslo vlaku"
                                                 Binding="{Binding TrainNumber}"
                                                 Width="120" />
@@ -334,7 +141,7 @@
                             </DataGridTemplateColumn>
 
                             <DataGridTextColumn Header="Súprava"
-                                                Binding="{Binding TrainSet}"
+                                                Binding="{Binding TrainSet.Code}"
                                                 Width="80" />
 
                             <DataGridTextColumn Header="Platí od"
@@ -420,7 +227,17 @@
                         <TextBlock Margin="0,0,0,2"
                                    Text="Súprava" />
 
-                        <TextBox Text="{Binding SupravaVlaku}" />
+                        <ComboBox ItemsSource="{Binding TrainSets}"
+                                  SelectedItem="{Binding VybranaSuprava}"
+                                  HorizontalAlignment="Stretch">
+
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Code}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+
+                        </ComboBox>
 
                     </StackPanel>
 
