@@ -14,6 +14,7 @@ public sealed class TrackFlowProject
 
     public List<LocoRecord> Locomotives { get; set; } = new();
     public List<Wagon> Wagons { get; set; } = new();
+    public List<TrainSetRecord> TrainSets { get; set; } = new();
 
     /// <summary>Model koľajiska (editor rozloženia + prevádzka).</summary>
     public TrackLayout Layout { get; set; } = new();

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using TrackFlow.Models;
 using TrackFlow.Models.Layout;
 
@@ -42,6 +43,12 @@ public sealed class ProjectMigrationService
 
         if (project.SchemaVersion < CurrentProjectSchemaVersion)
             project.SchemaVersion = CurrentProjectSchemaVersion;
+
+        foreach (var wagon in project.Wagons)
+        {
+            if (string.IsNullOrWhiteSpace(wagon.Code))
+                wagon.Code = Guid.NewGuid().ToString("N");
+        }
 
         RepairContactIndicatorBindings(project);
 

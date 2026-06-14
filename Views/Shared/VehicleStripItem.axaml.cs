@@ -21,7 +21,7 @@ using TrackFlow.Services;
 namespace TrackFlow.Views.Shared;
 
 public partial class VehicleStripItem : UserControl, INotifyPropertyChanged
-{
+  {
     public static readonly StyledProperty<string?> IconNameProperty =
         AvaloniaProperty.Register<VehicleStripItem, string?>(nameof(IconName));
 
@@ -408,6 +408,9 @@ public partial class VehicleStripItem : UserControl, INotifyPropertyChanged
         if (DetachLastWagonCommand is RelayCommand detachRc) detachRc.NotifyCanExecuteChanged();
         if (ClearWagonsCommand is RelayCommand clearRc) clearRc.NotifyCanExecuteChanged();
         if (ShowPropertiesCommand is RelayCommand<object?> propsRc) propsRc.NotifyCanExecuteChanged();
+
+        if (e != null)
+            _settings?.Dirty.MarkDirty("train-set");
     }
 
     private TrackFlow.ViewModels.SmartStrips.SmartStripsViewModel? GetSmartStripsViewModel()

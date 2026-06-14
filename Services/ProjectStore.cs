@@ -64,6 +64,24 @@ public sealed class ProjectStore
                 result.Wagons ??= new List<Wagon>();
             }
 
+            // Ensure root-level TrainSets are loaded
+            if (root.TryGetProperty("TrainSets", out var trainSetElem))
+            {
+                try
+                {
+                    var trainSets = JsonSerializer.Deserialize<List<TrainSetRecord>>(trainSetElem.GetRawText(), JsonOptions);
+                    result.TrainSets = trainSets ?? new List<TrainSetRecord>();
+                }
+                catch
+                {
+                    result.TrainSets = new List<TrainSetRecord>();
+                }
+            }
+            else
+            {
+                result.TrainSets ??= new List<TrainSetRecord>();
+            }
+
             // Normalize Settings object
             result.Settings ??= new ProjectSettingsData();
 

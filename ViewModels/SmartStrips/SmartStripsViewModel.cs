@@ -2,6 +2,7 @@ using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Collections.Generic;
 using System.Linq;
 using TrackFlow.Models;
@@ -23,6 +24,8 @@ public partial class SmartStripsViewModel : ObservableObject
         .ThenBy(l => l.Name);
 
     private readonly SettingsManager _settings;
+    private bool _suppressTrainSetPersistence;
+    private bool _shouldRebuildTrainSets = true;
 
     // Design-time constructor (Avalonia designer instantiates VM from XAML).
     // Keep it lightweight and side-effect free.
@@ -34,13 +37,14 @@ public partial class SmartStripsViewModel : ObservableObject
     {
         _settings = settings;
         Locomotives.CollectionChanged += (_, _) => OnPropertyChanged(nameof(TopVehiclesView));
+        Locomotives.CollectionChanged += OnLocomotivesCollectionChanged;
         DepotWagons.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsDepotEmpty));
 
         ActiveLocomotives.CollectionChanged += (_, _) => { };
 
         _settings.ProjectChanged += RefreshFromProject;
-        _settings.ProjectLocomotives.CollectionChanged += (_, _) => RefreshFromProject();
-        _settings.ProjectWagons.CollectionChanged += (_, _) => RefreshFromProject();
+        _settings.ProjectLocomotives.CollectionChanged += OnProjectVehiclesCollectionChanged;
+        _settings.ProjectWagons.CollectionChanged += OnProjectVehiclesCollectionChanged;
 
         RefreshFromProject();
         ItemPressedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<object?>(OnItemPressed);
@@ -267,6 +271,12 @@ public partial class SmartStripsViewModel : ObservableObject
                 DepotWagons.Add(w);
         }
 
+        if (_shouldRebuildTrainSets)
+        {
+            ApplyPersistedTrainSets();
+            _shouldRebuildTrainSets = false;
+        }
+
         // Odstrániť runtime locomotive inštancie, ktoré už v projekte nie sú
         var runtimeToRemove = Locomotives.Where(l => !projectKeys.Contains(l.Code)).ToList();
         var persistedChanges = false;
@@ -311,6 +321,119 @@ public partial class SmartStripsViewModel : ObservableObject
         OnPropertyChanged(nameof(DepotWagons));
      }
 
+    private void OnLocomotivesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+        {
+            foreach (var item in e.OldItems)
+            {
+                if (item is Locomotive loco)
+                    loco.AttachedWagons.CollectionChanged -= OnAttachedWagonsChanged;
+            }
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (var item in e.NewItems)
+            {
+                if (item is Locomotive loco)
+                    loco.AttachedWagons.CollectionChanged += OnAttachedWagonsChanged;
+            }
+        }
+    }
+
+    private void OnProjectVehiclesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        _shouldRebuildTrainSets = true;
+
+        if (_settings.Dirty.IsSuspended)
+            return;
+
+        RefreshFromProject();
+    }
+
+    private void OnAttachedWagonsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_suppressTrainSetPersistence)
+            return;
+
+        PersistTrainSetsToProject();
+    }
+
+    private void ApplyPersistedTrainSets()
+    {
+        var project = _settings.CurrentProject;
+        if (project == null)
+            return;
+
+        _suppressTrainSetPersistence = true;
+        try
+        {
+            foreach (var loco in Locomotives)
+                loco.AttachedWagons.Clear();
+
+            var wagonsByCode = _settings.ProjectWagons
+                .Where(w => !string.IsNullOrWhiteSpace(w.Code))
+                .GroupBy(w => w.Code, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var usedWagons = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var set in project.TrainSets)
+            {
+                if (string.IsNullOrWhiteSpace(set.LocomotiveCode))
+                    continue;
+
+                var loco = Locomotives.FirstOrDefault(l =>
+                    string.Equals(l.Code, set.LocomotiveCode, StringComparison.OrdinalIgnoreCase));
+                if (loco == null)
+                    continue;
+
+                foreach (var wagonCode in set.WagonCodes)
+                {
+                    if (string.IsNullOrWhiteSpace(wagonCode))
+                        continue;
+                    if (usedWagons.Contains(wagonCode))
+                        continue;
+                    if (!wagonsByCode.TryGetValue(wagonCode, out var wagon))
+                        continue;
+
+                    loco.AttachedWagons.Add(wagon);
+                    DepotWagons.Remove(wagon);
+                    usedWagons.Add(wagonCode);
+                }
+
+                loco.LocoPosition = loco.AttachedWagons.Count;
+            }
+
+            PersistTrainSetsToProject();
+        }
+        finally
+        {
+            _suppressTrainSetPersistence = false;
+        }
+    }
+
+    public void PersistTrainSetsToProject()
+    {
+        var project = _settings.CurrentProject;
+        if (project == null)
+            return;
+
+        project.TrainSets = Locomotives
+            .Where(l => l.AttachedWagons.Count > 0)
+            .Select(l => new TrainSetRecord
+            {
+                LocomotiveCode = l.Code,
+                LocoPosition = Math.Clamp(l.LocoPosition, 0, l.AttachedWagons.Count),
+                WagonCodes = l.AttachedWagons
+                    .Where(w => !string.IsNullOrWhiteSpace(w.Code))
+                    .Select(w => w.Code)
+                    .ToList()
+            })
+            .ToList();
+    }
+
     private void LoadDepotWagonsFromProject()
     {
         var wagons = _settings.CurrentProject?.Wagons ?? new List<Wagon>();
@@ -331,6 +454,7 @@ public partial class SmartStripsViewModel : ObservableObject
             loco.AttachedWagons.Add(wagon);
 
         OnPropertyChanged(nameof(TopVehiclesView));
+        _settings.Dirty.MarkDirty("train-set");
     }
 
     public void AttachWagonToLocoRecord(LocoRecord record, Wagon wagon)
@@ -412,6 +536,7 @@ public partial class SmartStripsViewModel : ObservableObject
             DepotWagons.Add(wagon);
 
         OnPropertyChanged(nameof(TopVehiclesView));
+        _settings.Dirty.MarkDirty("train-set");
     }
 
     [RelayCommand]
