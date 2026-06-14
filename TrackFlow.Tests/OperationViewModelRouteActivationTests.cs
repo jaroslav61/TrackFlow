@@ -214,7 +214,7 @@ public class OperationViewModelRouteActivationTests
         var result = await vm.AssignLocomotiveToBlockAsync(loco.Code, target.Id, isForward: true);
 
         Assert.False(result.IsSafe);
-        Assert.Equal("target-block-locked", result.Reason);
+        Assert.Equal("assign-block-locked", result.Reason);
         Assert.True(source.IsOccupied);
         Assert.Equal(loco.Code, source.AssignedLocoId);
         Assert.False(target.IsOccupied);

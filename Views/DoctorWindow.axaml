@@ -94,7 +94,27 @@
                                            FontWeight="Bold"
                                            Classes.routeStartIcon="{Binding IsRouteStartIcon}"
                                            Classes.routeEndIcon="{Binding IsRouteEndIcon}"/>
-                                <TextBlock Text="{Binding MessageText}"/>
+                                <Viewbox Width="16" Height="16" IsVisible="{Binding IsWarningIcon}">
+                                    <Canvas Width="16" Height="16">
+                                        <Path Data="M8,1.2 L15,14 H1 Z"
+                                              Fill="#fff21a"
+                                              Stroke="#7A5B00"
+                                              StrokeThickness="0.8"/>
+                                        <Rectangle Canvas.Left="7.25"
+                                                   Canvas.Top="5"
+                                                   Width="1.5"
+                                                   Height="5.3"
+                                                   RadiusX="0.75"
+                                                   RadiusY="0.75"
+                                                   Fill="#111111"/>
+                                        <Ellipse Canvas.Left="7.05"
+                                                 Canvas.Top="11.15"
+                                                 Width="1.9"
+                                                 Height="1.9"
+                                                 Fill="#111111"/>
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="{Binding MessageText}" TextWrapping="Wrap"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>

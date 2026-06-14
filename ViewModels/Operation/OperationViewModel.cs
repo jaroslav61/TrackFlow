@@ -75,6 +75,7 @@ public partial class OperationViewModel : ObservableObject, IDisposable
     private readonly Dictionary<string, int> _lastTraversalWindowLeadIndex = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, bool> _lastTraversalWindowKeepPrevious = new(StringComparer.OrdinalIgnoreCase);
     private string? _lastLayoutRefreshSnapshot;
+    private bool _warnedAboutLiveFeedbackWhileSimulationMode;
 
     private enum ActiveRouteRuntimeState
     {
@@ -831,6 +832,14 @@ public partial class OperationViewModel : ObservableObject, IDisposable
             LayoutElements.Add(element);
         }
 
+        var resyncedBlocks = DccFeedbackLayoutApplier.SynchronizeOccupancyFromIndicators(layout);
+        if (resyncedBlocks.Count > 0)
+        {
+            TrackFlowDoctorService.Instance.Diagnose(
+                "DCC",
+                $"RBUS operation-enter resync: restoredBlocks={string.Join(", ", resyncedBlocks.Select(block => block.Id))}");
+        }
+
         _signalSafetyEngine.NormalizeInvalidSignalsToStop(layout);
 
         QueueRefreshSignalStatus();
@@ -874,13 +883,18 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         {
             if (element is BlockElement block)
             {
-                block.IsOccupied = false;
                 block.IsLocked = false;
                 ClearShadowReservation(block);
                 block.AssignedLocoId = null;
             }
             
         }
+
+        var resyncedBlocks = DccFeedbackLayoutApplier.SynchronizeOccupancyFromIndicators(layout);
+        TrackFlowDoctorService.Instance.Diagnose(
+            "Prevádzkový režim",
+            $"Resync po prepnutí režimu: activeContactBlocks={resyncedBlocks.Count}, ids={(resyncedBlocks.Count == 0 ? "-" : string.Join(", ", resyncedBlocks.Select(block => block.Id)))}",
+            resyncedBlocks.Count > 0 ? DiagnosticLevel.Info : DiagnosticLevel.Success);
 
         SetAllSignalsRed(layout);
         
@@ -1013,12 +1027,38 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         CancellationToken ct = default)
     {
         var layout = _settings.CurrentProject?.Layout;
+        if (dccClient != null && IsSimulationMode && !_warnedAboutLiveFeedbackWhileSimulationMode)
+        {
+            _warnedAboutLiveFeedbackWhileSimulationMode = true;
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Prevádzkový režim",
+                "⚠️ Prišla živá DCC obsadenosť, ale Prevádzka je stále v režime SIMULÁTOR. Feedback sa spracuje, no prepínač môže po safety resete zneprehľadniť stav blokov.",
+                DiagnosticLevel.Warning);
+        }
+
+        if (!IsSimulationMode)
+            _warnedAboutLiveFeedbackWhileSimulationMode = false;
+
         if (layout != null)
+        {
             DiagnoseOrchestrationPass(layout, routeId: null, "reconcile-pass", "flow=[external-occupancy-update]");
+
+            TrackFlowDoctorService.Instance.Diagnose(
+                "DCC",
+                $"RBUS external-reconcile-start: mode={(IsSimulationMode ? "simulation" : "live")}, occupiedBefore={string.Join(", ", layout.Elements.OfType<BlockElement>().Where(static block => block.IsOccupied).Select(static block => block.Id))}");
+        }
 
         var changed = layout != null
             ? await HandleOccupiedBlocks(layout, dccClient, ct, sendDcc: dccClient != null)
             : 0;
+
+        if (layout != null)
+        {
+            TrackFlowDoctorService.Instance.Diagnose(
+                "DCC",
+                $"RBUS external-reconcile-end: changed={changed}, occupiedAfter={string.Join(", ", layout.Elements.OfType<BlockElement>().Where(static block => block.IsOccupied).Select(static block => block.Id))}");
+        }
+
         RequestLayoutRefreshIfChanged(layout, "external-occupancy-update");
         return changed;
     }
@@ -2058,12 +2098,51 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         if (targetBlock == null)
             return CollisionCheckResult.Blocked("target-block-not-found");
 
-        var collision = _runtimeSafetyService.EvaluateBlockEntry(layout.Elements, targetBlock.Id, locoCode, safetyDistanceBlocks: 0);
-        if (!collision.IsSafe)
+        // Manuálne priradenie lokomotívy v Prevádzke NIE JE jazda po ceste.
+        // Preto NEPOUŽÍVAME runtime kolíznu kontrolu (`EvaluateBlockEntry`) – tá je platná pre
+        // smerovanie vlaku do cieľového bloku a hlási „cieľový blok je obsadený“ aj v prípade,
+        // keď blok len fyzicky obsadil senzor (AssignedLocoId=null). Pri priradení je to však
+        // presne ten scenár, kde si používateľ chce „prevziať“ ghost-obsadenie pre svoju loko.
+        //
+        // Reálne dôvody zamietnuť priradenie sú:
+        //   1) blok je zamknutý aktívnou cestou,
+        //   2) blok už patrí inej lokomotíve (cez block.AssignedLocoId),
+        //   3) v bloku už stojí iná lokomotíva, ktorej `loco.AssignedBlockId` ukazuje na tento
+        //      blok (napr. po prepnutí Simulátor/Live sa block.AssignedLocoId vyčistí, ale
+        //      lokomotívy si nesú svoju pozíciu naďalej – inak by sa stojaca loko mlčky
+        //      „stratila“ a sensor-obsadenosť by bola prepísaná falošným AssignedLocoId).
+        if (targetBlock.IsLocked)
         {
-            SetRouteActivationMessage(collision.Reason);
-            return collision;
+            var locked = CollisionCheckResult.Blocked("assign-block-locked", targetBlock.Id);
+            SetRouteActivationMessage(locked.Reason);
+            return locked;
         }
+
+        if (!string.IsNullOrWhiteSpace(targetBlock.AssignedLocoId)
+            && !string.Equals(targetBlock.AssignedLocoId, locoCode, System.StringComparison.OrdinalIgnoreCase))
+        {
+            var occupiedByOther = CollisionCheckResult.Blocked("assign-block-other-loco", targetBlock.Id);
+            SetRouteActivationMessage(occupiedByOther.Reason);
+            return occupiedByOther;
+        }
+
+        var standingOther = Locomotives.FirstOrDefault(l =>
+            l != null
+            && !string.Equals(l.Code, locoCode, System.StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(l.AssignedBlockId)
+            && string.Equals(l.AssignedBlockId, targetBlock.Id, System.StringComparison.OrdinalIgnoreCase));
+        if (standingOther != null)
+        {
+            var occupiedByStanding = CollisionCheckResult.Blocked("assign-block-other-loco", targetBlock.Id);
+            SetRouteActivationMessage(occupiedByStanding.Reason);
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Senzor",
+                $"Priradenie do bloku {OperationDisplayHelpers.BlockDisplayName(targetBlock)} odmietnuté – v bloku už stojí lokomotíva {(!string.IsNullOrWhiteSpace(standingOther.DisplayName) ? standingOther.DisplayName : standingOther.Code)}.",
+                DiagnosticLevel.Warning);
+            return occupiedByStanding;
+        }
+
+        var collision = CollisionCheckResult.Safe();
 
          foreach (var other in layout.Elements.OfType<BlockElement>())
          {
@@ -2081,9 +2160,10 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         targetBlock.AssignedLocoId = locoCode;
         targetBlock.AssignedLocoIsForward = isForward;
         // Manuálne priradenie predstavuje iba logistické umiestnenie vlaku do bloku.
-        // Fyzickú obsadenosť musí potvrdiť senzor / externý occupancy update, inak sa
-        // blok nesmie zafarbiť na obsadený len kvôli stale "connected" stavu klienta.
-        targetBlock.IsOccupied = false;
+        // Fyzickú obsadenosť potvrdzuje senzor / externý occupancy update – nesmieme však
+        // existujúce IsOccupied=true zhodiť na false, lebo by sme tým zmazali platné
+        // sensor-detegované obsadenie a blok by sa podfarbil ako „len priradený“ (žltý)
+        // namiesto „obsadený“. Ponechávame teda aktuálny stav IsOccupied bez zmeny.
         ClearShadowReservation(targetBlock);
         targetBlock.IsDragOverActive = false;
 
@@ -2098,9 +2178,12 @@ public partial class OperationViewModel : ObservableObject, IDisposable
             ? loco!.DisplayName
             : ResolveTrainDisplayName(locoCode);
 
+        var occupancyNote = targetBlock.IsOccupied
+            ? "sensor-obsadenosť ponechaná"
+            : "bez potvrdenej obsadenosti zo senzora / centrály";
         TrackFlowDoctorService.Instance.Diagnose(
             "Senzor",
-            $"Blok {OperationDisplayHelpers.BlockDisplayName(targetBlock)} PRIRADENÝ (Vlak: {trainDisplayName}) – bez potvrdenej obsadenosti zo senzora / centrály.",
+            $"Blok {OperationDisplayHelpers.BlockDisplayName(targetBlock)} PRIRADENÝ (Vlak: {trainDisplayName}) – {occupancyNote}.",
             DiagnosticLevel.Info);
 
         await RefreshSignalStatusAsync(dccClient, ct);
@@ -3570,6 +3653,8 @@ private async Task UpdateTraversalSignalWindowAsync(
             "target-block-locked" => "Cielovy blok je zamknuty aktivnou cestou.",
             "target-block-occupied" => "Cielovy blok je uz obsadeny.",
             "target-block-reserved" => "Cielovy blok je rezervovany inou lokomotivou.",
+            "assign-block-locked" => "Blok je uzamknutý aktívnou cestou — lokomotívu nie je možné priradiť.",
+            "assign-block-other-loco" => "Blok je už priradený inej lokomotíve.",
             "neighbor-block-occupied" => "Susedny blok v bezpecnostnej vzdialenosti je obsadeny.",
             "source-block-not-found" => "Štartovací blok nebol najdeny.",
             "target-block-not-found" => "Cielovy blok nebol najdeny.",

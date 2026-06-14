@@ -10,6 +10,7 @@ using System.Linq;
 using TrackFlow.Models;
 using TrackFlow.Models.Layout;
 using TrackFlow.Services;
+using TrackFlow.Services.Dcc;
 
 namespace TrackFlow.ViewModels.Editor;
 
@@ -186,9 +187,10 @@ public partial class IndicatorPropertiesViewModel : ObservableObject, IDisposabl
                 var addr = p.Type == DccCentralType.NanoX_S88
                     ? (string.IsNullOrWhiteSpace(p.SerialPort) ? "COM?" : p.SerialPort)
                     : $"{p.Host}:{p.Port}";
+                var typeName = DccCentralDisplayName.Get(p.Type);
                 DccSystems.Add(new DccSystemItem
                 {
-                    Name = $"{i + 1}: {p.Type} ({addr})",
+                    Name = $"{i + 1}: {typeName} ({addr})",
                     Type = p.Type,
                     ProfileId = p.Id
                 });

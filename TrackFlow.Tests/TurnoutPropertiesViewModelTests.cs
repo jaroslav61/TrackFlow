@@ -214,6 +214,7 @@ public class TurnoutPropertiesViewModelTests
 
         Assert.Equal(2, vm.DccSystems.Count);
         Assert.Equal("Bez pripojenia", vm.DccSystems[0].Name);
+        Assert.Equal("1: NanoX - S88 (COM9)", vm.DccSystems[1].Name);
         Assert.DoesNotContain(vm.DccSystems, x => x.ProfileId == disabledProfile.Id);
         Assert.Equal(selectedProfile.Id, vm.SelectedDccSystem?.ProfileId);
     }

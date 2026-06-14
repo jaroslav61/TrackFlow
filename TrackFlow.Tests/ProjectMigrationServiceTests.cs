@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.IO;
 using TrackFlow.Models;
 using TrackFlow.Models.Layout;
 using TrackFlow.Services;
@@ -8,6 +9,61 @@ namespace TrackFlow.Tests;
 
 public class ProjectMigrationServiceTests
 {
+	[Fact]
+	public void MigrateIfNeeded_ReportsExactDoctorWarningsForProjectProblems()
+	{
+		TrackFlowDoctorService.Instance.Events.Clear();
+
+		var enabledProfileId = System.Guid.NewGuid();
+		var project = new TrackFlowProject
+		{
+			SchemaVersion = 3,
+			Locomotives =
+			{
+				new LocoRecord { Name = "sdvfsdffsdfs", DccAddress = 4 },
+				new LocoRecord { Name = "750.131-5", DccAddress = 4 }
+			},
+			Layout = new TrackLayout
+			{
+				SchemaVersion = 3,
+				Elements =
+				{
+					new TurnoutElement
+					{
+						Label = "Vľ 2",
+						DccAddress = 0,
+						DccCentralProfileId = enabledProfileId
+					},
+					new TurnoutElement
+					{
+						Label = "VP 2",
+						DccAddress = 24,
+						DccCentralProfileId = null
+					},
+					new SignalElement { Label = "Na2", DccAddress = 0 },
+					new SignalElement { Label = "Na4", DccAddress = 0 },
+					new BlockElement { Label = "Blok 9", LengthCm = 0 }
+				}
+			}
+		};
+
+		var migration = new ProjectMigrationService();
+		migration.MigrateIfNeeded(project);
+
+		var events = TrackFlowDoctorService.Instance.GetEventsChronologicalSnapshot()
+			.Where(evt => evt.Level == DiagnosticLevel.Warning && evt.Source == "Projekt")
+			.Select(evt => evt.Message)
+			.ToList();
+
+		Assert.Contains("⚠️ Duplicitná DCC adresa lokomotívy.  sdvfsdffsdfs a 750.131-5 majú obe adresu 4. Jedna z nich sa nikdy nebude dať ovládať správne.", events);
+		Assert.Contains("⚠️ Výhybka „Vľ 2“ má nastavenú adresu 0. Má priradený ovládací profil, ale s adresou 0 sa nebude dať ovládať.", events);
+		Assert.Contains("⚠️ Výhybka „VP 2“ nemá priradený ovládací profil. Adresa 24 je nastavená, ale bez profilu sa nebude dať ovládať spoľahlivo.", events);
+		Assert.Contains("⚠️ Návestidlo Na2 má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
+		Assert.Contains("⚠️ Návestidlo Na4 má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
+		Assert.Contains("⚠️ Blok 9 nemá nastavenú dĺžku. Kalibrovaná jazda nebude fungovať.", events);
+		Assert.DoesNotContain(events, msg => msg.Contains("Id:", System.StringComparison.Ordinal));
+	}
+
 	[Fact]
 	public void MigrateIfNeeded_V1Project_BackfillsSignalSystemsAndSignalAssignments()
 	{
@@ -222,6 +278,74 @@ public class ProjectMigrationServiceTests
 		var block = Assert.IsType<BlockElement>(Assert.Single(migrated.Layout.Elements));
 		var indicator = Assert.Single(block.Indicators);
 		Assert.Equal(profileId, indicator.DccCentralProfileId);
+	}
+
+	[Fact]
+	public void OpenProject_ContactIndicatorWithoutProfile_InheritsSelectedEnabledAppProfile()
+	{
+		var profileId = System.Guid.NewGuid();
+		var projectPath = Path.Combine(Path.GetTempPath(), $"trackflow-project-{System.Guid.NewGuid():N}.json");
+
+		try
+		{
+			var project = new TrackFlowProject
+			{
+				SchemaVersion = 3,
+				Settings = new ProjectSettingsData
+				{
+					DccCentralProfiles = null,
+					SelectedDccCentralProfileId = null
+				},
+				Layout = new TrackLayout
+				{
+					SchemaVersion = 3,
+					Elements =
+					{
+						new BlockElement
+						{
+							Id = "b-app-1",
+							Label = "Blok App 1",
+							Indicators =
+							{
+								new BlockIndicator
+								{
+									Type = BlockIndicatorType.Contact,
+									ModuleAddress = 17,
+									PortNumber = 6,
+									DccCentralProfileId = null
+								}
+							}
+						}
+					}
+				}
+			};
+
+			var store = new ProjectStore();
+			Assert.True(store.Save(projectPath, project));
+
+			var manager = new SettingsManager();
+			manager.LoadApp();
+			manager.App.DccCentralProfiles.Add(new DccCentralProfile
+			{
+				Id = profileId,
+				IsEnabled = true,
+				Type = DccCentralType.Z21,
+				Host = "192.168.0.111",
+				Port = 21105
+			});
+			manager.App.SelectedDccCentralProfileId = profileId;
+
+			manager.OpenProject(projectPath);
+
+			var block = Assert.IsType<BlockElement>(Assert.Single(manager.CurrentProject!.Layout.Elements));
+			var indicator = Assert.Single(block.Indicators);
+			Assert.Equal(profileId, indicator.DccCentralProfileId);
+		}
+		finally
+		{
+			if (File.Exists(projectPath))
+				File.Delete(projectPath);
+		}
 	}
 }
 

@@ -33,6 +33,7 @@ public sealed class IndicatorPropertiesViewModelTests
         var manager = new SettingsManager();
         manager.LoadApp();
         manager.NewProject();
+        manager.App.DccCentralProfiles.Clear();
         manager.App.DccCentralProfiles.Add(disabledProfile);
         manager.App.DccCentralProfiles.Add(selectedProfile);
 
@@ -48,10 +49,41 @@ public sealed class IndicatorPropertiesViewModelTests
 
         Assert.Equal(2, vm.DccSystems.Count);
         Assert.Equal("Bez pripojenia", vm.DccSystems[0].Name);
+        Assert.Equal("1: NanoX - S88 (COM7)", vm.DccSystems[1].Name);
         Assert.DoesNotContain(vm.DccSystems, x => x.ProfileId == disabledProfile.Id);
         Assert.Equal(selectedProfile.Id, vm.SelectedDccSystem?.ProfileId);
         Assert.Equal(8, vm.ModuleAddress);
         Assert.Equal(2, vm.PortNumber);
+    }
+
+    [Fact]
+    public void Constructor_UsesDisplayNameForZ21_InsteadOfRawEnumName()
+    {
+        var profile = new DccCentralProfile
+        {
+            Id = Guid.NewGuid(),
+            IsEnabled = true,
+            Type = DccCentralType.Z21Legacy,
+            Host = "192.168.0.111",
+            Port = 21105
+        };
+
+        var manager = new SettingsManager();
+        manager.LoadApp();
+        manager.NewProject();
+        manager.App.DccCentralProfiles.Clear();
+        manager.App.DccCentralProfiles.Add(profile);
+
+        var indicator = new BlockIndicator
+        {
+            Type = BlockIndicatorType.Contact,
+            DccCentralProfileId = profile.Id
+        };
+
+        var vm = new IndicatorPropertiesViewModel(indicator, manager);
+
+        Assert.Equal("1: z21 (192.168.0.111:21105)", vm.DccSystems[1].Name);
+        Assert.DoesNotContain("Legacy", vm.DccSystems[1].Name, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -68,6 +100,7 @@ public sealed class IndicatorPropertiesViewModelTests
         var manager = new SettingsManager();
         manager.LoadApp();
         manager.NewProject();
+        manager.App.DccCentralProfiles.Clear();
         manager.App.DccCentralProfiles.Add(selectedProfile);
 
         var indicator = new BlockIndicator
@@ -111,6 +144,7 @@ public sealed class IndicatorPropertiesViewModelTests
         var manager = new SettingsManager();
         manager.LoadApp();
         manager.NewProject();
+        manager.App.DccCentralProfiles.Clear();
         manager.App.DccCentralProfiles.Add(new DccCentralProfile
         {
             Id = profileId,

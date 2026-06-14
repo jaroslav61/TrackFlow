@@ -228,9 +228,6 @@ public sealed class DccConnectionService : IDccConnectionService, IDisposable
         feedbackSource.RBusFeedbackChanged += feedback =>
         {
             var profileId = profileIdProvider();
-            TrackFlowDoctorService.Instance.Diagnose(
-                "DCC",
-                $"RBUS forward: centrala={DccCentralDisplayName.Get(type)}, profileId={(profileId?.ToString() ?? "<legacy>")}, modul={feedback.ModuleAddress}, vstup={feedback.PortNumber}, active={feedback.IsActive}");
 
             FeedbackStateChanged?.Invoke(new DccFeedbackStateChange(
                 profileId,

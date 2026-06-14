@@ -72,6 +72,10 @@ public partial class LayoutEditorView : UserControl
     private bool _isBatchOperation = false;
     private bool _rebuildPending = false;
 
+    // Mapa blok.Id → aktuálny Control vrátený CreateBlockControl(...), aby sme pri R-BUS
+    // zmene obsadenosti mohli prekresliť LEN ten jeden blok namiesto celého layoutu.
+    private readonly Dictionary<string, Control> _blockControlsById = new(StringComparer.OrdinalIgnoreCase);
+
     public LayoutEditorView()
     {
         AvaloniaXamlLoader.Load(this);
@@ -165,8 +169,20 @@ public partial class LayoutEditorView : UserControl
             _vm.BatchOperationStarting     += OnBatchOperationStarting;
             _vm.BatchOperationCompleted    += OnBatchOperationCompleted;
 
-            // Keď ViewModel požiada o prekreslenie jedného bloku, prekreslíme celý layer
-            _vm.RequestBlockRepaint = _ => ScheduleRebuild();
+            // Keď ViewModel požiada o prekreslenie jedného bloku, prekreslíme LEN ten blok.
+            // Full rebuild robíme len ako fallback, ak blok ešte nemáme v mape (napr. nový element).
+            _vm.RequestBlockRepaint = block =>
+            {
+                if (block == null) { ScheduleRebuild(); return; }
+                if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(
+                        () => RepaintSingleBlock(block),
+                        Avalonia.Threading.DispatcherPriority.Render);
+                    return;
+                }
+                RepaintSingleBlock(block);
+            };
 
             // Subscribovať na zmeny vlastností lokomotív (IsFlipped, AttachedWagons) pre okamžitý refresh bloku
             if (_vm.SmartStripsLocomotives != null)
@@ -275,6 +291,7 @@ public partial class LayoutEditorView : UserControl
         layer.UseLayoutRounding = false;
         this.UseLayoutRounding = false;
         layer.Children.Clear();
+        _blockControlsById.Clear();
 
         // 1. prechod: všetky prvky OKREM blokov (koľaje, výhybky, signály...)
         foreach (var el in _vm.Elements)
@@ -300,10 +317,56 @@ public partial class LayoutEditorView : UserControl
             Canvas.SetLeft(ctrl, el.X);
             Canvas.SetTop(ctrl,  el.Y);
             layer.Children.Add(ctrl);
+            if (el is BlockElement blockEl && !string.IsNullOrEmpty(blockEl.Id))
+                _blockControlsById[blockEl.Id] = ctrl;
         }
 
         if (_vm.Selection.SelectionCount > 0)
             DrawSelectionRectangle(layer);
+    }
+
+    /// <summary>
+    /// Rýchle prekreslenie JEDNÉHO bloku po R-BUS zmene obsadenia.
+    /// Nahradí existujúci Control bloku na rovnakej pozícii bez rebuildu celého layoutu.
+    /// </summary>
+    private void RepaintSingleBlock(BlockElement block)
+    {
+        if (_vm == null || block == null || string.IsNullOrEmpty(block.Id))
+            return;
+
+        var layer = this.FindControl<Canvas>("ElementsLayer");
+        if (layer == null)
+        {
+            ScheduleRebuild();
+            return;
+        }
+
+        if (!_blockControlsById.TryGetValue(block.Id, out var existing))
+        {
+            // Blok zatiaľ nemáme v mape (napr. čerstvo pridaný cez editor) – fallback full rebuild.
+            ScheduleRebuild();
+            return;
+        }
+
+        bool isSelected = _vm.Selection.IsSelected(block) || _vm.SelectedElement == block;
+        var fresh = CreateMarkerControl(block, isSelected);
+        if (fresh == null)
+        {
+            ScheduleRebuild();
+            return;
+        }
+
+        var index = layer.Children.IndexOf(existing);
+        if (index < 0)
+        {
+            ScheduleRebuild();
+            return;
+        }
+
+        Canvas.SetLeft(fresh, block.X);
+        Canvas.SetTop(fresh, block.Y);
+        layer.Children[index] = fresh;
+        _blockControlsById[block.Id] = fresh;
     }
     
     /// <summary>Vykreslí jeden veľký modrý obdĺžnik okolo všetkých vybratých prvkov.</summary>

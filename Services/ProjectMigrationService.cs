@@ -51,8 +51,93 @@ public sealed class ProjectMigrationService
         }
 
         RepairContactIndicatorBindings(project);
+        DiagnoseProjectConfigurationIssues(project);
 
         return project;
+    }
+
+    private static void DiagnoseProjectConfigurationIssues(TrackFlowProject project)
+    {
+        foreach (var duplicateAddress in project.Locomotives
+                     .Where(static loco => loco.DccAddress > 0)
+                     .GroupBy(static loco => loco.DccAddress)
+                     .Where(static group => group.Count() > 1))
+        {
+            var locos = duplicateAddress
+                .Select(static loco => string.IsNullOrWhiteSpace(loco.Name) ? "<bez názvu>" : loco.Name)
+                .ToList();
+
+            if (locos.Count == 2)
+            {
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "Projekt",
+                    $"⚠️ Duplicitná DCC adresa lokomotív.  \"{locos[0]}\" a \"{locos[1]}\" majú rovnakú adresu {duplicateAddress.Key}. Všetky lokomotívy budú ovládané spoločne.",
+                    DiagnosticLevel.Warning);
+            }
+            else
+            {
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "Projekt",
+                    $"⚠️ Duplicitná DCC adresa lokomotív.  {string.Join(", ", locos)} majú rovnakú adresu {duplicateAddress.Key}. Všetky lokomotívy budú ovládané spoločne.",
+                    DiagnosticLevel.Warning);
+            }
+        }
+
+        foreach (var turnout in project.Layout.Elements.OfType<TurnoutElement>())
+        {
+            var turnoutName = string.IsNullOrWhiteSpace(turnout.Label) ? turnout.Id : turnout.Label;
+
+            if (turnout.DccAddress == 0 && turnout.DccCentralProfileId.HasValue)
+            {
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "Projekt",
+                    $"⚠️ Výhybka „{turnoutName}“ má nastavenú adresu 0. Má priradený Digitálny systém, ale s adresou 0 sa nebude dať ovládať.",
+                    DiagnosticLevel.Warning);
+            }
+
+            if (turnout.DccAddress > 0 && !turnout.DccCentralProfileId.HasValue)
+            {
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "Projekt",
+                    $"⚠️ Výhybka „{turnoutName}“ nemá priradený digitálny sýstem. Adresa {turnout.DccAddress} je nastavená, ale bez DCC systému sa nebude dať ovládať.",
+                    DiagnosticLevel.Warning);
+            }
+        }
+
+        var signals = project.Layout.Elements.OfType<SignalElement>().ToList();
+
+        foreach (var signal in signals.Where(static signal => signal.DccAddress == 0))
+        {
+            var signalName = string.IsNullOrWhiteSpace(signal.Label) ? signal.Id : signal.Label;
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Projekt",
+                $"⚠️ Návestidlo „{signalName}“ má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.",
+                DiagnosticLevel.Warning);
+        }
+
+        foreach (var duplicateAddress in signals
+                     .Where(static signal => signal.DccAddress > 0)
+                     .GroupBy(static signal => signal.DccAddress)
+                     .Where(static group => group.Count() > 1))
+        {
+            var signalNames = duplicateAddress
+                .Select(static signal => string.IsNullOrWhiteSpace(signal.Label) ? signal.Id : signal.Label)
+                .ToList();
+
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Projekt",
+                $"⚠️ Duplicitná DCC adresa návestidla. {string.Join(" a ", signalNames)} majú obe adresu {duplicateAddress.Key}. Pri ovládaní sa budú správať rovnako.",
+                DiagnosticLevel.Warning);
+        }
+
+        foreach (var block in project.Layout.Elements.OfType<BlockElement>().Where(static block => block.LengthCm == 0))
+        {
+            var blockName = string.IsNullOrWhiteSpace(block.Label) ? block.Id : block.Label;
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Projekt",
+                $"⚠️ {blockName} nemá nastavenú dĺžku. Kalibrovaná jazda nebude fungovať.",
+                DiagnosticLevel.Warning);
+        }
     }
 
     private static void RepairContactIndicatorBindings(TrackFlowProject project)
@@ -107,7 +192,7 @@ public sealed class ProjectMigrationService
         {
             TrackFlowDoctorService.Instance.Diagnose(
                 "DCC",
-                $"Duplicitné priradenie kontaktu: profileId={duplicate.Key.DccCentralProfileId}, modul={duplicate.Key.ModuleAddress}, vstup={duplicate.Key.PortNumber}, použité v {string.Join(", ", duplicate.Select(x => $"{x.BlockLabel}/{x.IndicatorName}"))}. Jeden fyzický vstup má byť priradený iba jednému bloku.",
+                $"Duplicitné priradenie kontaktu: profileId={duplicate.Key.DccCentralProfileId}, dekodér={duplicate.Key.ModuleAddress}, vstup={duplicate.Key.PortNumber}, použité v {string.Join(", ", duplicate.Select(x => $"{x.BlockLabel}/{x.IndicatorName}"))}. Jeden fyzický vstup má byť priradený iba jednému bloku.",
                 DiagnosticLevel.Warning);
         }
     }

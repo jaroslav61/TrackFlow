@@ -47,6 +47,22 @@ public sealed class Z21ClientRBusGroupTests
     }
 
     [Fact]
+    public void Parses_Group15_StartsAtModule151()
+    {
+        using var client = new Z21Client();
+        var received = new List<RBusFeedbackState>();
+        client.RBusFeedbackChanged += received.Add;
+
+        // GroupIndex=15, prvý bajt masky = 0x01 -> modul 151, port 1 aktívny.
+        client.TryParseRBusDataChanged(new byte[] { 0x06, 0x00, 0x80, 0x00, 0x0F, 0x01 });
+
+        var single = Assert.Single(received);
+        Assert.Equal(151, single.ModuleAddress);
+        Assert.Equal(1, single.PortNumber);
+        Assert.True(single.IsActive);
+    }
+
+    [Fact]
     public void Parses_Group1_DoesNotCollideWith_Group0()
     {
         using var client = new Z21Client();

@@ -1,12 +1,11 @@
 ﻿using System;
 using TrackFlow.Models;
-using TrackFlow.Models.Layout;
-
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
 using Serilog;
+using TrackFlow.Models.Layout;
 
 namespace TrackFlow.Services;
 
@@ -113,6 +112,7 @@ public sealed class SettingsManager
         {
             CurrentProjectPath = projectFilePath;
             CurrentProject = _migration.MigrateIfNeeded(_projectStore.Load(projectFilePath));
+            RepairLegacyContactIndicatorBindingsFromEffectiveProfiles();
 
             if (!App.RecentProjectPaths.Contains(projectFilePath))
             {
@@ -141,6 +141,32 @@ public sealed class SettingsManager
             ApplyRouteIntegrityChecksOnLoad(CurrentProject.Layout);
 
         ProjectChanged?.Invoke();
+    }
+
+    private void RepairLegacyContactIndicatorBindingsFromEffectiveProfiles()
+    {
+        var layout = CurrentProject?.Layout;
+        if (layout == null)
+            return;
+
+        var enabledProfiles = GetEffectiveEnabledDccCentralProfiles();
+        var selectedProfileId = GetEffectiveSelectedDccCentralProfileId();
+        var selectedEnabledProfileId = selectedProfileId.HasValue && enabledProfiles.Any(p => p.Id == selectedProfileId.Value)
+            ? selectedProfileId
+            : enabledProfiles.Count == 1
+                ? enabledProfiles[0].Id
+                : null;
+
+        if (!selectedEnabledProfileId.HasValue)
+            return;
+
+        foreach (var indicator in layout.Elements
+                     .OfType<BlockElement>()
+                     .SelectMany(block => block.Indicators)
+                     .Where(static indicator => indicator.Type == BlockIndicatorType.Contact && !indicator.DccCentralProfileId.HasValue))
+        {
+            indicator.DccCentralProfileId = selectedEnabledProfileId.Value;
+        }
     }
 
     private void ApplyRouteIntegrityChecksOnLoad(TrackLayout layout)

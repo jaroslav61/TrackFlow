@@ -28,6 +28,55 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-14 20:35
+===================
+**Oblasť:** `ViewModels/Operation/OperationViewModel.cs`, `ViewModels/Editor/LayoutEditorViewModel.cs`, `TrackFlow.Tests/OperationViewModelSignalSafetyTests.cs`
+**Zmena:** Manuálne priradenie lokomotívy do bloku už nikdy ticho neprepíše existujúce priradenie inej lokomotívy ani nezmaže senzorom potvrdenú obsadenosť.
+**Dôvod:** V Prevádzke aj v Editore používalo priradenie runtime kolíznu kontrolu z jazdy vlaku (`EvaluateBlockEntry`), ktorá hlásila len „cieľový blok je obsadený", ale fakticky neblokovala prepis `AssignedLocoId`. Navyše sa po priradení nulovalo `IsOccupied = false`, takže reálne sensor-obsadenie sa stratilo a blok zostal len „priradený" (žltý) namiesto „obsadený".
+**Riešenie:**
+• V Prevádzke aj v Editore sa pri priradení teraz overujú len reálne dôvody odmietnutia: blok je zamknutý aktívnou cestou, blok už patrí inej lokomotíve (`AssignedLocoId`), alebo v bloku stále stojí iná lokomotíva podľa `Locomotive.AssignedBlockId` (recovery scenár po prepnutí Simulátor/Live).
+• Pri odmietnutí sa do Doctora zapíše presná diagnostika (`assign-block-locked` / `assign-block-other-loco`) a stav bloku sa nemení.
+• Manuálne priradenie už nenastavuje `IsOccupied = false` — ponecháva existujúce sensor-obsadenie a v Doctor logu rozlišuje „sensor-obsadenosť ponechaná" vs. „bez potvrdenej obsadenosti".
+• Pridané regression testy pre oba scenáre (`OperationViewModelSignalSafetyTests`).
+**Výsledok:** Pôvodná lokomotíva v bloku už nezmizne pri pokuse o priradenie druhej; používateľ dostane jasnú spätnú väzbu, prečo bolo priradenie zamietnuté.
+
+## 2026-06-14 18:50
+===================
+**Oblasť:** `Services/Dcc/Z21Client.cs`, `Services/Dcc/DccConnectionService.cs`, `Services/Dcc/DccFeedbackLayoutApplier.cs`, `ViewModels/MainWindowViewModel.cs`, `ViewModels/Operation/OperationViewModel.cs`, `TrackFlow.Tests/Z21ClientRBusFeedbackTests.cs`, `TrackFlow.Tests/Z21ClientRBusGroupTests.cs`, `TrackFlow.Tests/DccFeedbackLayoutApplierTests.cs`
+**Zmena:** R-BUS feedback pipeline pre Z21 zrýchlený, rozšírený o všetky skupiny modulov a stabilizovaný proti „stale" obsadeniam z predchádzajúcej relácie.
+**Dôvod:** Z21 klient pollovał len skupinu 0 (moduly 1–10) s 250 ms periódou, takže obsadenosti na vyšších adresách prichádzali pomaly alebo vôbec, a po pripojení/zmene režimu visel layout na červenej obsadenosti z predošlého stavu projektu.
+**Riešenie:**
+• Z21Client teraz cyklicky polluje skupiny 0–15 (moduly 1–160), poll interval znížený a connect-handshake skrátený (kratšie timeouty pre serial/HW info, HW info sa zisťuje na pozadí).
+• Pridané runtime metriky R-BUS rámcov (direct frame counter, ignored LAN_X_0x43, poll send count, heartbeat tick) ako základ pre ďalšiu diagnostiku.
+• Nový helper `DccFeedbackLayoutApplier.SynchronizeOccupancyFromIndicators` zaisťuje, že po prepnutí do/zo simulátora a po vstupe do Prevádzky sa obsadenosť bloku obnoví z aktívnych kontaktov (iba false→true; uvoľnenie naďalej musí prísť explicitne cez feedback).
+• `MainWindowViewModel` po úspešnom connecte vyčistí runtime feedback stav daného profilu (`ClearFeedbackState`), aby na obrazovke nezostala červená obsadenosť z predchádzajúcej relácie alebo z projektu otvoreného pred pripojením.
+• `OperationViewModel` pri prijatí živej DCC obsadenosti v simulačnom režime jednorazovo vypíše varovanie do Doctora a okolo `HandleOccupiedBlocks` doplnil reconcile-start/end diagnostiku.
+• Odstránené hlučné per-frame `RBUS forward`/`RBUS match`/`RBUS occupancy-update` logy v `DccConnectionService` a `DccFeedbackLayoutApplier` (nahradené agregovanou diagnostikou v OperationViewModel).
+• Testy pokrývajú nový resync helper, R-BUS group enumeráciu aj duplicate-binding cleanup.
+**Výsledok:** Reakcia na obsadenie/uvoľnenie je výrazne svižnejšia naprieč všetkými R-BUS modulmi, po reconnect/prepnutí režimu sa stav blokov nestratí ani „nezasekne" a Doctor log nie je zaplavený per-frame šumom.
+
+## 2026-06-14 17:10
+===================
+**Oblasť:** `Services/ProjectMigrationService.cs`, `Services/SettingsManager.cs`, `Services/TrackFlowDoctorService.cs`, `Views/DoctorWindow.axaml`, `Converters/BoolToThicknessConverter.cs`, `ViewModels/Editor/IndicatorPropertiesViewModel.cs`, `ViewModels/Editor/TurnoutPropertiesViewModel.cs`, `TrackFlow.Tests/ProjectMigrationServiceTests.cs`, `TrackFlow.Tests/IndicatorPropertiesViewModelTests.cs`, `TrackFlow.Tests/TurnoutPropertiesViewModelTests.cs`
+**Zmena:** Pri načítaní projektu sa robí konfiguračný audit a Doctor používa nový vizuálny varovací piktogram (žltý trojuholník) s ľudsky čitateľnými hláseniami.
+**Dôvod:** Bežné konfiguračné chyby (duplicitné DCC adresy lokomotív/návestidiel, výhybky/návestidlá s adresou 0, výhybka s adresou bez priradeného systému, bloky s nulovou dĺžkou pre kalibráciu) sa v UI nikde nehlásili a používateľ ich odhalil až pri prevádzke. Zároveň „⚠"/„❗" emoji v Doctor logu nevykresľovali konzistentne.
+**Riešenie:**
+• `ProjectMigrationService.DiagnoseProjectConfigurationIssues` po načítaní projektu vypíše do Doctora konkrétne varovania pre: duplicitné DCC adresy lokomotív, výhybky s adresou 0 + priradeným systémom, výhybky s adresou bez systému, návestidlá s adresou 0, duplicitné DCC adresy návestidiel a bloky s `LengthCm == 0`.
+• `SettingsManager.RepairLegacyContactIndicatorBindingsFromEffectiveProfiles` pri načítaní doplní legacy kontaktom `DccCentralProfileId` z efektívneho profilu (jediný povolený, alebo aktívne vybraný), aby R-BUS binding po migrácii nezostal „nezacielený".
+• `TrackFlowDoctorService` rozpoznáva nový marker varovania a v `DoctorWindow.axaml` sa zobrazí ako vektorový žltý výstražný trojuholník (`Path/Rectangle/Ellipse` v `Viewbox`) namiesto emoji; `MessageText` z hlásení marker odstráni, takže text zostáva čistý.
+• ComboBoxy systémov v IndicatorProperties/TurnoutProperties zobrazujú ľudsky čitateľný názov centrály cez `DccCentralDisplayName.Get` namiesto `DccCentralType` enumu.
+• Pridaný `BoolToThicknessConverter` pre flexibilnejšie štýly v Doctor zobrazení.
+• Pokryté unit testami v `ProjectMigrationServiceTests`, `IndicatorPropertiesViewModelTests`, `TurnoutPropertiesViewModelTests`.
+**Výsledok:** Používateľ ihneď po otvorení projektu vidí v Doctorovi všetky tichéť konfiguračné problémy s vizuálne výrazným varovacím piktogramom a čistým textom.
+
+## 2026-06-14 12:00
+===================
+**Oblasť:** `Models/TrainSetRecord.cs`, `Services/ProjectStore`, `TrackFlow.Tests/ProjectStoreTrainSetTests.cs` (commit `a68e487`)
+**Zmena:** Ukladanie a obnovenie vlakových súprav po načítaní projektu v SmartPase.
+**Dôvod:** Vytvorené súpravy sa po zatvorení a opätovnom otvorení projektu strácali, lebo neboli súčasťou persistovaného modelu.
+**Riešenie:** Pridaný model `TrainSetRecord` a perzistencia v ProjectStore; pokryté testom `ProjectStoreTrainSetTests`.
+**Výsledok:** Súpravy zostávajú zachované medzi sedeniami; používateľ ich nemusí pri každom otvorení projektu vytvárať odznova.
+
 ## 2026-06-12 12:00
 ===================
 **Oblasť:** `Views/Library/TrainsWindow.axaml`

@@ -45,10 +45,6 @@ internal static class DccFeedbackLayoutApplier
                 if (!shouldApply)
                     continue;
 
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS match: blok={block.Id}, indikator={indicator.Id}, profileId={(indicator.DccCentralProfileId?.ToString() ?? "<none>")}, modul={indicator.ModuleAddress}, vstup={indicator.PortNumber}, oldActive={indicator.IsActive}, newActive={change.IsActive}");
-
                 if (indicator.IsActive != change.IsActive)
                 {
                     indicator.IsActive = change.IsActive;
@@ -62,9 +58,6 @@ internal static class DccFeedbackLayoutApplier
 
             if (block.IsOccupied != occupiedByContacts)
             {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS occupancy-update: blok={block.Id}, oldOccupied={block.IsOccupied}, newOccupied={occupiedByContacts}");
                 block.IsOccupied = occupiedByContacts;
                 blockChanged = true;
             }
@@ -98,10 +91,6 @@ internal static class DccFeedbackLayoutApplier
                 if (!indicator.IsActive)
                     continue;
 
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS clear-runtime-state: blok={block.Id}, indikator={indicator.Id}, profileId={(indicator.DccCentralProfileId?.ToString() ?? "<legacy>")}, modul={indicator.ModuleAddress}, vstup={indicator.PortNumber}");
-
                 indicator.IsActive = false;
                 blockChanged = true;
             }
@@ -112,9 +101,6 @@ internal static class DccFeedbackLayoutApplier
 
             if (block.IsOccupied != occupiedByContacts)
             {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS clear-occupancy-update: blok={block.Id}, oldOccupied={block.IsOccupied}, newOccupied={occupiedByContacts}");
                 block.IsOccupied = occupiedByContacts;
                 blockChanged = true;
             }
@@ -124,6 +110,33 @@ internal static class DccFeedbackLayoutApplier
         }
 
         ClearBindingOwners(profileId, clearAll);
+        return changedBlocks;
+    }
+
+    public static IReadOnlyList<BlockElement> SynchronizeOccupancyFromIndicators(TrackLayout? layout)
+    {
+        if (layout == null)
+            return Array.Empty<BlockElement>();
+
+        var changedBlocks = new List<BlockElement>();
+
+        foreach (var block in layout.Elements.OfType<BlockElement>())
+        {
+            var occupiedByContacts = block.Indicators
+                .Where(static indicator => indicator.Type == BlockIndicatorType.Contact)
+                .Any(static indicator => indicator.IsActive);
+
+            // Tento helper slúži na recovery po safety/mode resetoch, ktoré vynulovali
+            // block.IsOccupied bez toho, aby sa zmazal runtime stav aktívneho kontaktu.
+            // Zámerne teda robíme iba false -> true resync. Uvoľnenie obsadenia musí
+            // naďalej prísť explicitne cez feedback/release pipeline, nie tichým sweepom.
+            if (!occupiedByContacts || block.IsOccupied)
+                continue;
+
+            block.IsOccupied = true;
+            changedBlocks.Add(block);
+        }
+
         return changedBlocks;
     }
 
@@ -148,10 +161,6 @@ internal static class DccFeedbackLayoutApplier
             var activeMatches = matches.Where(static match => match.Indicator.IsActive).ToList();
             if (activeMatches.Count > 0)
             {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS duplicate-binding cleanup: profileId={(change.ProfileId?.ToString() ?? "<legacy>")}, modul={change.ModuleAddress}, vstup={change.PortNumber}, blocks={FormatBlocks(distinctBlocks)}",
-                    DiagnosticLevel.Warning);
                 return activeMatches;
             }
 
@@ -172,18 +181,10 @@ internal static class DccFeedbackLayoutApplier
         var ownerBlock = ChooseOwnerBlock(distinctBlocks);
         if (ownerBlock == null)
         {
-            TrackFlowDoctorService.Instance.Diagnose(
-                "DCC",
-                $"RBUS duplicate-binding ambiguous: profileId={(change.ProfileId?.ToString() ?? "<legacy>")}, modul={change.ModuleAddress}, vstup={change.PortNumber}, blocks={FormatBlocks(distinctBlocks)}. Feedback sa neaplikoval, kým nebude vstup priradený iba jednému bloku.",
-                DiagnosticLevel.Warning);
             return Array.Empty<FeedbackMatch>();
         }
 
         _bindingOwners[key] = ownerBlock.Id;
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS duplicate-binding resolved: profileId={(change.ProfileId?.ToString() ?? "<legacy>")}, modul={change.ModuleAddress}, vstup={change.PortNumber}, ownerBlock={ownerBlock.Id}, blocks={FormatBlocks(distinctBlocks)}",
-            DiagnosticLevel.Warning);
 
         return matches
             .Where(match => string.Equals(match.Block.Id, ownerBlock.Id, StringComparison.OrdinalIgnoreCase))

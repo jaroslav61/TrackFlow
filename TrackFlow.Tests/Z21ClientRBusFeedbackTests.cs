@@ -86,5 +86,50 @@ public sealed class Z21ClientRBusFeedbackTests
         Assert.Equal(7, changed.PortNumber);
         Assert.False(changed.IsActive);
     }
+
+    [Fact]
+    public void SplitCombinedFrames_RBusAndSystemStatePayload_ReturnsTwoFrames()
+    {
+        var payload = new byte[]
+        {
+            0x0F, 0x00, 0x80, 0x00, 0x00, 0x14, 0x00, 0x84, 0x00, 0x80, 0x00, 0x7D, 0x00, 0x68, 0x00,
+            0x14, 0x00, 0x84, 0x00, 0x80, 0x00, 0x7D, 0x00, 0x68, 0x00, 0x20, 0x00, 0x8C, 0x45, 0x8C, 0x45, 0x20, 0x00, 0x03, 0x7B
+        };
+
+        var frames = Z21Client.SplitCombinedFrames(payload);
+
+        Assert.Equal(2, frames.Count);
+        Assert.Equal(0x0F, frames[0][0]);
+        Assert.Equal(0x80, frames[0][2]);
+        Assert.Equal(0x14, frames[1][0]);
+        Assert.Equal(0x84, frames[1][2]);
+    }
+
+    [Fact]
+    public void TryParseRBusDataChanged_ConcatenatedPayload_UsesOnlyDeclaredRBusBytes()
+    {
+        using var client = new Z21Client();
+        var received = new List<RBusFeedbackState>();
+        client.RBusFeedbackChanged += received.Add;
+
+        var concatenatedPayload = new byte[]
+        {
+            0x0F, 0x00, 0x80, 0x00, 0x00, 0x14, 0x00, 0x84, 0x00, 0x80, 0x00, 0x7D, 0x00, 0x68, 0x00,
+            0x14, 0x00, 0x84, 0x00, 0x80, 0x00, 0x7D, 0x00, 0x68, 0x00, 0x20, 0x00, 0x8C, 0x45, 0x8C, 0x45, 0x20, 0x00, 0x03, 0x7B
+        };
+
+        var rBusFrame = Assert.Single(Z21Client.SplitCombinedFrames(concatenatedPayload), frame => frame[2] == 0x80 && frame[3] == 0x00);
+        client.TryParseRBusDataChanged(rBusFrame);
+
+        Assert.Equal(14, received.Count);
+        Assert.Contains(received, x => x.ModuleAddress == 1 && x.PortNumber == 3 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 1 && x.PortNumber == 5 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 3 && x.PortNumber == 3 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 5 && x.PortNumber == 8 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 7 && x.PortNumber == 1 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 7 && x.PortNumber == 7 && x.IsActive);
+        Assert.Contains(received, x => x.ModuleAddress == 9 && x.PortNumber == 4 && x.IsActive);
+        Assert.DoesNotContain(received, x => x.ModuleAddress > 10);
+    }
 }
 

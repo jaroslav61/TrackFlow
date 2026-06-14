@@ -40,6 +40,7 @@ public class DiagnosticEvent
             // Správy generuje napr. OperationViewModel: "▶ Začiatok cesty: ..." a "■ Koniec cesty: ...".
             if (Message.StartsWith("▶", StringComparison.Ordinal)) return "▶";
             if (Message.StartsWith("■", StringComparison.Ordinal)) return "■";
+            if (Message.StartsWith("⚠", StringComparison.Ordinal)) return "⚠";
 
             return string.Empty;
         }
@@ -132,6 +133,14 @@ public class DiagnosticEvent
             var icon = MessageIcon;
             if (!string.IsNullOrEmpty(icon))
             {
+                if (string.Equals(icon, "⚠", StringComparison.Ordinal))
+                {
+                    if (displayMessage.StartsWith("⚠️", StringComparison.Ordinal))
+                        return displayMessage.Substring("⚠️".Length).TrimStart();
+                    if (displayMessage.StartsWith("⚠", StringComparison.Ordinal))
+                        return displayMessage.Substring("⚠".Length).TrimStart();
+                }
+
                 // odstráň ikonku + prípadné medzery
                 return displayMessage.Length > 1
                     ? displayMessage.Substring(1).TrimStart()
@@ -150,11 +159,12 @@ public class DiagnosticEvent
     public string DisplaySource => TrackFlowDoctorFormatter.TranslateSource(Source);
     public string DisplayLevelText => TrackFlowDoctorFormatter.TranslateLevel(Level);
 
-    public bool HasMessageIcon => !string.IsNullOrEmpty(MessageIcon);
+    public bool HasMessageIcon => !string.IsNullOrEmpty(MessageIcon) && !IsWarningIcon;
     public bool HasMessageIconAsset => !string.IsNullOrEmpty(MessageIconAsset);
     public bool HasMessageIconImage => MessageIconImage != null;
     public bool IsRouteStartIcon => string.Equals(MessageIcon, "▶", StringComparison.Ordinal);
     public bool IsRouteEndIcon => string.Equals(MessageIcon, "■", StringComparison.Ordinal);
+    public bool IsWarningIcon => string.Equals(MessageIcon, "⚠", StringComparison.Ordinal);
 }
 
 internal static partial class TrackFlowDoctorFormatter

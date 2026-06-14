@@ -992,6 +992,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 StatusBar.IsDccConnected = true;
                 Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
 
+                // Na štarte/reconnecte môže mať layout stale runtime feedback stav z predchádzajúcej
+                // relácie alebo z projektu otvoreného ešte pred pripojením centrály. Nečakáme, až
+                // prvý nulový R-BUS frame pošle explicitné false eventy pre všetky porty – profil
+                // vyčistíme hneď po connecte a následné živé feedback rámce si stav autoritatívne
+                // naplnia znova.
+                ClearRuntimeFeedbackOccupancyAfterConnect(change);
+
                 _statusPolicy.ResetAll();
                 _statusPolicy.TrySet(
                     StatusTopic.Connected,
@@ -1124,9 +1131,24 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (changedBlocks.Count == 0)
             return;
 
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS disconnect-clear: clearAll={clearAll}, profileId={(change.ProfileId?.ToString() ?? "<legacy>")}, changedBlocks={changedBlocks.Count}, ids={string.Join(", ", changedBlocks.Select(b => b.Id))}");
+        foreach (var block in changedBlocks)
+            Tabs.LayoutEditor.RequestBlockRepaint?.Invoke(block);
+
+        _ = ReconcileExternalOccupancyFromFeedbackAsync();
+    }
+
+    private void ClearRuntimeFeedbackOccupancyAfterConnect(DccConnectionStateChange change)
+    {
+        var layout = SettingsManager.CurrentProject?.Layout;
+        if (layout == null)
+            return;
+
+        // Po úspešnom connecte chceme resetnúť LEN runtime feedback stav profilu, ktorý práve
+        // nadviazal spojenie. Živé R-BUS/S88 dáta si následne obsadenie okamžite znova nastavia,
+        // ale nebudeme visieť na starej červenej obsadenosti z predošlej relácie / otvoreného projektu.
+        var changedBlocks = DccFeedbackLayoutApplier.ClearFeedbackState(layout, change.ProfileId, clearAll: false);
+        if (changedBlocks.Count == 0)
+            return;
 
         foreach (var block in changedBlocks)
             Tabs.LayoutEditor.RequestBlockRepaint?.Invoke(block);
@@ -1398,22 +1420,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (layout == null)
             return;
 
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS received: profileId={(change.ProfileId?.ToString() ?? "<legacy>")}, modul={change.ModuleAddress}, vstup={change.PortNumber}, active={change.IsActive}");
-
         var changedBlocks = DccFeedbackLayoutApplier.ApplyFeedback(layout, change);
         if (changedBlocks.Count == 0)
-        {
-            TrackFlowDoctorService.Instance.Diagnose(
-                "DCC",
-                $"RBUS no-layout-change: modul={change.ModuleAddress}, vstup={change.PortNumber}, active={change.IsActive}");
             return;
-        }
-
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS changed-blocks: count={changedBlocks.Count}, ids={string.Join(", ", changedBlocks.Select(b => b.Id))}");
 
         foreach (var block in changedBlocks.OfType<BlockElement>())
             Tabs.LayoutEditor.RequestBlockRepaint?.Invoke(block);

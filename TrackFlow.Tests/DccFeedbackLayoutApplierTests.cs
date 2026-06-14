@@ -359,5 +359,34 @@ public sealed class DccFeedbackLayoutApplierTests
         Assert.False(blockNew.Indicators.Single().IsActive);
         Assert.False(blockNew.IsOccupied);
     }
+
+    [Fact]
+    public void SynchronizeOccupancyFromIndicators_ActiveContactRestoresBlockOccupancy()
+    {
+        var block = new BlockElement
+        {
+            Id = "B-RESYNC-1",
+            IsOccupied = false,
+            Indicators =
+            {
+                new BlockIndicator
+                {
+                    Type = BlockIndicatorType.Contact,
+                    ModuleAddress = 1,
+                    PortNumber = 7,
+                    IsActive = true
+                }
+            }
+        };
+
+        var layout = new TrackLayout();
+        layout.Elements.Add(block);
+
+        var changed = DccFeedbackLayoutApplier.SynchronizeOccupancyFromIndicators(layout);
+
+        var changedBlock = Assert.Single(changed);
+        Assert.Same(block, changedBlock);
+        Assert.True(block.IsOccupied);
+    }
 }
 

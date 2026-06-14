@@ -16,7 +16,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     ITelemetryPreferenceAwareClient, IRBusFeedbackSource, IDisposable, INotifyPropertyChanged
 {
     private const int SystemStatusPollIntervalMs = 2000;
-    private const int RBusPollIntervalMs = 250;
+    private const int RBusPollIntervalMs = 1;
     private const int SpeedThrottleMs = 80;
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -35,7 +35,11 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     /// </summary>
     private static readonly byte[] LanGetSystemStatusPacket = { 0x04, 0x00, 0x85, 0x00 };
 
-    private static readonly byte[] LanGetRBusGroup0Packet = { 0x05, 0x00, 0x81, 0x00, 0x00 };
+    private const int MaxRBusGroupIndex = 15; // group 0..15 => modules 1..160
+    private static readonly byte[][] LanGetRBusPollPackets =
+        Enumerable.Range(0, MaxRBusGroupIndex + 1)
+            .Select(static group => new byte[] { 0x05, 0x00, 0x81, 0x00, (byte)group })
+            .ToArray();
 
     private static readonly Z21BroadcastFlags DefaultOperationalBroadcastFlags =
         Z21BroadcastFlags.XBus |
@@ -53,8 +57,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
     // Posledný čas prijatia akéhokoľvek validného rámca cez _sendUdp – používa sa pre ľahký PingAsync.
     private long _lastFrameReceivedTicks;
+    private long _lastRBusFrameReceivedTicks;
+    private long _lastRBusHeartbeatTicks;
     private long _lastSpeedSentTicks; // prístup výhradne cez Interlocked.* – pozri SetLocomotiveSpeedAsync
     private Task? _mainReceiveTask;
+    private string _lastDirectRBusFrameHex = string.Empty;
+    private string _lastIgnoredLanX43FrameHex = string.Empty;
+    private int _rBusDirectFrameReceiveCount;
+    private int _rBusIgnoredLanX43Count;
+    private int _rBusPollSendCount;
 
     private double? _mainVoltage;
 
@@ -120,8 +131,9 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         _remoteEp = new IPEndPoint(ip, port);
 
-        // Handshake cez dočasný socket (samostatné ReceiveAsync)
-        var serial = await TryGetSerialOnceAsync(_remoteEp, ct);
+        // Handshake cez dočasný socket (samostatné ReceiveAsync). z21 normálne odpovedá v < 50 ms,
+        // krátky timeout drasticky zrýchli prvý úspešný connect.
+        var serial = await TryGetSerialOnceAsync(_remoteEp, ct, timeoutMs: 600);
         if (!serial.HasValue)
         {
             _remoteEp = null;
@@ -146,28 +158,36 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         SerialNumber = serial.Value;
         IsConnected = true;
 
-        // Po úspešnom serial-handshake skúsime zistiť typ HW (LAN_GET_HWINFO).
-        // Nie je to fatálne ak zlyhá – vieme pokračovať aj bez HW info.
-        var hwInfo = await TryGetHwInfoOnceAsync(_remoteEp, ct);
-        if (hwInfo.HasValue)
-        {
-            HardwareType = (Z21HardwareType)hwInfo.Value.HwType;
-            FirmwareVersionRaw = hwInfo.Value.FwVersion;
-
-            var hwName = HardwareType.ToDisplayName();
-            var fwText = $"FW 0x{hwInfo.Value.FwVersion:X4}";
-            TrackFlowDoctorService.Instance.Diagnose(
-                "DCC",
-                $"🔎 Detegovaná centrála: {hwName} ({fwText}, HwType=0x{hwInfo.Value.HwType:X8})");
-        }
-        else
-        {
-            HardwareType = Z21HardwareType.Unknown;
-            FirmwareVersionRaw = null;
-        }
-
-        // Spustíme telemetrický polling (LAN_SYSTEMSTATE_GETDATA každé 2 s).
+        // Spustíme telemetrický polling (LAN_SYSTEMSTATE_GETDATA každé 2 s) HNEĎ.
+        // HW info nie je kritická pre prevádzku – vybavíme ju na pozadí.
         StartTelemetry();
+
+        HardwareType = Z21HardwareType.Unknown;
+        FirmwareVersionRaw = null;
+
+        var hwEndpoint = _remoteEp;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var hwInfo = await TryGetHwInfoOnceAsync(hwEndpoint, ct, timeoutMs: 600).ConfigureAwait(false);
+                if (!hwInfo.HasValue)
+                    return;
+
+                HardwareType = (Z21HardwareType)hwInfo.Value.HwType;
+                FirmwareVersionRaw = hwInfo.Value.FwVersion;
+
+                var hwName = HardwareType.ToDisplayName();
+                var fwText = $"FW 0x{hwInfo.Value.FwVersion:X4}";
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "DCC",
+                    $"🔎 Detegovaná centrála: {hwName} ({fwText}, HwType=0x{hwInfo.Value.HwType:X8})");
+            }
+            catch
+            {
+                // HW info je best-effort – chyby nesmú zhodiť spojenie.
+            }
+        }, ct);
 
         return true;
     }
@@ -746,7 +766,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     }
 
     // Samostatný krátkodobý socket pre handshake / ping – nezablokuje _sendUdp
-    private static async Task<uint?> TryGetSerialOnceAsync(IPEndPoint ep, CancellationToken ct)
+    private static async Task<uint?> TryGetSerialOnceAsync(IPEndPoint ep, CancellationToken ct, int timeoutMs = 1500)
     {
         try
         {
@@ -756,7 +776,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             await udp.SendAsync(payload, payload.Length);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(1500);
+            timeoutCts.CancelAfter(timeoutMs);
 
             UdpReceiveResult result;
             try
@@ -784,7 +804,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     ///     Request:  04 00 1A 00
     ///     Response: 0C 00 1A 00 | HwType(4 B LE) | FwVersion(4 B LE)
     /// </summary>
-    private static async Task<(uint HwType, uint FwVersion)?> TryGetHwInfoOnceAsync(IPEndPoint ep, CancellationToken ct)
+    private static async Task<(uint HwType, uint FwVersion)?> TryGetHwInfoOnceAsync(IPEndPoint ep, CancellationToken ct, int timeoutMs = 1500)
     {
         try
         {
@@ -795,7 +815,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
             // Niekedy príde najprv serial-broadcast alebo iný rámec – skúsime pár pokusov.
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(1500);
+            cts.CancelAfter(timeoutMs);
 
             try
             {
@@ -1322,10 +1342,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         CancelTelemetry();
         if (_sendUdp == null || _remoteEp == null) return;
 
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS init: spúšťam telemetriu pre z21 endpoint {_remoteEp}.");
-
         // CTS vytvoríme PRED spustením fire-and-forget taskov – aby vedeli rešpektovať
         // shutdown a aby sa pri rýchlom Connect/Disconnect/Connect nikdy neposlal
         // register/poll z predošlého cyklu na nový socket (alebo naopak na už zatvorený).
@@ -1346,20 +1362,14 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             {
                 var registerTelemetryPacket = CreateSetBroadcastFlagsPacket(DefaultOperationalBroadcastFlags);
                 await SendAsync(registerTelemetryPacket, ct).ConfigureAwait(false);
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS subscribe: LAN_SET_BROADCASTFLAGS(0x{(uint)DefaultOperationalBroadcastFlags:X8}) – odber telemetrie + X-bus + R-BUS.");
             }
             catch (OperationCanceledException)
             {
                 /* shutdown */
             }
-            catch (Exception ex)
+            catch
             {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"RBUS subscribe failed: {ex.Message}",
-                    DiagnosticLevel.Warning);
+                // best-effort only
             }
         }, ct);
 
@@ -1372,10 +1382,8 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         {
             try
             {
-                await SendAsync(LanGetRBusGroup0Packet, ct).ConfigureAwait(false);
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    "RBUS poll-init: LAN_RMBUS_GETDATA(group=0) – počiatočný dopyt na moduly 1..N.");
+                foreach (var packet in LanGetRBusPollPackets)
+                    await SendAsync(packet, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -1413,6 +1421,13 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         _telemetryPollTask = null;
         _mainReceiveTask = null;
         _lastRBusModuleMasks.Clear();
+        Interlocked.Exchange(ref _lastRBusFrameReceivedTicks, 0);
+        Interlocked.Exchange(ref _lastRBusHeartbeatTicks, 0);
+        Interlocked.Exchange(ref _rBusDirectFrameReceiveCount, 0);
+        Interlocked.Exchange(ref _rBusIgnoredLanX43Count, 0);
+        Interlocked.Exchange(ref _rBusPollSendCount, 0);
+        _lastDirectRBusFrameHex = string.Empty;
+        _lastIgnoredLanX43FrameHex = string.Empty;
 
         try
         {
@@ -1446,23 +1461,10 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         while (!ct.IsCancellationRequested)
         {
-            if (!IsTelemetryEnabled)
-            {
-                try
-                {
-                    await Task.Delay(RBusPollIntervalMs, ct).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-
-                continue;
-            }
-
-            // Použijeme štandardnú SendAsync – tá si vezme _sendLock a pošle cez _sendUdp.
-            // Nie je nutné parsovať návratovú hodnotu, odpoveď zachytí MainReceiveLoopAsync.
-            if (DateTime.UtcNow >= nextSystemStatusAtUtc)
+            // Stavová telemetria do status baru môže byť vypnutá, ale R-BUS obsadenosť musí
+            // bežať stále – je to funkčná časť detekcie blokov, nie len vizuálna telemetria.
+            // Preto IsTelemetryEnabled gate-uje iba LAN_SYSTEMSTATE_GETDATA, nie R-BUS polling.
+            if (IsTelemetryEnabled && DateTime.UtcNow >= nextSystemStatusAtUtc)
             {
                 try
                 {
@@ -1485,18 +1487,17 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
             try
             {
-                await SendAsync(LanGetRBusGroup0Packet, ct).ConfigureAwait(false);
+                foreach (var packet in LanGetRBusPollPackets)
+                    await SendAsync(packet, ct).ConfigureAwait(false);
+                Interlocked.Increment(ref _rBusPollSendCount);
             }
             catch (OperationCanceledException)
             {
                 return;
             }
-            catch (Exception ex) when (!ct.IsCancellationRequested && !IsShutdownRequested)
+            catch (Exception) when (!ct.IsCancellationRequested && !IsShutdownRequested)
             {
-                TrackFlowDoctorService.Instance.Diagnose(
-                    "DCC",
-                    $"⚠️ Z21 telemetria send chyba (LAN_RMBUS_GETDATA group=0): {ex.GetType().Name}: {ex.Message}",
-                    DiagnosticLevel.Warning);
+                // R-BUS polling errors are intentionally hidden from Doctor.
             }
 
             try
@@ -1593,6 +1594,43 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         // Akýkoľvek validný rámec aktualizuje keepalive timestamp – využíva ho PingAsync.
         Interlocked.Exchange(ref _lastFrameReceivedTicks, _speedStopwatch.ElapsedMilliseconds);
 
+        foreach (var singleFrame in SplitCombinedFrames(frame))
+            DispatchSingleIncomingFrame(singleFrame);
+    }
+
+    internal static IReadOnlyList<byte[]> SplitCombinedFrames(byte[] payload)
+    {
+        if (payload == null || payload.Length < 4)
+            return Array.Empty<byte[]>();
+
+        var frames = new List<byte[]>();
+        var offset = 0;
+
+        while (offset + 4 <= payload.Length)
+        {
+            var frameLength = payload[offset] | (payload[offset + 1] << 8);
+            if (frameLength < 4 || offset + frameLength > payload.Length)
+                break;
+
+            var singleFrame = new byte[frameLength];
+            Buffer.BlockCopy(payload, offset, singleFrame, 0, frameLength);
+            frames.Add(singleFrame);
+            offset += frameLength;
+        }
+
+        if (frames.Count > 0)
+            return frames;
+
+        var fallback = new byte[payload.Length];
+        Buffer.BlockCopy(payload, 0, fallback, 0, payload.Length);
+        return new[] { fallback };
+    }
+
+    private void DispatchSingleIncomingFrame(byte[] frame)
+    {
+        if (frame == null || frame.Length < 4)
+            return;
+
         // LAN_SYSTEMSTATE_DATACHANGED – 20 B paket, header 0x14 0x00 0x84 0x00 (LE)
         if (frame.Length >= 4 && frame[0] == 0x14 && frame[1] == 0x00 && frame[2] == 0x84 && frame[3] == 0x00)
         {
@@ -1605,7 +1643,20 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         // LAN_X rámce s XHeader 0x43 sa v reálnych logoch ukázali ako X-Bus / accessory broadcast,
         // nie ako stabilná occupancy telemetria – spôsobovali falošné prepínanie blokov počas
         // odosielania návestí po pripojení centrály.
-        if (IsDirectRBusDataChangedFrame(frame)) TryParseRBusDataChanged(frame);
+        if (IsDirectRBusDataChangedFrame(frame))
+        {
+            Interlocked.Exchange(ref _lastRBusFrameReceivedTicks, _speedStopwatch.ElapsedMilliseconds);
+            Interlocked.Increment(ref _rBusDirectFrameReceiveCount);
+            _lastDirectRBusFrameHex = BytesToHex(frame);
+            TryParseRBusDataChanged(frame);
+            return;
+        }
+
+        if (IsLanX0x43Frame(frame))
+        {
+            _lastIgnoredLanX43FrameHex = BytesToHex(frame);
+            Interlocked.Increment(ref _rBusIgnoredLanX43Count);
+        }
 
         // Sem v budúcnosti pribudnú ďalšie ramce (loco, turnout, broadcasts).
     }
@@ -1655,9 +1706,10 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     ///     Štruktúra LAN_RMBUS_DATACHANGED podľa Z21 LAN špec. v1.13 (sekcia 7.1.2):
     ///     [0..1] dĺžka rámca (LE, vždy 0x0F 0x00 = 15 B)
     ///     [2..3] header = 0x80 0x00
-    ///     [4]    GroupIndex (0 alebo 1)
-    ///     • 0 → moduly  1..10
-    ///     • 1 → moduly 11..20
+    ///     [4]    GroupIndex (0-based, každý group = 10 modulov)
+    ///     • 0  → moduly   1..10
+    ///     • 1  → moduly  11..20
+    ///     • 15 → moduly 151..160
     ///     [5..14] 10 bajtov masiek, jeden bajt = jeden modul, bit0 = vstup 1, bit7 = vstup 8.
     ///     UI a konfigurácia TrackFlow používajú 1-based ModuleAddress aj PortNumber.
     /// </summary>
@@ -1669,12 +1721,17 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         if (!IsDirectRBusDataChangedFrame(data))
             return;
 
-        // Z21 protokol: GroupIndex 0 ⇒ moduly 1..10, GroupIndex 1 ⇒ moduly 11..20.
+        var declaredLength = data[0] | (data[1] << 8);
+        if (declaredLength < 6 || data.Length < declaredLength)
+            return;
+
+        // Z21 protokol: GroupIndex N ⇒ moduly (N*10+1)..(N*10+10).
         // Pôvodná formula `data[4] + 1` posielala pre group 1 modul 2 namiesto 11,
         // čo by pri >10 R-BUS / S88 moduloch kolidovalo s adresami z group 0.
         var firstDirectModuleAddress = data[4] * 10 + 1;
-        for (var byteIndex = 5; byteIndex < data.Length; byteIndex++)
-            PublishRBusModuleState(firstDirectModuleAddress + (byteIndex - 5), data[byteIndex], data);
+        var rBusDataEndExclusive = Math.Min(declaredLength, 15);
+        for (var byteIndex = 5; byteIndex < rBusDataEndExclusive; byteIndex++)
+            PublishRBusModuleState(firstDirectModuleAddress + (byteIndex - 5), data[byteIndex]);
     }
 
     private static bool IsDirectRBusDataChangedFrame(byte[] frame)
@@ -1684,7 +1741,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
                && frame[3] == 0x00;
     }
 
-    private void PublishRBusModuleState(int moduleAddress, byte mask, byte[] rawFrame)
+    private static bool IsLanX0x43Frame(byte[] frame)
+    {
+        return frame.Length >= 5
+               && frame[2] == 0x40
+               && frame[3] == 0x00
+               && frame[4] == 0x43;
+    }
+
+    private void PublishRBusModuleState(int moduleAddress, byte mask)
     {
         var hadPreviousMask = _lastRBusModuleMasks.TryGetValue(moduleAddress, out var previousMask);
         if (hadPreviousMask && previousMask == mask)
@@ -1700,9 +1765,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         _lastRBusModuleMasks[moduleAddress] = mask;
 
-        TrackFlowDoctorService.Instance.Diagnose(
-            "DCC",
-            $"RBUS frame-change: modul={moduleAddress}, oldMask=0x{previousMask:X2}, newMask=0x{mask:X2}, changedMask=0x{changedMask:X2}, raw={BytesToHex(rawFrame)}");
 
         for (var bit = 0; bit < 8; bit++)
         {

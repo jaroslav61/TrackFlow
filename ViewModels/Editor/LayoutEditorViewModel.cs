@@ -660,14 +660,22 @@ public partial class LayoutEditorViewModel : ObservableObject
     public void AssignLocomotiveToBlock(BlockElement block, string locoCode, bool isForward)
     {
         CaptureUndoCheckpoint("assign-loco", force: true);
-        // Editor režim: pri manuálnom umiestnení lokomotívy chceme kontrolovať len cieľový blok.
-        // Kontrola susedných blokov (safetyDistanceBlocks > 0) je vhodnejšia pre runtime jazdu,
-        // ale pri editácii spôsobuje „nepriradenie“ aj v prípadoch, ktoré užívateľ považuje za OK.
-        var collision = _collisionService.EvaluateEntry(Elements, block.Id, locoCode, safetyDistanceBlocks: 0);
-        if (!collision.IsSafe)
+        // Editor / manuálne priradenie: užívateľ explicitne určuje, ktorá lokomotíva v bloku je.
+        // Kolíznu logiku z runtime smerovania (target-block-occupied / neighbor-block-occupied)
+        // tu zámerne NEPOUŽÍVAME – tá je platná pre jazdu vlaku, nie pre priradenie. Stačí overiť
+        // jediný scenár, ktorý vie užívateľa reálne pomýliť: blok už patrí inej lokomotíve.
+        if (block.IsLocked)
         {
-            Log.Warning("Locomotive assign blocked in editor. Loco={LocoCode}, Block={BlockId}, Reason={Reason}, BlockingBlock={BlockingBlockId}",
-                locoCode, block.Id, collision.Reason, collision.BlockingBlockId);
+            Log.Warning("Locomotive assign blocked in editor: block is locked. Loco={LocoCode}, Block={BlockId}",
+                locoCode, block.Id);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(block.AssignedLocoId)
+            && !string.Equals(block.AssignedLocoId, locoCode, StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Warning("Locomotive assign blocked in editor: block already assigned to another loco. Loco={LocoCode}, Block={BlockId}, ExistingLoco={Existing}",
+                locoCode, block.Id, block.AssignedLocoId);
             return;
         }
 

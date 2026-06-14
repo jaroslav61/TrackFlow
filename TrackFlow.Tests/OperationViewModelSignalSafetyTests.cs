@@ -235,6 +235,78 @@ public class OperationViewModelSignalSafetyTests
     }
 
     [Fact]
+    public void IsSimulationMode_SwitchToLive_PreservesOccupancyFromActiveContactIndicator()
+    {
+        var settings = new SettingsManager();
+        settings.NewProject();
+
+        var block = new BlockElement
+        {
+            Id = "blk_live_1",
+            MarkerKey = "Block",
+            Label = "Blok Live 1",
+            IsOccupied = true,
+            AssignedLocoId = "754",
+            Indicators =
+            {
+                new BlockIndicator
+                {
+                    Type = BlockIndicatorType.Contact,
+                    ModuleAddress = 1,
+                    PortNumber = 7,
+                    IsActive = true
+                }
+            }
+        };
+
+        var layout = new TrackLayout();
+        layout.Elements.Add(block);
+        settings.CurrentProject!.Layout = layout;
+
+        var vm = new OperationViewModel(settings, new ObservableCollection<Locomotive>());
+
+        vm.IsSimulationMode = false;
+
+        Assert.True(block.IsOccupied);
+        Assert.Null(block.AssignedLocoId);
+    }
+
+    [Fact]
+    public void RefreshLayoutFromProject_ActiveContactIndicatorRestoresStaleOccupancy()
+    {
+        var settings = new SettingsManager();
+        settings.NewProject();
+
+        var block = new BlockElement
+        {
+            Id = "blk_live_2",
+            MarkerKey = "Block",
+            Label = "Blok Live 2",
+            IsOccupied = false,
+            Indicators =
+            {
+                new BlockIndicator
+                {
+                    Type = BlockIndicatorType.Contact,
+                    ModuleAddress = 1,
+                    PortNumber = 8,
+                    IsActive = true
+                }
+            }
+        };
+
+        var layout = new TrackLayout();
+        layout.Elements.Add(block);
+        settings.CurrentProject!.Layout = layout;
+
+        var vm = new OperationViewModel(settings, new ObservableCollection<Locomotive>());
+
+        vm.RefreshLayoutFromProject();
+
+        Assert.True(block.IsOccupied);
+    }
+
+    [Fact]
     public async Task HandleExternalOccupancyUpdateAsync_OccupiedFirstBlockBehindRouteStartSignal_DropsStartSignalToStop()
     {
         var settings = new SettingsManager();
