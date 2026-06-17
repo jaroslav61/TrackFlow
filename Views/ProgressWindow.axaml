@@ -1,7 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TrackFlow.Views.ProgressWindow"
-        Width="400" Height="100" Title="Načítavanie projektu">
+        Width="400"
+        MinWidth="400"
+        Height="100" 
+        MinHeight="100"
+        Title="Načítavanie projektu"
+        CanResize="False">
     <Border Padding="10">
         <Grid RowDefinitions="Auto,*">
             <TextBlock Text="Načítavanie projektu..." FontSize="14" FontWeight="Normal"/>

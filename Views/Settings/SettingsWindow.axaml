@@ -7,8 +7,9 @@
         WindowStartupLocation="CenterOwner"
         Width="880"
         Height="540"
-        MinWidth="800"
-        MinHeight="460">
+        MinWidth="880"
+        MinHeight="540"
+        CanResize="False">
 
     <Grid ColumnDefinitions="180,*" RowDefinitions="*,Auto" Margin="12">
 

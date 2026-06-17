@@ -3,7 +3,11 @@
         xmlns:local="using:TrackFlow.Services"
         x:Class="TrackFlow.Views.DoctorWindow"
         x:CompileBindings="False"
-        Title="TrackFlow Doktor - Diagnostika" Width="1200" Height="600">
+        Title="TrackFlow Doktor - Diagnostika" 
+        Width="1200"
+        MinWidth="1200"
+        Height="600"
+        MinHeight="600">
 
     <Window.Styles>
         <!-- Farby ikoniek v správach (Začiatok/Koniec cesty) -->

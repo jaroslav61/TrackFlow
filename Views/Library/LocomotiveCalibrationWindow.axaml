@@ -8,10 +8,10 @@
         Title="Kalibrácia rýchlosti lokomotívy"
         Width="1200"
         Height="560"
-        MinWidth="1150"
-        MinHeight="400"
+        MinWidth="1200"
+        MinHeight="560"
         WindowStartupLocation="CenterOwner"
-        CanResize="True">
+        CanResize="False">
     <Window.Resources>
         <DataTemplate x:Key="CalibrationIndicatorComboItemTemplate" x:DataType="vm:CalibrationIndicatorOption">
             <StackPanel Orientation="Horizontal" Spacing="6">

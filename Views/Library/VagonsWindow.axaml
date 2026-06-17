@@ -8,9 +8,11 @@
         x:DataType="vm:VagonsWindowViewModel"
         x:Name="Root"
         Title="Editor vozňov"
-        Width="1200" Height="720"
+        Width="1200" 
+        
+        Height="720"
         WindowStartupLocation="CenterOwner"
-        CanResize="True">
+        CanResize="False">
 
     <Window.Styles>
         <Style Selector="DataGrid.vagonGrid:disabled">

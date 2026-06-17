@@ -5,7 +5,13 @@
         xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
         xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
         x:Class="TrackFlow.Views.Library.LocomotivesWindow" x:DataType="vm:LocomotivesWindowViewModel"
-        Title="Editor lokomotív" Width="1400" Height="860" WindowStartupLocation="CenterOwner">
+        Title="Editor lokomotív" 
+        Width="1400"
+        MinWidth="1400"        
+        Height="860"
+        MinHeight="860"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
     <Window.Resources>
         <conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
         <conv:StringNotNullOrWhiteSpaceToBoolConverter x:Key="StringNotNullOrWhiteSpaceToBoolConverter" />

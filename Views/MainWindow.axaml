@@ -13,8 +13,8 @@
 		WindowStartupLocation="CenterScreen"
 		Width="1600"
 		Height="1000"
-		MinWidth="1200"
-		MinHeight="800">
+		MinWidth="1600"
+		MinHeight="1000">
 
   <Window.KeyBindings>
     <!-- Globálne Undo/Redo (Editor režim): CanExecute rieši MainWindowViewModel -->
@@ -43,28 +43,28 @@
 			<Setter Property="FontSize" Value="11"/>
 
 			<Setter Property="FontWeight" Value="Normal"/>
-		</Style>
+		  </Style>
 
-		<Style Selector="TabControl.tc-tabs TabItem TextBlock">
+		  <Style Selector="TabControl.tc-tabs TabItem TextBlock">
 			<Setter Property="FontSize" Value="11"/>
 			<Setter Property="FontWeight" Value="Normal"/>
-		</Style>
+		  </Style>
 
-		<Style Selector="TabControl.tc-tabs TabItem:selected">
+		  <Style Selector="TabControl.tc-tabs TabItem:selected">
 			<Setter Property="Background" Value="White"/>
 			<Setter Property="BorderThickness" Value="1,1,1,0"/>
-		</Style>
+		  </Style>
 
-		<Style Selector="TabControl.tc-tabs TabItem:not(:selected)">
+		  <Style Selector="TabControl.tc-tabs TabItem:not(:selected)">
 			<Setter Property="Margin" Value="0,2,4,0"/>
-		</Style>
+		  </Style>
 
-		<Style Selector="TabControl.tc-tabs /template/ ContentPresenter">
+		  <Style Selector="TabControl.tc-tabs /template/ ContentPresenter">
 			<Setter Property="Margin" Value="6,0,6,6"/>
 			<Setter Property="Background" Value="White"/>
 			<Setter Property="BorderBrush" Value="#B5B5B5"/>
 			<Setter Property="BorderThickness" Value="1"/>
-		</Style>
+		  </Style>
 	</Window.Styles>
 
 
@@ -176,7 +176,7 @@
                  ktorá sa automaticky synchronizuje pri prepnutí do Operation režimu. -->
             <ItemsControl Grid.Column="1" ItemsSource="{Binding SmartStrips.ActiveLocomotives}"
                           IsVisible="{Binding IsOperationMode}"
-                          Margin="10,0,0,0">
+                          Margin="0,0,0,0">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <!-- Orientácia vertikálna; MaxHeight zabezpečuje zalomenie po približne 3 panele -->

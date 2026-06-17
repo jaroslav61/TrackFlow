@@ -6,7 +6,10 @@
         x:DataType="vm:TrainsWindowViewModel"
         Title="Vlaky"
         Width="1600"
+        MinWidth="1600"
         Height="1000"
+        MinHeight="1000"
+        CanResize="False"
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
