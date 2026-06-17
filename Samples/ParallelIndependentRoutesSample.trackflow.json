@@ -20,7 +20,7 @@
       "Description": "Testovacia lokomotíva 1",
       "IconName": "",
       "Type": null,
-      "LengthCm": 0,
+      "lengthMm": 0,
       "WeightT": 0,
       "DecoderType": null,
       "DccSystemName": null,
@@ -45,7 +45,7 @@
       "Description": "Testovacia lokomotíva 2",
       "IconName": "",
       "Type": null,
-      "LengthCm": 0,
+      "lengthMm": 0,
       "WeightT": 0,
       "DecoderType": null,
       "DccSystemName": null,
@@ -169,7 +169,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 220,
+        "lengthMm": 220,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -177,7 +177,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [
         ],
         "SignalType": 0,
@@ -196,7 +196,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 220,
+        "lengthMm": 220,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -204,7 +204,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [
         ],
         "SignalType": 0,
@@ -223,7 +223,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 220,
+        "lengthMm": 220,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -231,7 +231,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [
         ],
         "SignalType": 0,
@@ -250,7 +250,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 220,
+        "lengthMm": 220,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -258,7 +258,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [
         ],
         "SignalType": 0,

@@ -1129,7 +1129,7 @@ public partial class OperationView : UserControl
         return vm.IsElementOnActiveRoutePath(elementId);
     }
     
-    /// <summary>Načíta ikonu vozidla z Assets/LocoIcons alebo Assets/VagonIcons.</summary>
+    /// <summary>Načíta ikonu vozidla z Assets/LocoIcons alebo Assets/WagonIcons.</summary>
     private static Image? LoadIconImage(string iconName)
     {
         var bitmap = VehicleIconLoader.TryLoadBitmap(iconName);

@@ -43,7 +43,7 @@ public sealed class BlockElement : LayoutElement
     // ── Všeobecné ─────────────────────────────────────────────────────────
     // Physical length of the block in centimeters.
     // Default 0 = unknown / not specified by user.
-    public int  LengthCm         { get; set; } = 0;
+    public int  lengthMm         { get; set; } = 0;
     public int  BlockLengthCells { get; set; } = 4;  // Počet buniek v editore (default 4, min 1, max 20)
     public bool RequestYellow    { get; set; }
     public int  MaxSpeedKmh      { get; set; } = 120;
@@ -51,7 +51,7 @@ public sealed class BlockElement : LayoutElement
     public bool AllowBackward    { get; set; } = true;
     public bool AllowForward     { get; set; } = true;
     public bool CriticalSection  { get; set; }
-    public int  MaxTrainLengthCm { get; set; }
+    public int  MaxTrainlengthMm { get; set; }
 
     // ── Indikátory ────────────────────────────────────────────────────────
     public List<BlockIndicator> Indicators { get; set; } = new();

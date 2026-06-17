@@ -140,10 +140,10 @@ public partial class App : Application
                 }
 
                 // Register wagon icons too
-                var wagonIconsDir = Path.Combine(baseDir, "Assets", "VagonIcons");
+                var wagonIconsDir = Path.Combine(baseDir, "Assets", "WagonIcons");
                 if (!Directory.Exists(wagonIconsDir))
                 {
-                    wagonIconsDir = Path.Combine(baseDir, "..", "..", "Assets", "VagonIcons");
+                    wagonIconsDir = Path.Combine(baseDir, "..", "..", "Assets", "WagonIcons");
                 }
 
                 if (Directory.Exists(wagonIconsDir))

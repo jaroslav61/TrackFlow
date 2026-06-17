@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia;
 using Avalonia.Controls;
@@ -6,6 +6,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using IOPath = System.IO.Path;
 using System.Threading;
@@ -23,55 +24,160 @@ using TrackFlow.ViewModels.Editor;
 using TrackFlow.ViewModels.SmartStrips;
 using TrackFlow.ViewModels.Settings;
 using TrackFlow.Views;
+using Avalonia.VisualTree;
 using TrackFlow.Views.Dcc;
+using TrackFlow.Services;
 
 namespace TrackFlow.ViewModels;
+
 
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private bool _disposed;
     private readonly DispatcherTimer _autoSaveTimer = new();
     private bool _isAutoSaveInProgress;
-    
+
     private static string CN(DccCentralType t) => DccCentralDisplayName.Get(t);
 
     // =====================================================================================
-    // Režim aplikácie (Editor / Prevádzka)
+    // Režim aplikácie – centrálny správca (Fáza 2 refaktoring)
     // =====================================================================================
-    
-    [ObservableProperty]
-    private AppMode currentMode = AppMode.Editor;
-    
-    partial void OnCurrentModeChanged(AppMode value)
+
+    /// <summary>
+    /// Jediný zdroj pravdy o stave aplikácie.
+    /// Nahrádza dvojicu AppMode + IsSimulationActive.
+    /// </summary>
+    public OperationModeManager ModeManager { get; } = new();
+
+    // ── Computed skratky pre XAML bindingy ──────────────────────────────────
+
+    public bool IsEditorMode       => ModeManager.IsEdit;
+    public bool IsOperationMode    => ModeManager.IsOffline || ModeManager.IsOnline;
+    public bool IsSimulationActive => ModeManager.IsSimulation;
+
+    /// <summary>Spätná kompatibilita pre SmartStrips.SyncActiveLocomotivesWithMode.</summary>
+    public AppMode CurrentMode
+        => ModeManager.IsEdit ? AppMode.Editor : AppMode.Operation;
+
+    /// <summary>True keď je centrála pripojená a simulátor nebeží.</summary>
+    public bool IsLiveMode => ModeManager.IsOnline;
+
+    // Tlačidlo simulátora – presné texty podľa zadania
+    public string OperationModeDisplayTitle => ModeManager.IsSimulation
+        ? "Simulátor: RUNNING"
+        : "Spustiť simulátor";
+
+    public string OperationModeDisplaySubtitle => ModeManager.IsSimulation
+        ? "Simulátor je aktívny"
+        : Dcc.IsAnyConnected
+            ? "Reálna centrála"
+            : "Centrála odpojená";
+
+    // OFF = šedá, ON = svetlomodrá
+    public string OperationModeDisplayBackground => ModeManager.IsSimulation
+        ? "#2F608C"
+        : "#6C7A89";
+
+    public string OperationModeDisplayBorderBrush => ModeManager.IsSimulation
+        ? "#132537"
+        : "#4B5563";
+
+    // Blokácia pripojenia centrály počas simulácie (Fáza 4 – bod 1)
+    public bool CanConnectDcc => !ModeManager.IsSimulation;
+
+    /// <summary>
+    /// Reaguje na každú zmenu OperationMode.
+    /// Nahrádza OnCurrentModeChanged + OnIsSimulationActiveChanged.
+    /// </summary>
+    private void OnModeManagerModeChanged(OperationMode previous, OperationMode current)
     {
-        // Aktualizovať status bar
-        StatusBar.SetOperationMode(value == AppMode.Operation);
-        
-        // Aktualizovať Ribbon (pre budúce dynamické tlačidlá)
-        OnPropertyChanged(nameof(IsEditorMode));
-        OnPropertyChanged(nameof(IsOperationMode));
-
-        // Synchronizovať aktívne lokomotívy podľa režimu:
-        // - Operation: automaticky aktivovať lokomotívy v blokoch (zobrazí sa Dashboard, opacity 100%)
-        // - Editor: deaktivovať všetky (Dashboard sa skryje, opacity v smart páse sa zníži)
-        SmartStrips?.SyncActiveLocomotivesWithMode(value);
-
-        // Pri prepnutí do prevádzky vždy načítaj aktuálne elementy z projektu,
-        // aby sa zobrazili aj novo vložené markery bez nutnosti explicitného SaveToProject.
-        if (value == AppMode.Operation)
+        // Všetky UI operácie musia byť na UI threade
+        void ApplyOnUiThread()
         {
-            Tabs.Operation.RefreshLayoutFromProject();
-            _ = RefreshSignalsOnOperationEnterAsync();
+            // Prepni záložku cez MainTabsView.SwitchTab
+            SwitchMainTab(current == OperationMode.Edit ? 1 : 0);
+
+            // Sync OperationViewModel.IsSimulationMode
+            if (Tabs?.Operation != null)
+                Tabs.Operation.IsSimulationMode = current == OperationMode.Simulation;
+
+            // Zablokuj záložku Editor počas simulácie
+            if (Tabs != null)
+                Tabs.IsSimulationActive = current == OperationMode.Simulation;
+
+
+
+            // StatusBar
+            StatusBar.SetOperationMode(current != OperationMode.Edit);
+
+            // SmartStrips
+            SmartStrips?.SyncActiveLocomotivesWithMode(
+                current == OperationMode.Edit ? AppMode.Editor : AppMode.Operation);
+
+            // Pri vstupe do prevádzky z editora: načítaj layout + návestidlá
+            if (current is OperationMode.Offline or OperationMode.Online
+                && previous == OperationMode.Edit)
+            {
+                Tabs?.Operation.RefreshLayoutFromProject();
+                _ = RefreshSignalsOnOperationEnterAsync();
+            }
+
+            // Notifikácie pre XAML
+            OnPropertyChanged(nameof(IsEditorMode));
+            OnPropertyChanged(nameof(IsOperationMode));
+            OnPropertyChanged(nameof(IsSimulationActive));
+            OnPropertyChanged(nameof(IsLiveMode));
+            OnPropertyChanged(nameof(CurrentMode));
+            OnPropertyChanged(nameof(Tabs));
+            NotifyOperationModePanelStateChanged();
+
+            UndoCommand.NotifyCanExecuteChanged();
+            RedoCommand.NotifyCanExecuteChanged();
         }
 
-        // Undo/Redo je aktuálne implementované pre layout editor, dostupné iba v Editor režime.
-        UndoCommand.NotifyCanExecuteChanged();
-        RedoCommand.NotifyCanExecuteChanged();
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+            ApplyOnUiThread();
+        else
+            Avalonia.Threading.Dispatcher.UIThread.Post(ApplyOnUiThread);
+    }
+
+    // =====================================================================================
+    // Príkaz prepnutia simulátora – deleguje na OperationModeManager
+    // =====================================================================================
+
+    [RelayCommand]
+    private async Task ToggleSimulatorModeAsync()
+    {
+        // Tlačidlo v stave ON → vypnúť simulátor
+        if (ModeManager.IsSimulation)
+        {
+            ModeManager.StopSimulation();
+            return;
+        }
+
+        // Scenár D: Edit režim + pripojená centrála
+        if (ModeManager.IsEdit && Dcc.IsAnyConnected)
+        {
+            if (ShowConfirmDialogAsync == null) return;
+            var confirmed = await ShowConfirmDialogAsync(
+                "⚠️ Simuláciu nie je možné spustiť",
+                "Nachádzate sa v editovacom režime a zároveň je pripojená DCC centrála." +
+                " Pre spustenie simulácie je potrebné odpojiť centrálu a prepnúť aplikáciu" +
+                " do režimu Prevádzky. Chcete vykonať tieto kroky?");
+            if (!confirmed) return;
+            DisconnectCore();
+            ModeManager.ForceMode(OperationMode.Offline);
+            ModeManager.SwitchToOperationTab?.Invoke();
+            ModeManager.ForceMode(OperationMode.Simulation);
+            return;
+        }
+
+        // Scenáre A, B, C — delegujú na OperationModeManager
+        // (správne texty dialógov, prepnutie záložky aj odpojenie centrály)
+        await ModeManager.TryStartSimulationAsync();
     }
     
-    public bool IsEditorMode => CurrentMode == AppMode.Editor;
-    public bool IsOperationMode => CurrentMode == AppMode.Operation;
-
+    
     // =====================================================================================
     // StatusBar message policy (priorita + sticky + TTL) – aby sa správy neprepisovali chaoticky
     // =====================================================================================
@@ -105,8 +211,22 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         public void ClearTtl()
         {
-            try { _ttlCts?.Cancel(); } catch { }
-            try { _ttlCts?.Dispose(); } catch { }
+            try
+            {
+                _ttlCts?.Cancel();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _ttlCts?.Dispose();
+            }
+            catch
+            {
+            }
+
             _ttlCts = null;
         }
 
@@ -141,8 +261,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
                 _ = Task.Run(async () =>
                 {
-                    try { await Task.Delay(ttlMs.Value, ct); }
-                    catch { return; }
+                    try
+                    {
+                        await Task.Delay(ttlMs.Value, ct);
+                    }
+                    catch
+                    {
+                        return;
+                    }
 
                     // Po TTL uvoľníme prioritu – ďalší event nastaví "stavovú" hlášku.
                     _currentPriority = (int)StatusTopic.None;
@@ -253,10 +379,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Skratka pre Ribbon – priamy prístup k LayoutEditorViewModel.</summary>
     public LayoutEditorViewModel LayoutEditor => Tabs.LayoutEditor;
 
-    [ObservableProperty]
-    private bool isFileBackstageOpen;
+    [ObservableProperty] private bool isFileBackstageOpen;
     
+    [ObservableProperty]
+    private int _selectedRibbonTabIndex = 1;
+
     private string _windowTitle = "TrackFlow";
+
     public string WindowTitle
     {
         get => _windowTitle;
@@ -278,16 +407,28 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         SyncTimeServiceFromSettings();
         SmartStrips = new SmartStripsViewModel(SettingsManager);
         Settings.SetDccTestLocomotiveProvider(() => SmartStrips.SelectedLocomotive, SmartStrips);
-        
+
         // Create Tabs with shared Locomotives collection from SmartStrips
         Tabs = new MainTabsViewModel(SettingsManager, SmartStrips.Locomotives);
+
+        Tabs.Operation.PropertyChanged += OnOperationPropertyChanged;
+
+        // Napoj ModeManager – lazy wrapper cez lambda, aby fungoval aj keď ShowConfirmDialogAsync
+        // je nastavený neskôr z View (po konštruktore).
+        ModeManager.ConfirmAsync          = (t, m) => ShowConfirmDialogAsync != null
+                                                       ? ShowConfirmDialogAsync(t, m)
+                                                       : Task.FromResult(true);
+        ModeManager.DisconnectAllCentrals = () => { DisconnectCore(); return true; };
+        ModeManager.SwitchToOperationTab  = () => SwitchMainTab(0);
+        ModeManager.ModeChanged           += OnModeManagerModeChanged;
+        ModeManager.ForceMode(OperationMode.Edit);   // štartovací stav = Editor
 
         Tabs.LayoutEditor.UndoRedoStateChanged += () =>
         {
             UndoCommand.NotifyCanExecuteChanged();
             RedoCommand.NotifyCanExecuteChanged();
         };
-        
+
         FileBackstage = new FileBackstageViewModel(this);
 
         // Prepojenie SmartStrips ↔ LayoutEditor: after loco drop → badge "on-track"
@@ -303,9 +444,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         LocoDccBridge.Attach(SmartStrips.Locomotives);
         // init stavu ribbonu podľa toho, či je otvorený projekt
         Ribbon.HasOpenProject = SettingsManager.CurrentProjectPath != null;
-        
+
         // ✅ Automatické otvorenie posledného projektu alebo vytvorenie nového
-        if (SettingsManager.App.OpenLastProjectOnStartup && 
+        if (SettingsManager.App.OpenLastProjectOnStartup &&
             !string.IsNullOrWhiteSpace(SettingsManager.App.LastProjectPath) &&
             System.IO.File.Exists(SettingsManager.App.LastProjectPath))
         {
@@ -335,10 +476,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         Ribbon.HasOpenProject = !string.IsNullOrWhiteSpace(SettingsManager.CurrentProjectPath);
 
         // Pripojenie eventu: Po uložení schémy v Editore aktualizuj Prevádzku
-        Tabs.LayoutEditor.LayoutSaved += () =>
-        {
-            Tabs.Operation.RefreshLayoutFromProject();
-        };
+        Tabs.LayoutEditor.LayoutSaved += () => { Tabs.Operation.RefreshLayoutFromProject(); };
 
         // Step 10: Centralizovaný dirty tracker → titul + status hint sa obnovia z jedného miesta
         SettingsManager.Dirty.DirtyChanged += OnProjectDirtyChanged;
@@ -346,6 +484,54 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         _autoSaveTimer.Tick += OnAutoSaveTimerTick;
         RefreshAutoSaveTimerFromSettings();
+    }
+
+    private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!string.Equals(e.PropertyName, nameof(Tabs.Operation.IsSimulationMode), StringComparison.Ordinal))
+            return;
+
+        // Ak OperationViewModel vypol simulátor interne, synchronizujeme ModeManager
+        var simMode = Tabs.Operation.IsSimulationMode;
+        if (simMode && !ModeManager.IsSimulation)
+            ModeManager.ForceMode(OperationMode.Simulation);
+        else if (!simMode && ModeManager.IsSimulation)
+            ModeManager.StopSimulation();
+    }
+
+    /// <summary>
+    /// Prepne záložku MainTabControl programaticky cez MainTabsView.SwitchTab.
+    /// MainTabsView.SwitchTab odpojí/pripojí SelectionChanged handler,
+    /// takže zmena nespustí logiku v handleri.
+    /// </summary>
+    private void SwitchMainTab(int index)
+    {
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => SwitchMainTab(index));
+            return;
+        }
+
+        if (Avalonia.Application.Current?.ApplicationLifetime
+            is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainWin = desktop.MainWindow;
+            var tabsView = mainWin?.GetVisualDescendants()
+                .OfType<TrackFlow.Views.MainTabsView>()
+                .FirstOrDefault();
+            tabsView?.SwitchTab(index);
+        }
+    }
+
+    private void NotifyOperationModePanelStateChanged()
+    {
+        OnPropertyChanged(nameof(IsLiveMode));
+        OnPropertyChanged(nameof(OperationModeDisplayTitle));
+        OnPropertyChanged(nameof(OperationModeDisplaySubtitle));
+        OnPropertyChanged(nameof(OperationModeDisplayBackground));
+        OnPropertyChanged(nameof(OperationModeDisplayBorderBrush));
+        OnPropertyChanged(nameof(CanConnectDcc));
+        ToggleConnectCommand.NotifyCanExecuteChanged();
     }
 
     private void RefreshAutoSaveTimerFromSettings()
@@ -396,7 +582,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void SyncTimeServiceFromSettings()    {
+    private void SyncTimeServiceFromSettings()
+    {
         TimeService.Instance.SimulationSpeedFactor =
             SettingsManager.CurrentProject?.Settings.SimulationSpeedFactor
             ?? ProjectSettingsData.DefaultSimulationSpeedFactor;
@@ -454,11 +641,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 });
             }
         }
-        catch { /* best-effort UI update */ }
+        catch
+        {
+            /* best-effort UI update */
+        }
     }
 
-    [ObservableProperty]
-    private bool isDashboardVisible;
+    [ObservableProperty] private bool isDashboardVisible;
 
     [RelayCommand]
     private void ToggleDashboard()
@@ -488,9 +677,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         var version = System.Reflection.Assembly.GetExecutingAssembly()
             .GetName().Version?.ToString(3) ?? "1.0.0";
-        
+
         var dirtyMarker = (SettingsManager.CurrentProject?.IsDirty == true) ? "*" : "";
-        
+
         if (string.IsNullOrWhiteSpace(SettingsManager.CurrentProjectPath))
         {
             // Nový projekt bez uloženého súboru - zobraz default názov
@@ -503,7 +692,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void SetTelemetryWidgetDataContext(string name, IDccTelemetry telemetrySource, double? configuredMainTrackCurrentLimitAmperes)
+    private void SetTelemetryWidgetDataContext(string name, IDccTelemetry telemetrySource,
+        double? configuredMainTrackCurrentLimitAmperes)
     {
         var nextVm = new DccTelemetryWidgetViewModel(name, telemetrySource, configuredMainTrackCurrentLimitAmperes);
         var previousVm = _telemetryWidgetViewModel;
@@ -536,13 +726,19 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (widget != null)
         {
             widget.Closed -= OnTelemetryWidgetClosed;
-            try { widget.Close(); } catch { }
+            try
+            {
+                widget.Close();
+            }
+            catch
+            {
+            }
         }
 
         _telemetryWidgetViewModel?.Dispose();
         _telemetryWidgetViewModel = null;
     }
-    
+
     /// <summary>
     /// Skontroluje, či má aktuálny projekt neuložené zmeny a zobrazí dialóg.
     /// Vráti true, ak môže pokračovať (projekt uložený alebo užívateľ zvolil Nie).
@@ -552,15 +748,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (SettingsManager.CurrentProject?.IsDirty != true)
             return true; // Žiadne neuložené zmeny
-            
+
         if (ShowConfirmDialogAsync == null)
             return true; // Dialóg nie je k dispozícii, pokračuj
-            
+
         var result = await ShowConfirmDialogAsync(
             "Neuložené zmeny",
             "Projekt má neuložené zmeny. Chcete ich uložiť?"
         );
-        
+
         if (result)
         {
             // Užívateľ zvolil Áno - uložiť
@@ -575,7 +771,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 await SaveProjectAsync();
             }
         }
-        
+
         // Užívateľ zvolil Nie - pokračuj bez uloženia
         // (alebo projekt bol uložený)
         return true;
@@ -585,12 +781,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void CreateNewProject()
     {
         SettingsManager.NewProject();
-        
+
         Settings.Load();
         SyncTimeServiceFromSettings();
         Tabs.Operation.RefreshFromProject();
         Tabs.LayoutEditor.LoadFromProject();
-        
+
         Ribbon.HasOpenProject = false;
         UpdateWindowTitle();
         RequestProjectHintUpdate?.Invoke();
@@ -602,7 +798,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         // Kontrola neuložených zmien
         if (!await CheckUnsavedChangesAsync())
             return;
-            
+
         CreateNewProject();
     }
 
@@ -638,8 +834,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void RefreshStatusBarCentrals()
     {
         // Snapshot hodnôt tu (môžeme byť na background threade)
-        var profiles        = SettingsManager.GetEffectiveDccCentralProfiles();
-        var connectedIds    = Dcc.ConnectedProfileIds;
+        var profiles = SettingsManager.GetEffectiveDccCentralProfiles();
+        var connectedIds = Dcc.ConnectedProfileIds;
         var reconnectingIds = Dcc.ReconnectingProfileIds;
 
         // Resolver: pre daný profil vráti živý IDccTelemetry bez znalosti konkrétneho protokolu.
@@ -669,7 +865,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         bool IsTelemetryVisible() => SettingsManager.App.ShowTelemetryInStatusBar;
 
         // ObservableCollection MUSÍ byť modifikovaná na UI threade
-        void Update() => StatusBar.UpdateCentrals(profiles, connectedIds, reconnectingIds, Dcc, TelemetryResolver, IsTelemetryVisible);
+        void Update() => StatusBar.UpdateCentrals(profiles, connectedIds, reconnectingIds, Dcc, TelemetryResolver,
+            IsTelemetryVisible);
 
         if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
             Update();
@@ -813,7 +1010,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     // DCC Connect/Disconnect (MVVM príkazy)
     // =====================================================================================
 
-    [RelayCommand(AllowConcurrentExecutions = false)]
+    [RelayCommand(AllowConcurrentExecutions = false, CanExecute = nameof(CanToggleConnect))]
     private async Task ToggleConnectAsync()
     {
         if (Ribbon.IsConnected)
@@ -824,6 +1021,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         await ConnectCoreAsync();
     }
+
+    private bool CanToggleConnect() => !ModeManager.IsSimulation || Ribbon.IsConnected;
 
     [RelayCommand]
     private void Stop()
@@ -846,7 +1045,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             }
 
             // Operation VM rieši aj simulácie + safety fallback.
-            var sendDcc = !Tabs.Operation.IsSimulationMode;
+            var sendDcc = !ModeManager.IsSimulation;
             var dccClient = (sendDcc && Dcc.Client is { IsConnected: true }) ? Dcc.Client : null;
             await Tabs.Operation.EmergencyStopAsync(dccClient, sendDcc: sendDcc, ct: ct);
         }
@@ -872,6 +1071,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public async Task<bool> ConnectCoreAsync()
     {
+        if (ModeManager.IsSimulation) return false;  // Počas simulácie nepovoliť pripojenie
         var profiles = SettingsManager.GetEffectiveDccCentralProfiles();
 
         // ── Multi-central path: connect only missing/disconnected profiles ────
@@ -897,12 +1097,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 // Chyba na úrovni ConnectMissingAsync (programátorská chyba, nie sieťová).
                 var msg = "Chyba pripojenia: " + ex.Message;
+
                 void ApplyError()
                 {
-                    Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
+                    Ribbon.IsConnected = ShouldRibbonShowDisconnectState();
                     StatusBar.IsDccConnected = false;
-                    StatusBar.Message        = msg;
+                    StatusBar.Message = msg;
                 }
+
                 if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
                     ApplyError();
                 else
@@ -931,7 +1133,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             Ribbon.IsConnected = false;
-            StatusBar.Message  = "Chyba pripojenia: " + ex.Message;
+            StatusBar.Message = "Chyba pripojenia: " + ex.Message;
             return false;
         }
     }
@@ -949,7 +1151,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             // UI aktualizácia musí ísť na UI thread (DisconnectCore sa môže volať z UI threadu cez RelayCommand).
             void ApplyDisconnected()
             {
-                Ribbon.IsConnected       = false;
+                Ribbon.IsConnected = false;
                 StatusBar.IsDccConnected = false;
                 // Nastav hlášku cez policy – rovnaká logika ako v OnDccConnectionStateChanged.
                 var centralNames = string.Join(", ",
@@ -959,6 +1161,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     $"Centrály odpojené (používateľ): {centralNames}.",
                     m => StatusBar.Message = m);
             }
+
             if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
                 ApplyDisconnected();
             else
@@ -989,8 +1192,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             case DccConnectionChangeKind.Connected:
                 // Aspoň jedna centrála je pripojená → Ribbon musí umožniť odpojenie.
+                ModeManager.NotifyCentralConnected();
                 StatusBar.IsDccConnected = true;
-                Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
+                Ribbon.IsConnected = ShouldRibbonShowDisconnectState();
 
                 // Na štarte/reconnecte môže mať layout stale runtime feedback stav z predchádzajúcej
                 // relácie alebo z projektu otvoreného ešte pred pripojením centrály. Nečakáme, až
@@ -1013,8 +1217,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
             case DccConnectionChangeKind.Disconnected:
                 var anyAfterDisconnect = Dcc.IsAnyConnected;
+                if (!anyAfterDisconnect)
+                    ModeManager.NotifyCentralDisconnected();
                 StatusBar.IsDccConnected = anyAfterDisconnect;
-                Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
+                Ribbon.IsConnected = ShouldRibbonShowDisconnectState();
 
                 ClearRuntimeFeedbackOccupancyAfterDisconnect(change);
 
@@ -1049,12 +1255,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                         $"{typeName} odpojená.",
                         m => StatusBar.Message = m);
                 }
+
                 break;
 
             case DccConnectionChangeKind.Reconnecting:
                 var anyDuringReconnect = Dcc.IsAnyConnected;
                 StatusBar.IsDccConnected = anyDuringReconnect;
-                Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
+                Ribbon.IsConnected = ShouldRibbonShowDisconnectState();
 
                 // Reconnecting musí prepísať aj poslednú "Connected" správu.
                 _statusPolicy.ResetAll();
@@ -1069,7 +1276,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             case DccConnectionChangeKind.ConnectFailed:
                 var anyOnFail = Dcc.IsAnyConnected;
                 StatusBar.IsDccConnected = anyOnFail;
-                Ribbon.IsConnected       = ShouldRibbonShowDisconnectState();
+                Ribbon.IsConnected = ShouldRibbonShowDisconnectState();
 
                 // počas auto-reconnectu nechceme šumové hlásky
                 if (string.Equals(change.Reason, "auto-reconnect-failed", StringComparison.OrdinalIgnoreCase))
@@ -1101,6 +1308,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                         onTtlExpired: RefreshDccStatusMessage,
                         ttlMs: 2500);
                 }
+
                 break;
 
             case DccConnectionChangeKind.ClientChanged:
@@ -1110,6 +1318,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         // Obnov zobrazenie centrál v StatusBare po každej zmene stavu pripojenia
         RefreshStatusBarCentrals();
+        NotifyOperationModePanelStateChanged();
     }
 
     private void ClearRuntimeFeedbackOccupancyAfterDisconnect(DccConnectionStateChange change)
@@ -1290,18 +1499,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrWhiteSpace(current))
         {
             var name = IOPath.GetFileName(current);
-             if (!string.IsNullOrWhiteSpace(name))
-                 return name;
-         }
- 
-         return "settings.json";
+            if (!string.IsNullOrWhiteSpace(name))
+                return name;
+        }
+
+        return "settings.json";
     }
 
     // =====================================================================================
     // Upraviť (Undo/Redo) + Evidencia (Lokomotívy/Vozidlá/Vlaky)
     // =====================================================================================
 
-    private bool CanUndo() => CurrentMode == AppMode.Editor && Tabs.LayoutEditor.CanUndo;
+    private bool CanUndo() => ModeManager.IsEdit && Tabs.LayoutEditor.CanUndo;
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
@@ -1311,7 +1520,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         RedoCommand.NotifyCanExecuteChanged();
     }
 
-    private bool CanRedo() => CurrentMode == AppMode.Editor && Tabs.LayoutEditor.CanRedo;
+    private bool CanRedo() => ModeManager.IsEdit && Tabs.LayoutEditor.CanRedo;
 
     [RelayCommand(CanExecute = nameof(CanRedo))]
     private void Redo()
@@ -1379,12 +1588,22 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         // Odpoj event handlery
         LocoDccBridge?.Dispose();
+        if (Tabs?.Operation != null)
+            Tabs.Operation.PropertyChanged -= OnOperationPropertyChanged;
         if (Dcc != null)
         {
             Dcc.ConnectionStateChanged -= OnDccConnectionStateChanged;
             Dcc.FeedbackStateChanged -= OnDccFeedbackStateChanged;
-            try { Dcc.Dispose(); } catch { /* best-effort */ }
+            try
+            {
+                Dcc.Dispose();
+            }
+            catch
+            {
+                /* best-effort */
+            }
         }
+
         if (SettingsManager?.Dirty != null)
             SettingsManager.Dirty.DirtyChanged -= OnProjectDirtyChanged;
         if (SettingsManager != null)
@@ -1470,6 +1689,4 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             Log.Warning(ex, "DCC connect sync {SyncId} failed", syncId);
         }
     }
-
-
 }

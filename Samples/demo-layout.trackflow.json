@@ -24,7 +24,7 @@
     "Elements": [
       {
         "$type": "block",
-        "LengthCm": 180,
+        "lengthMm": 180,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -32,7 +32,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [],
         "BwdDistanceCm": 0,
         "BwdBrakingCm": 0,
@@ -74,7 +74,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 220,
+        "lengthMm": 220,
         "BlockLengthCells": 4,
         "RequestYellow": true,
         "MaxSpeedKmh": 120,
@@ -82,7 +82,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [],
         "BwdDistanceCm": 0,
         "BwdBrakingCm": 0,
@@ -124,7 +124,7 @@
       },
       {
         "$type": "block",
-        "LengthCm": 200,
+        "lengthMm": 200,
         "BlockLengthCells": 4,
         "RequestYellow": false,
         "MaxSpeedKmh": 120,
@@ -132,7 +132,7 @@
         "AllowBackward": true,
         "AllowForward": true,
         "CriticalSection": false,
-        "MaxTrainLengthCm": 0,
+        "MaxTrainlengthMm": 0,
         "Indicators": [],
         "BwdDistanceCm": 0,
         "BwdBrakingCm": 0,

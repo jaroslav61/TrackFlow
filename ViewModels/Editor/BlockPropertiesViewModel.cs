@@ -40,14 +40,14 @@ public partial class BlockPropertiesViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     private string blockName = string.Empty;
 
-    [ObservableProperty] private int lengthCm;
+    [ObservableProperty] private int lengthMm;
     [ObservableProperty] private bool requestYellow;
     [ObservableProperty] private int  maxSpeedKmh;
     [ObservableProperty] private int  resSpeedKmh;
     [ObservableProperty] private bool allowForward;
     [ObservableProperty] private bool allowBackward;
     [ObservableProperty] private bool criticalSection;
-    [ObservableProperty] private int  maxTrainLengthCm;
+    [ObservableProperty] private int  maxTrainlengthMm;
     [ObservableProperty] private string contactIndicatorColor = "Gray";
 
     partial void OnBlockNameChanged(string value)
@@ -489,14 +489,14 @@ public partial class BlockPropertiesViewModel : ObservableObject
     private void LoadFromBlock()
     {
         BlockName          = _block.Label;
-        LengthCm           = _block.LengthCm;
+        lengthMm           = _block.lengthMm;
         RequestYellow      = _block.RequestYellow;
         MaxSpeedKmh        = _block.MaxSpeedKmh;
         ResSpeedKmh        = _block.ResSpeedKmh;
         AllowForward       = _block.AllowForward;
         AllowBackward      = _block.AllowBackward;
         CriticalSection    = _block.CriticalSection;
-        MaxTrainLengthCm   = _block.MaxTrainLengthCm;
+        MaxTrainlengthMm   = _block.MaxTrainlengthMm;
         BwdDistanceCm      = _block.BwdDistanceCm;
         BwdBrakingCm       = _block.BwdBrakingCm;
         BwdStopCm          = _block.BwdStopCm;
@@ -553,7 +553,7 @@ public partial class BlockPropertiesViewModel : ObservableObject
         Indicators.Clear();
         foreach (var indicator in _block.Indicators)
         {
-            var vm = new BlockIndicatorViewModel(indicator, LengthCm, CanvasWidth);
+            var vm = new BlockIndicatorViewModel(indicator, lengthMm, CanvasWidth);
             Indicators.Add(vm);
         }
         HasIndicators = Indicators.Count > 0;
@@ -572,16 +572,16 @@ public partial class BlockPropertiesViewModel : ObservableObject
                ?? DirectionalSignalItems.FirstOrDefault();
     }
 
-    partial void OnLengthCmChanged(int value) => UpdateScales();
+    partial void OnLengthMmChanged(int value) => UpdateScales();
 
     private void UpdateScales()
     {
         UpperTicks.Clear();
         LowerTicks.Clear();
 
-        if (LengthCm <= 0) return;
+        if (lengthMm <= 0) return;
 
-        double totalM = LengthCm / 100.0;
+        double totalM = lengthMm / 100.0;
         
         // Rozumný krok: do 150m po 5m/20m, nad 150m po 10m/50m
         double tickStep = totalM > 150 ? 10 : 5;
@@ -677,14 +677,14 @@ public partial class BlockPropertiesViewModel : ObservableObject
     private void Save()
     {
         _block.Label            = BlockName;
-        _block.LengthCm         = LengthCm;
+        _block.lengthMm         = lengthMm;
         _block.RequestYellow    = RequestYellow;
         _block.MaxSpeedKmh      = MaxSpeedKmh;
         _block.ResSpeedKmh      = ResSpeedKmh;
         _block.AllowForward     = AllowForward;
         _block.AllowBackward    = AllowBackward;
         _block.CriticalSection  = CriticalSection;
-        _block.MaxTrainLengthCm = MaxTrainLengthCm;
+        _block.MaxTrainlengthMm = MaxTrainlengthMm;
         
         _block.FwdDistanceCm    = FwdDistanceCm;
         _block.FwdBrakingCm     = FwdBrakingCm;
@@ -827,7 +827,7 @@ public partial class BlockPropertiesViewModel : ObservableObject
     [RelayCommand]
     private void AddIndicator(BlockIndicatorType type)
     {
-        if (LengthCm <= 0) return;
+        if (lengthMm <= 0) return;
 
         if (Indicators.Count == 0)
         {
@@ -837,10 +837,10 @@ public partial class BlockPropertiesViewModel : ObservableObject
                 Type = type,
                 Name = GenerateIndicatorName(type, 1),
                 StartCm = 0,
-                EndCm = LengthCm,
+                EndCm = lengthMm,
                 IsSelected = true
             };
-            var vm = new BlockIndicatorViewModel(indicator, LengthCm, CanvasWidth);
+            var vm = new BlockIndicatorViewModel(indicator, lengthMm, CanvasWidth);
             Indicators.Add(vm);
             SelectedIndicator = vm; // NASTAVENIE VYBRANÉHO INDIKÁTORA
         }
@@ -868,7 +868,7 @@ public partial class BlockPropertiesViewModel : ObservableObject
             // Zruš výber pôvodného
             selected.IsSelected = false;
             
-            var vm = new BlockIndicatorViewModel(newIndicator, LengthCm, CanvasWidth);
+            var vm = new BlockIndicatorViewModel(newIndicator, lengthMm, CanvasWidth);
             Indicators.Add(vm);
             SelectedIndicator = vm; // NASTAVENIE VYBRANÉHO INDIKÁTORA
             

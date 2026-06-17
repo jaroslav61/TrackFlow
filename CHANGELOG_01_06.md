@@ -2985,9 +2985,9 @@ injektovateľné oneskorenie pre rýchle a deterministické spúšťanie
   nezostáva prázdny
 - Doplnená normalizácia mierky pri načítaní aj ukladaní: prázdna alebo neplatná hodnota sa bezpečne zmení na `H0`; `HO`
   sa mapuje na `H0`
-- V simulátore sa používateľské markery prepočítavajú pomerovo: `markerCm / LengthCm` sa aplikuje na virtuálnu dĺžku
+- V simulátore sa používateľské markery prepočítavajú pomerovo: `markerCm / lengthMm` sa aplikuje na virtuálnu dĺžku
   `SimBlockLengthMm = 2000.0`
-- Ak blok nemá platnú `LengthCm`, alebo markery nie sú zadané, simulátor použije vlastné fallback markery: 60 % pre
+- Ak blok nemá platnú `lengthMm`, alebo markery nie sú zadané, simulátor použije vlastné fallback markery: 60 % pre
   brzdenie a 90 % pre zastavenie
 - `OperationViewModel` dostal testovací seam `movementDelayAsync`, predvolene `Task.Delay`, v route testoch nahradený
   `(_, _) => Task.CompletedTask`

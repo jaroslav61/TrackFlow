@@ -130,7 +130,7 @@ public sealed class ProjectMigrationService
                 DiagnosticLevel.Warning);
         }
 
-        foreach (var block in project.Layout.Elements.OfType<BlockElement>().Where(static block => block.LengthCm == 0))
+        foreach (var block in project.Layout.Elements.OfType<BlockElement>().Where(static block => block.lengthMm == 0))
         {
             var blockName = string.IsNullOrWhiteSpace(block.Label) ? block.Id : block.Label;
             TrackFlowDoctorService.Instance.Diagnose(

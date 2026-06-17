@@ -82,7 +82,7 @@ public sealed class LocoRecord : ObservableObject
 
     // Nové perzistentné polia: typ, dĺžka (cm) a hmotnosť (t)
     private string? _type;
-    private int _lengthCm = 0; // uložené v cm
+    private int _lengthMm = 0; // uložené v cm
     private double _weightT = 0.0; // uložené v tonách
 
     // Doplnené polia pre dekodér a systém
@@ -105,6 +105,7 @@ public sealed class LocoRecord : ObservableObject
     private bool _isBemfEnabled;
     private bool _isAnalogOperationEnabled;
     private bool _isInvertDirectionEnabled;
+    private bool _isSoundDecoder;
 
     // Doplnené polia pre základné údaje a údržbu
     private string _number = string.Empty; // číslo lokomotívy
@@ -189,10 +190,10 @@ public sealed class LocoRecord : ObservableObject
         set => SetProperty(ref _type, value);
     }
 
-    public int LengthCm
+    public int lengthMm
     {
-        get => _lengthCm;
-        set => SetProperty(ref _lengthCm, value);
+        get => _lengthMm;
+        set => SetProperty(ref _lengthMm, value);
     }
 
     public double WeightT
@@ -212,7 +213,28 @@ public sealed class LocoRecord : ObservableObject
         get => _dccSystemName;
         set => SetProperty(ref _dccSystemName, value);
     }
+    
+    private string? _decoderManufacturer;
+    public string? DecoderManufacturer
+    {
+        get => _decoderManufacturer;
+        set => SetProperty(ref _decoderManufacturer, value);
+    }
 
+    private string? _decoderModel;
+    public string? DecoderModel
+    {
+        get => _decoderModel;
+        set => SetProperty(ref _decoderModel, value);
+    }
+
+    private string? _decoderInterface;
+    public string? DecoderInterface
+    {
+        get => _decoderInterface;
+        set => SetProperty(ref _decoderInterface, value);
+    }
+    
     public Guid? AssignedCentralProfileId
     {
         get => _assignedCentralProfileId;
@@ -232,6 +254,12 @@ public sealed class LocoRecord : ObservableObject
                 ResetDccConfiguration();
             }
         }
+    }
+    
+    public bool IsSoundDecoder
+    {
+        get => _isSoundDecoder;
+        set => SetProperty(ref _isSoundDecoder, value);
     }
 
     public int MinSpeedCv

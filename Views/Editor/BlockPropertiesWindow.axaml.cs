@@ -211,27 +211,27 @@ public partial class BlockPropertiesWindow : Window
         upper.Children.Clear();
         lower.Children.Clear();
 
-        int lengthCm = _vm.LengthCm;
-        if (lengthCm <= 0) return;
+        int lengthMm = _vm.LengthMm;
+        if (lengthMm <= 0) return;
 
         const double edgeOffset = 1.0;
-        double pxPerCm = (ScaleWidth - edgeOffset * 2) / lengthCm;
+        double pxPerCm = (ScaleWidth - edgeOffset * 2) / lengthMm;
 
         int tickStep, labelStep;
-        if      (lengthCm <=   200) { tickStep =   5; labelStep =   20; }
-        else if (lengthCm <=   500) { tickStep =  10; labelStep =   50; }
-        else if (lengthCm <=  2000) { tickStep =  50; labelStep =  200; }
-        else if (lengthCm <=  5000) { tickStep = 100; labelStep =  500; }
-        else if (lengthCm <= 20000) { tickStep = 500; labelStep = 2000; }
+        if      (lengthMm <=   200) { tickStep =   5; labelStep =   20; }
+        else if (lengthMm <=   500) { tickStep =  10; labelStep =   50; }
+        else if (lengthMm <=  2000) { tickStep =  50; labelStep =  200; }
+        else if (lengthMm <=  5000) { tickStep = 100; labelStep =  500; }
+        else if (lengthMm <= 20000) { tickStep = 500; labelStep = 2000; }
         else                        { tickStep =1000; labelStep = 5000; }
 
-        for (int c = 0; c <= lengthCm; c += tickStep)
+        for (int c = 0; c <= lengthMm; c += tickStep)
         {
             double x       = edgeOffset + c * pxPerCm;
             bool hasLabel  = (c % labelStep == 0);
             double tickH   = hasLabel ? 15 : (c % (tickStep * 2) == 0 ? 10 : 6);
             double thick   = hasLabel ? 1.5 : 1.0;
-            int revC       = lengthCm - c;
+            int revC       = lengthMm - c;
 
             // Horná stupnica – čiarky idú NAHOR od y=0 (bola 30, teraz -30px = 0)
             upper.Children.Add(new Line
@@ -279,7 +279,7 @@ public partial class BlockPropertiesWindow : Window
             diagram.Children.Remove(handle);
         _resizeHandles.Clear();
 
-        if (_vm.LengthCm <= 0 || !_vm.HasIndicators) return;
+        if (_vm.LengthMm <= 0 || !_vm.HasIndicators) return;
 
         // Vykresli každý indikátor (ŽLTÝ na ŠEDOM pozadí bloku)
         foreach (var indicator in _vm.Indicators)
@@ -423,13 +423,13 @@ public partial class BlockPropertiesWindow : Window
             
             double currentX = e.GetPosition(diagram).X;
             double deltaX = currentX - _dragStartX;
-            double deltaCm = (deltaX / DiagWidth) * _vm.LengthCm;
+            double deltaCm = (deltaX / DiagWidth) * _vm.LengthMm;
             
             int newStartCm = (int)(_dragStartCm + deltaCm);
             int indicatorWidth = indicator.EndCm - indicator.StartCm;
             
             // Obmedzenie - indikátor nesmie vyjsť mimo bloku
-            newStartCm = System.Math.Clamp(newStartCm, 0, _vm.LengthCm - indicatorWidth);
+            newStartCm = System.Math.Clamp(newStartCm, 0, _vm.LengthMm - indicatorWidth);
             int newEndCm = newStartCm + indicatorWidth;
             
             indicator.StartCm = newStartCm;
@@ -539,7 +539,7 @@ public partial class BlockPropertiesWindow : Window
         // Prepočítaj pozíciu myši na cm
         double clampedX = System.Math.Clamp(mouseX, DiagLeft, DiagLeft + DiagWidth);
         double fraction = (clampedX - DiagLeft) / DiagWidth;
-        int newCm = (int)(fraction * _vm.LengthCm);
+        int newCm = (int)(fraction * _vm.LengthMm);
 
         // Ulož staré hodnoty pre prepočet markerov
         int oldStartCm = indicator.StartCm;
@@ -554,7 +554,7 @@ public partial class BlockPropertiesWindow : Window
         else
         {
             // Pravý handle - mení EndCm
-            int proposedEnd = System.Math.Clamp(newCm, indicator.StartCm + 10, _vm.LengthCm); // Min 10cm šírka
+            int proposedEnd = System.Math.Clamp(newCm, indicator.StartCm + 10, _vm.LengthMm); // Min 10cm šírka
             indicator.EndCm = proposedEnd;
         }
 
@@ -636,7 +636,7 @@ public partial class BlockPropertiesWindow : Window
         _markerVisuals.Clear();
         _markerTexts.Clear();
 
-        if (_vm.LengthCm <= 0 || !_vm.HasIndicators) return;
+        if (_vm.LengthMm <= 0 || !_vm.HasIndicators) return;
 
         // NOVÉ: Vykresli markery zo všetkých indikátorov
         foreach (var indicator in _vm.Indicators)
@@ -679,7 +679,7 @@ public partial class BlockPropertiesWindow : Window
         double topY = blockTop + gap + markerIndex * (markerHeight + gap);
         
         // X pozícia podľa absolútnej pozície v bloku
-        double frac = _vm.LengthCm > 0 ? System.Math.Clamp((double)absolutePosCm / _vm.LengthCm, 0, 1) : 0;
+        double frac = _vm.LengthMm > 0 ? System.Math.Clamp((double)absolutePosCm / _vm.LengthMm, 0, 1) : 0;
         double x = isForward ? DiagLeft + frac * DiagWidth : DiagLeft + (1.0 - frac) * DiagWidth;
         
         bool isSel = marker.IsSelected;
@@ -754,7 +754,7 @@ public partial class BlockPropertiesWindow : Window
         mc.PointerMoved += (_, e) =>
         {
             if (_draggedMarkerCanvas != mc) return;
-            if (_vm == null || _vm.LengthCm <= 0) return;
+            if (_vm == null || _vm.LengthMm <= 0) return;
             
             // Drag marker v rámci jeho indikátora
             var parentIndicator = _vm.Indicators.FirstOrDefault(i => i.Markers.Contains(capturedMarker));
@@ -764,7 +764,7 @@ public partial class BlockPropertiesWindow : Window
             double dragFrac = (rawX - DiagLeft) / DiagWidth;
             if (!isForward) dragFrac = 1.0 - dragFrac;
             
-            int absoluteCm = (int)(dragFrac * _vm.LengthCm);
+            int absoluteCm = (int)(dragFrac * _vm.LengthMm);
             
             // Prepočítaj na relatívnu pozíciu v rámci indikátora
             int relativeCm = absoluteCm - parentIndicator.StartCm;
@@ -782,7 +782,7 @@ public partial class BlockPropertiesWindow : Window
             capturedText.Text = $"{capturedMarker.PositionCm:0}:{capturedMarker.EndPositionCm:0}";
             
             // Presuň marker vizuálne
-            double newFrac = _vm.LengthCm > 0 ? System.Math.Clamp((double)capturedMarker.AbsolutePositionCm / _vm.LengthCm, 0, 1) : 0;
+            double newFrac = _vm.LengthMm > 0 ? System.Math.Clamp((double)capturedMarker.AbsolutePositionCm / _vm.LengthMm, 0, 1) : 0;
             double newX = isForward ? DiagLeft + newFrac * DiagWidth : DiagLeft + (1.0 - newFrac) * DiagWidth;
             Canvas.SetLeft(mc, newX - anchorX);
             
@@ -829,7 +829,7 @@ public partial class BlockPropertiesWindow : Window
         bool isForward = marker.Direction == MarkerDirection.Forward;
         
         // Vypočítaj novú pozíciu
-        double frac = _vm.LengthCm > 0 ? Math.Clamp((double)marker.AbsolutePositionCm / _vm.LengthCm, 0, 1) : 0;
+        double frac = _vm.LengthMm > 0 ? Math.Clamp((double)marker.AbsolutePositionCm / _vm.LengthMm, 0, 1) : 0;
         double newX = isForward ? DiagLeft + frac * DiagWidth : DiagLeft + (1.0 - frac) * DiagWidth;
         
         // Anchor point (kde je "hrot" šípky)
@@ -859,7 +859,7 @@ public partial class BlockPropertiesWindow : Window
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(BlockPropertiesViewModel.LengthCm))
+        if (e.PropertyName == nameof(BlockPropertiesViewModel.LengthMm))
         {
             DrawScales();
             if (!_isDraggingMarker && !_isResizingIndicator) 

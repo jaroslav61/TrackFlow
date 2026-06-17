@@ -457,7 +457,7 @@ public static class BlockTrainRenderer
 
     /// <summary>
     /// NaÄŤĂ­ta ikonu vozidla. NajskĂ´r <see cref="IconRegistry"/> (custom cesty z importov),
-    /// potom embedded avares:// URI v Assets/LocoIcons a Assets/VagonIcons.
+    /// potom embedded avares:// URI v Assets/LocoIcons a Assets/WagonIcons.
     /// </summary>
     private static Image? LoadIconImage(string iconName)
     {

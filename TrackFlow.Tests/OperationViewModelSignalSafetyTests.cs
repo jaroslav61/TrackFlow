@@ -265,6 +265,7 @@ public class OperationViewModelSignalSafetyTests
 
         var vm = new OperationViewModel(settings, new ObservableCollection<Locomotive>());
 
+        vm.IsSimulationMode = true;
         vm.IsSimulationMode = false;
 
         Assert.True(block.IsOccupied);

@@ -18,7 +18,7 @@ public partial class BlockIndicatorViewModel : ObservableObject
 
     private readonly BlockIndicator _indicator;
     private readonly double _canvasWidth; // Celková šírka bloku v pixeloch (420px)
-    private readonly int _blockLengthCm;  // Celková dĺžka bloku v cm
+    private readonly int _blocklengthMm;  // Celková dĺžka bloku v cm
 
     public Guid Id => _indicator.Id;
     public BlockIndicatorType Type => _indicator.Type;
@@ -32,8 +32,8 @@ public partial class BlockIndicatorViewModel : ObservableObject
     [ObservableProperty] private bool isSelected;
 
     // Vypočítané vlastnosti pre Canvas
-    public double StartX => (StartCm / (double)_blockLengthCm) * _canvasWidth;
-    public double Width => ((EndCm - StartCm) / (double)_blockLengthCm) * _canvasWidth;
+    public double StartX => (StartCm / (double)_blocklengthMm) * _canvasWidth;
+    public double Width => ((EndCm - StartCm) / (double)_blocklengthMm) * _canvasWidth;
     public double CenterX => StartX + Width / 2;
     
     // Ikona podľa typu
@@ -63,10 +63,10 @@ public partial class BlockIndicatorViewModel : ObservableObject
         }
     }
 
-    public BlockIndicatorViewModel(BlockIndicator indicator, int blockLengthCm, double canvasWidth = 420)
+    public BlockIndicatorViewModel(BlockIndicator indicator, int blocklengthMm, double canvasWidth = 420)
     {
         _indicator = indicator;
-        _blockLengthCm = blockLengthCm;
+        _blocklengthMm = blocklengthMm;
         _canvasWidth = canvasWidth;
         
         StartCm = indicator.StartCm;

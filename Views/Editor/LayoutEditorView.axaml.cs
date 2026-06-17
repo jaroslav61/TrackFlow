@@ -582,7 +582,7 @@ public partial class LayoutEditorView : UserControl
         return host;
     }
 
-    /// <summary>Načíta ikonu vozidla z Assets/LocoIcons alebo Assets/VagonIcons s cachovaním.</summary>
+    /// <summary>Načíta ikonu vozidla z Assets/LocoIcons alebo Assets/WagonIcons s cachovaním.</summary>
     private static Image? LoadIconImage(string iconName)
     {
         if (string.IsNullOrEmpty(iconName)) return null;

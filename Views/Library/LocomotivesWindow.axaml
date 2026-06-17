@@ -450,13 +450,13 @@
                                     </Grid>
 
                                     <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2"
-                                          ColumnDefinitions="Auto,*"
+                                          ColumnDefinitions="30,*"
                                           ColumnSpacing="8"
-                                          VerticalAlignment="Top"
-                                          Margin="0,0,0,0">
+                                          VerticalAlignment="Top">
                                         <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="12"
-                                                   Text="Ikona:" />
-                                        <ComboBox Grid.Column="1" Height="50" Width="165" HorizontalAlignment="Left"
+                                                   Text="Ikona" />
+                                        <ComboBox Grid.Column="1" Height="50" Width="170" HorizontalAlignment="Left"
+
                                                   ItemsSource="{Binding IconComboItems}"
                                                   SelectedItem="{Binding SelectedIcon, Mode=TwoWay}">
                                             <ComboBox.ItemTemplate>
@@ -464,7 +464,7 @@
                                                     <Grid>
                                                         <Image
                                                             Source="{Binding FullPath, Converter={StaticResource IconNameToPathConverter}}"
-                                                            Height="32" Stretch="Uniform"
+                                                            Height="40" Stretch="Uniform"
                                                             IsVisible="{Binding FullPath, Converter={StaticResource StringNotNullOrWhiteSpaceToBoolConverter}}" />
                                                         <TextBlock Text="{Binding Name}"
                                                                    VerticalAlignment="Center"
@@ -563,7 +563,7 @@
                                                          TextAlignment="Right"
                                                          Text="{Binding ContactPointBackward, UpdateSourceTrigger=PropertyChanged}" />
                                                 <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12"
-                                                           Text="[mm]" Margin="5,0,0,0"/>
+                                                           Text="[mm]" Margin="5,0,0,0" />
 
                                             </Grid>
                                             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
@@ -592,80 +592,80 @@
                                               ColumnDefinitions="75,70,Auto"
                                               ColumnSpacing="10"
                                               RowSpacing="8">
-                                            <TextBlock Grid.Row="0" 
-                                                       Grid.Column="0" 
+                                            <TextBlock Grid.Row="0"
+                                                       Grid.Column="0"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="Max. rýchlosť"
-                                                       Margin="4,0,0,0"/>
-                                            <TextBox x:Name="MaxSpeedBox" 
-                                                     Grid.Row="0" 
-                                                     Grid.Column="1" 
+                                                       Margin="4,0,0,0" />
+                                            <TextBox x:Name="MaxSpeedBox"
+                                                     Grid.Row="0"
+                                                     Grid.Column="1"
                                                      Height="26"
-                                                     VerticalAlignment="Center" 
+                                                     VerticalAlignment="Center"
                                                      MaxLength="3"
                                                      Text="{Binding MaxSpeedText, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock Grid.Row="0" 
-                                                       Grid.Column="2" 
+                                            <TextBlock Grid.Row="0"
+                                                       Grid.Column="2"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="[km/h]" />
 
-                                            <TextBlock Grid.Row="1" 
-                                                       Grid.Column="0" 
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.Column="0"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
-                                                       Text="Výkon" 
-                                                       Margin="4,0,0,0"/>
-                                            <TextBox x:Name="PowerBox" 
-                                                     Grid.Row="1" 
-                                                     Grid.Column="1" 
+                                                       FontSize="12"
+                                                       Text="Výkon"
+                                                       Margin="4,0,0,0" />
+                                            <TextBox x:Name="PowerBox"
+                                                     Grid.Row="1"
+                                                     Grid.Column="1"
                                                      Height="26"
-                                                     VerticalAlignment="Center" 
+                                                     VerticalAlignment="Center"
                                                      MaxLength="4"
                                                      Text="{Binding PowerText, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock Grid.Row="1" 
-                                                       Grid.Column="2" 
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.Column="2"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="[kW]" />
 
-                                            <TextBlock Grid.Row="2" 
-                                                       Grid.Column="0" 
+                                            <TextBlock Grid.Row="2"
+                                                       Grid.Column="0"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="Dĺžka"
-                                                       Margin="4,0,0,0"/>
-                                            <TextBox x:Name="LengthBox" 
-                                                     Grid.Row="2" 
-                                                     Grid.Column="1" 
+                                                       Margin="4,0,0,0" />
+                                            <TextBox x:Name="LengthBox"
+                                                     Grid.Row="2"
+                                                     Grid.Column="1"
                                                      Height="26"
-                                                     VerticalAlignment="Center" 
+                                                     VerticalAlignment="Center"
                                                      MaxLength="4"
-                                                     Text="{Binding LengthCmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock Grid.Row="2" 
-                                                       Grid.Column="2" 
+                                                     Text="{Binding lengthMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Row="2"
+                                                       Grid.Column="2"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
-                                                       Text="[cm]" />
+                                                       FontSize="12"
+                                                       Text="[mm]" />
 
-                                            <TextBlock Grid.Row="3" 
-                                                       Grid.Column="0" 
+                                            <TextBlock Grid.Row="3"
+                                                       Grid.Column="0"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="Hmotnosť"
-                                                       Margin="4,0,0,0"/>
-                                            <TextBox x:Name="WeightBox" 
-                                                     Grid.Row="3" 
-                                                     Grid.Column="1" 
+                                                       Margin="4,0,0,0" />
+                                            <TextBox x:Name="WeightBox"
+                                                     Grid.Row="3"
+                                                     Grid.Column="1"
                                                      Height="26"
-                                                     VerticalAlignment="Center" 
+                                                     VerticalAlignment="Center"
                                                      MaxLength="4"
                                                      Text="{Binding WeightText, UpdateSourceTrigger=PropertyChanged}" />
-                                            <TextBlock Grid.Row="3" 
-                                                       Grid.Column="2" 
+                                            <TextBlock Grid.Row="3"
+                                                       Grid.Column="2"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12" 
+                                                       FontSize="12"
                                                        Text="[t]" />
                                         </Grid>
                                     </Grid>
@@ -682,20 +682,25 @@
                                            HorizontalAlignment="Center" />
                             </Border>
                             <Border Grid.Row="1" Padding="8">
-                                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto"
-                                      ColumnDefinitions="90,*"
+                                <!-- ZMENA: Len dva čisté stĺpce. Prvý pre texty vľavo, druhý pohltí zvyšok -->
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,16,Auto"
+                                      ColumnDefinitions="Auto, 135, *"
                                       ColumnSpacing="8"
-                                      RowSpacing="6">
+                                      RowSpacing="4">
 
+                                    <!-- ROW 0: Krok dekodéra -->
                                     <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
                                                Text="Krok dekodéra:" />
-                                    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                                              HorizontalAlignment="Stretch"
                                               ItemsSource="{Binding DecoderTypes}"
                                               SelectedItem="{Binding SelectedDecoderType, Mode=TwoWay}" />
 
+                                    <!-- ROW 1: DCC systém -->
                                     <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
                                                Text="DCC systém:" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                              HorizontalAlignment="Stretch"
                                               ItemsSource="{Binding DigitalSystems}"
                                               SelectedItem="{Binding SelectedDigitalSystem, Mode=TwoWay}"
                                               PlaceholderText="-- Zvoľte DCC systém --"
@@ -707,48 +712,93 @@
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
 
+                                    <!-- ROW 2: Typ dekodéra (výrobca + model) -->
                                     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
+                                               Text="Typ dekodéra:" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left"
+                                              Width="135"
+                                              ItemsSource="{Binding DecoderManufacturers}"
+                                              SelectedItem="{Binding SelectedDecoderManufacturer, Mode=TwoWay}" />
+                                    <TextBox Grid.Row="2" Grid.Column="2" HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Center"
+                                             FontSize="12"
+                                             MaxLength="30"
+                                             Text="{Binding DecoderModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Watermark="Model"/>
+                                 
+                                    <!-- ROW 3: Rozhranie + Zvuk -->
+                                    <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
+                                               Text="Rozhranie:"/>
+                                    <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left"
+                                              Width="135"
+                                              ItemsSource="{Binding DecoderInterfaces}"
+                                              SelectedItem="{Binding SelectedDecoderInterface, Mode=TwoWay}" />
+                                    <StackPanel Grid.Row="3" Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="4"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center">
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Padding="5"
+                                                   FontSize="12"
+                                                   Text="Zvuk" />
+                                        <Border Width="45" HorizontalAlignment="Right">
+                                            <ToggleSwitch HorizontalAlignment="Left"
+                                                          VerticalAlignment="Center"
+                                                        
+                                                          IsChecked="{Binding IsSoundDecoder}"
+                                                          OnContent=""
+                                                          OffContent="" />
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- ROW 4: Adresa -->
+                                    <TextBlock Grid.Row="4" Grid.Column="0"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
                                                Text="Adresa:" />
-                                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                                    <StackPanel Grid.Row="4" Grid.Column="1"
+                                                Orientation="Horizontal" Spacing="8"
                                                 VerticalAlignment="Center">
                                         <TextBox x:Name="AddressBox"
-                                                 Width="70"
+                                                 Width="110"
+                                                 MinWidth="110"
                                                  MaxLength="5"
                                                  Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBlock VerticalAlignment="Center"
                                                    Text="{Binding AddressKindText}"
+                                                   FontStyle="Italic"
                                                    FontSize="12"
                                                    Foreground="#5B6575" />
                                     </StackPanel>
 
-                                    <Border Grid.Row="4"
-                                            Grid.Column="0"
-                                            Grid.ColumnSpan="2"
-                                            Height="1"
-                                            Margin="0,6,0,2"
-                                            Background="#D7DEE8" />
-
-                                    <UniformGrid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Rows="1"
-                                                 HorizontalAlignment="Stretch" Margin="0,6,0,0">
+                                    <!-- ROW 5: Tlačidlá -->
+                                    <!-- ROW 5: Tlačidlá -->
+                                    <UniformGrid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Rows="1"
+                                                 HorizontalAlignment="Stretch"
+                                                 VerticalAlignment="Bottom"
+                                                 Margin="0,15,0,0">
                                         <Button x:Name="ReadAddressButton"
+                                                Height="26"
                                                 Content="Načítať adresu"
                                                 Command="{Binding ReadAddressCommand}"
                                                 IsEnabled="{Binding CanReadDecoderAddress}"
                                                 HorizontalAlignment="Stretch"
                                                 HorizontalContentAlignment="Center"
                                                 VerticalContentAlignment="Center"
-                                                Padding="10,6"
+                                                Padding="10,2"
                                                 FontSize="12"
                                                 Margin="0,0,4,0" />
 
                                         <Button x:Name="WriteAddressButton"
+                                                Height="26"
                                                 Content="Zapísať adresu"
                                                 Command="{Binding WriteAddressCommand}"
                                                 IsEnabled="{Binding CanWriteDecoderAddress}"
                                                 HorizontalAlignment="Stretch"
                                                 HorizontalContentAlignment="Center"
                                                 VerticalContentAlignment="Center"
-                                                Padding="10,6"
+                                                Padding="10,2"
                                                 FontSize="12"
                                                 Margin="4,0,0,0" />
                                     </UniformGrid>
@@ -1658,9 +1708,7 @@
 
 
                         <TabItem Header="Funkcie">
-                            <TabItem.DataContext>
-                                <Binding Path="." />
-                            </TabItem.DataContext>
+
                             <!-- TAB FUNKCIE: tabuľka vľavo, samostatný panel vpravo (editor + tlačidlá) -->
                             <Grid ColumnDefinitions="*,5,420" RowDefinitions="*">
 

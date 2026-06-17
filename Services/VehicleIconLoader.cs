@@ -21,6 +21,9 @@ public static class VehicleIconLoader
         try
         {
             return EmbeddedIconMap.Value.Values
+                // 1. FILTER: Pustíme ďalej len tie URI cesty, ktoré NEOBSAHUJÚ "WagonIcons"
+                .Where(uri => !uri.AbsolutePath.Contains("WagonIcons", StringComparison.OrdinalIgnoreCase))
+                // 2. Až potom vytiahneme čistý názov súboru
                 .Select(uri => Path.GetFileName(uri.AbsolutePath))
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -183,7 +186,7 @@ public static class VehicleIconLoader
 
         foreach (var assembly in assemblyCandidates)
         {
-            foreach (var folder in new[] { "LocoIcons", "VagonIcons" })
+            foreach (var folder in new[] { "LocoIcons", "WagonIcons" })
             {
                 try
                 {

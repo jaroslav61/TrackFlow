@@ -143,6 +143,12 @@ internal sealed class TraversalEngine
         if (request.KeepPreviousSegmentActive)
             AddSegment(frontierIndex - 1);
 
+        // Ak je frontier posledný blok (vlak vstúpil do cieľa a ešte brzdí),
+        // pridaj aj segment DO tohto bloku aby spojnica svietila až do zastavenia.
+        var isAtLastBlock = frontierIndex == request.TraversalBlockIds.Count - 1;
+        if (isAtLastBlock && frontierIndex > 0)
+            AddSegment(frontierIndex - 1);
+
         _runtimeRegistry.SetReservationWindow(
             request.Route.Id,
             pathIds,

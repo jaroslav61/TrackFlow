@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -162,10 +162,12 @@ public partial class OperationViewModel : ObservableObject, IDisposable
     
     /// <summary>
     /// OPERATION MODE: Simulation (trenažér) vs Live (ostrá prevádzka).
-    /// true = Simulator (bez DCC centrály, simulované senzory)
-    /// false = Live (reálna centrála, reálne senzory)
+    /// true = simulator je aktívny
+    /// false = simulátor nie je aktívny
+    ///
+    /// Dôležité: tento stav je nezávislý od pripojenia/odpojenia DCC centrály.
     /// </summary>
-    private bool _isSimulationMode = true;
+    private bool _isSimulationMode = false;
     
     public bool IsSimulationMode
     {
@@ -878,16 +880,16 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         // 3. Cleanup simulation contexts
         _activeSimulations.Clear();
         
-        // 4. Reset layout elementov
+        // 4. Reset layout elementov - zámky a rezervácie
+        // AssignedLocoId sa NEZMAŽE - lokomotíva zostáva v bloku
+        // pokiaľ ju používateľ sám neodstráni.
         foreach (var element in layout.Elements)
         {
             if (element is BlockElement block)
             {
                 block.IsLocked = false;
                 ClearShadowReservation(block);
-                block.AssignedLocoId = null;
             }
-            
         }
 
         var resyncedBlocks = DccFeedbackLayoutApplier.SynchronizeOccupancyFromIndicators(layout);
@@ -1794,11 +1796,13 @@ public partial class OperationViewModel : ObservableObject, IDisposable
                                 "progression-authoritative-pass",
                                 $"flow=[boundary-entry], source=[{OperationDisplayHelpers.BlockDisplayName(segmentSource)}], target=[{OperationDisplayHelpers.BlockDisplayName(segmentTarget)}], lead=[{segmentIndex + 1}]");
                             ApplyBoundaryEntryStateWithoutImmediateRefresh(layout, route, segmentSource, segmentTarget, loco, locoCode);
-                            SetTraversalSegmentWindow(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false);
+                            SetTraversalSegmentWindow(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: isLastSegment);
                             LayoutRefreshRequested?.Invoke();
-                            await UpdateTraversalSignalWindowAsync(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false, effectiveDccClient, linkedToken);
-                            // TraversalEngine kandidát: reservation advance ostáva zatiaľ sekvenovaný traversal boundary-entry callbackom.
-                            await AdvanceReservationWindowInternalAsync(layout, route, locoCode, segmentTarget.Id, segmentTarget.AssignedLocoIsForward, source: "ApplyBoundaryEntryState");
+                            await UpdateTraversalSignalWindowAsync(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: isLastSegment, effectiveDccClient, linkedToken);
+                            // Pri poslednom segmente nechceme posúvať okno - cieľový blok musí zostať
+                            // v ReservationWindow.BlockIds (glow) až kým vlak nezastaví.
+                            if (!isLastSegment)
+                                await AdvanceReservationWindowInternalAsync(layout, route, locoCode, segmentTarget.Id, segmentTarget.AssignedLocoIsForward, source: "ApplyBoundaryEntryState");
                         },
                         onSourceTailClear: async () =>
                         {
@@ -1813,12 +1817,12 @@ public partial class OperationViewModel : ObservableObject, IDisposable
                                 "traversal-refresh-reconcile",
                                 $"flow=[tail-clear-reconcile], source=[{OperationDisplayHelpers.BlockDisplayName(segmentSource)}], target=[{OperationDisplayHelpers.BlockDisplayName(segmentTarget)}], lead=[{segmentIndex + 1}]");
                             await ApplyTailClearStateAsync(layout, route, segmentSource, segmentTarget, effectiveDccClient, linkedToken);
-                            await HandleExternalOccupancyUpdateAsync(effectiveDccClient, linkedToken);
                             SetTraversalSegmentWindow(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false);
                             await UpdateTraversalSignalWindowAsync(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false, effectiveDccClient, ct);
                         },
                         delayAsync: _movementDelayAsync,
-                        onLayoutRefresh: () => LayoutRefreshRequested?.Invoke());
+                        onLayoutRefresh: () => LayoutRefreshRequested?.Invoke(),
+                        onStopped: isLastSegment ? () => SetRouteActivationMessage("loco-moved") : null);
                 }
                 catch (MovementCommitValidationException)
                 {
@@ -1889,7 +1893,9 @@ public partial class OperationViewModel : ObservableObject, IDisposable
 
                         // Jediný autoritatívny trigger reservation advance je boundary-entry occupancy transition.
                         // TraversalEngine kandidát: reservation advance ostáva zatiaľ sekvenovaný traversal boundary-entry callbackom.
-                        await AdvanceReservationWindowInternalAsync(layout, route, locoCode, segmentTarget.Id, segmentTarget.AssignedLocoIsForward, source: "ApplyBoundaryEntryState");
+                        var isLastSeg = (segmentIndex == traversalBlockIds.Count - 2);
+                        if (!isLastSeg)
+                            await AdvanceReservationWindowInternalAsync(layout, route, locoCode, segmentTarget.Id, segmentTarget.AssignedLocoIsForward, source: "ApplyBoundaryEntryState");
                     }
                     catch (MovementCommitValidationException)
                     {
@@ -1945,6 +1951,9 @@ public partial class OperationViewModel : ObservableObject, IDisposable
             // Návestidlá aktívnej cesty musia byť pod exkluzívnou kontrolou RouteManager.
         }
 
+        SetRouteActivationMessage("loco-moved");
+        LayoutRefreshRequested?.Invoke();
+
         await RefreshSignalStatusAsync(effectiveDccClient, ct);
         if (_traversalEngine.IsTraversalComplete(route.Id, route))
             _traversalEngine.SetTraversalLifecycleState(route.Id, RouteRuntimeLifecycleState.Completed);
@@ -1956,7 +1965,6 @@ public partial class OperationViewModel : ObservableObject, IDisposable
             diagnosticReason: $"vlak {ResolveTrainDisplayName(locoCode)} dorazil do bloku {OperationDisplayHelpers.BlockDisplayName(targetBlock)}",
             diagnosticLevel: DiagnosticLevel.Success);
         ClearLocoReservations(layout, locoCode);
-        SetRouteActivationMessage("loco-moved");
         MarkDirty();
         LayoutRefreshRequested?.Invoke();
 
@@ -2212,7 +2220,8 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         Func<Task>? onTargetBoundaryEntry = null,
         Func<Task>? onSourceTailClear = null,
         Func<int, CancellationToken, Task>? delayAsync = null,
-        Action? onLayoutRefresh = null)
+        Action? onLayoutRefresh = null,
+        Action? onStopped = null)
     {
         delayAsync ??= Task.Delay;
 
@@ -2623,7 +2632,11 @@ public partial class OperationViewModel : ObservableObject, IDisposable
                 }
             }
         }
+
         
+        // Vlak zastavil — okamžite signalizuj volajúcemu kódu
+        onStopped?.Invoke();
+
         // FÁZA 3: Cleanup simulationContext
         if (simulationContext != null)
         {
@@ -2737,39 +2750,39 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         if (!isSimulationMode)
             return markerProfile;
 
-        var virtualBlockLengthCm = blockLengthMm / 10.0;
-        var projectBlockLengthCm = targetBlock.LengthCm > 0 ? targetBlock.LengthCm : 0;
+        var virtualBlocklengthMm = blockLengthMm / 10.0;
+        var projectBlocklengthMm = targetBlock.lengthMm > 0 ? targetBlock.lengthMm : 0;
 
         // V simulátore používame používateľské markery iba pomerovo:
-        // markerCm / LengthCm -> rovnaká relatívna poloha na virtuálnom SimBlockLengthMm.
+        // markerCm / lengthMm -> rovnaká relatívna poloha na virtuálnom SimBlockLengthMm.
         // Ak dĺžka bloku chýba, absolútne centimetre markerov nemajú spoľahlivý referenčný rámec,
         // preto vrátime prázdny profil a hlavná logika použije fallback 60% brzdenie / 90% stop.
-        if (projectBlockLengthCm <= 0 || !markerProfile.HasAnyMarker)
+        if (projectBlocklengthMm <= 0 || !markerProfile.HasAnyMarker)
             return default;
 
         return new MarkerSpeedProfile(
-            NormalizeSimulationMarkerCm(markerProfile.DistanceCm, projectBlockLengthCm, virtualBlockLengthCm),
-            NormalizeSimulationMarkerCm(markerProfile.BrakingCm, projectBlockLengthCm, virtualBlockLengthCm),
-            NormalizeSimulationMarkerCm(markerProfile.StopCm, projectBlockLengthCm, virtualBlockLengthCm));
+            NormalizeSimulationMarkerCm(markerProfile.DistanceCm, projectBlocklengthMm, virtualBlocklengthMm),
+            NormalizeSimulationMarkerCm(markerProfile.BrakingCm, projectBlocklengthMm, virtualBlocklengthMm),
+            NormalizeSimulationMarkerCm(markerProfile.StopCm, projectBlocklengthMm, virtualBlocklengthMm));
     }
 
-    private static double NormalizeSimulationMarkerCm(double markerCm, int projectBlockLengthCm, double virtualBlockLengthCm)
+    private static double NormalizeSimulationMarkerCm(double markerCm, int projectBlocklengthMm, double virtualBlocklengthMm)
     {
-        if (markerCm <= 0 || virtualBlockLengthCm <= 0)
+        if (markerCm <= 0 || virtualBlocklengthMm <= 0)
             return 0;
 
-        var ratio = markerCm / projectBlockLengthCm;
-        return Math.Clamp(ratio * virtualBlockLengthCm, 0.0, virtualBlockLengthCm);
+        var ratio = markerCm / projectBlocklengthMm;
+        return Math.Clamp(ratio * virtualBlocklengthMm, 0.0, virtualBlocklengthMm);
     }
 
 
     private static MarkerSpeedProfile CreateSimulationFallbackMarkerProfile(double blockLengthMm)
     {
-        var blockLengthCm = Math.Max(0.0, blockLengthMm / 10.0);
+        var blocklengthMm = Math.Max(0.0, blockLengthMm / 10.0);
         return new MarkerSpeedProfile(
             DistanceCm: 0,
-            BrakingCm: blockLengthCm * SimulationFallbackBrakingRatio,
-            StopCm: blockLengthCm * SimulationFallbackStopRatio);
+            BrakingCm: blocklengthMm * SimulationFallbackBrakingRatio,
+            StopCm: blocklengthMm * SimulationFallbackStopRatio);
     }
 
     private static MarkerSpeedProfile ResolveMarkerProfile(RouteDefinition route, BlockElement sourceBlock, BlockElement targetBlock)
@@ -2783,9 +2796,9 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         return new MarkerSpeedProfile(targetBlock.BwdDistanceCm, targetBlock.BwdBrakingCm, targetBlock.BwdStopCm);
     }
 
-    private static double ResolveTailClearTriggerCm(MarkerSpeedProfile markerProfile, double blockLengthCm)
+    private static double ResolveTailClearTriggerCm(MarkerSpeedProfile markerProfile, double blocklengthMm)
     {
-        var fallbackTrigger = Math.Max(5.0, blockLengthCm * 0.20);
+        var fallbackTrigger = Math.Max(5.0, blocklengthMm * 0.20);
         if (markerProfile.BrakingCm <= 0)
             return fallbackTrigger;
 
@@ -4672,13 +4685,15 @@ private async Task UpdateTraversalSignalWindowAsync(
                         effectiveDccClient,
                         ct);
 
-                    await AdvanceReservationWindowInternalAsync(
-                        layout,
-                        route,
-                        locoCode,
-                        occupiedBlock.Id,
-                        visualOrientationForward,
-                        source: "OnBlockOccupiedAsync");
+                    var isLastBlock = currentSegmentIndex >= drivingOrder.Count - 1;
+                    if (!isLastBlock)
+                        await AdvanceReservationWindowInternalAsync(
+                            layout,
+                            route,
+                            locoCode,
+                            occupiedBlock.Id,
+                            visualOrientationForward,
+                            source: "OnBlockOccupiedAsync");
                 }
                 DiagnoseReservationEngine(layout, routeId, "OnBlockOccupiedAsync", occupiedBlockId, _traversalEngine.ResolveNextBlock(routeId, route, occupiedBlockId), "skip", DiagnosticLevel.Info);
 

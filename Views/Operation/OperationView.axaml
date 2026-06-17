@@ -90,66 +90,6 @@
 					   TextWrapping="Wrap"
 					   MaxWidth="540"/>
 		</Border>
-
-		<!-- Operation Mode Switch: Simulátor / Live -->
-		<Border HorizontalAlignment="Right"
-				VerticalAlignment="Top"
-				Margin="12"
-				Padding="2"
-				CornerRadius="6"
-				Background="#DD000000"
-				BorderThickness="2">
-			<Border.BorderBrush>
-				<SolidColorBrush Color="{Binding IsSimulationMode, 
-					Converter={StaticResource BoolToColorConverter}, 
-					ConverterParameter='#4CAF50|#FF5722'}"/>
-			</Border.BorderBrush>
-			
-			<StackPanel Orientation="Vertical" Spacing="4">
-				<!-- Label -->
-				<TextBlock Text="REŽIM PREVÁDZKY"
-						   Foreground="#AAAAAA"
-						   FontSize="9"
-						   FontWeight="Bold"
-						   HorizontalAlignment="Center"/>
-				
-				<!-- ToggleButton Switch -->
-				<ToggleButton IsChecked="{Binding IsSimulationMode}"
-							  Width="160"
-							  Height="30"
-							  CornerRadius="4"
-							  HorizontalContentAlignment="Center"
-							  VerticalContentAlignment="Center">
-					<ToggleButton.Styles>
-						<!-- Unchecked = LIVE (červená) -->
-						<Style Selector="ToggleButton">
-							<Setter Property="Background" Value="#FF5722"/>
-							<Setter Property="Foreground" Value="White"/>
-							<Setter Property="Content" Value="⚡ LIVE"/>
-							<Setter Property="FontWeight" Value="Bold"/>
-							<Setter Property="FontSize" Value="13"/>
-						</Style>
-						<!-- Checked = SIMULÁTOR (zelená) -->
-						<Style Selector="ToggleButton:checked">
-							<Setter Property="Background" Value="#4CAF50"/>
-							<Setter Property="Foreground" Value="White"/>
-							<Setter Property="Content" Value="🎮 SIMULÁTOR"/>
-						</Style>
-						<Style Selector="ToggleButton:pointerover">
-							<Setter Property="Opacity" Value="0.85"/>
-						</Style>
-					</ToggleButton.Styles>
-				</ToggleButton>
-				
-				<!-- Status Text -->
-				<TextBlock HorizontalAlignment="Center"
-						   FontSize="10"
-						   Foreground="#CCCCCC"
-						   Text="{Binding IsSimulationMode, 
-								  Converter={StaticResource BoolToStringConverter},
-								  ConverterParameter='Bez DCC centrály|Reálna centrála'}"/>
-			</StackPanel>
-		</Border>
 	</Grid>
 
 </UserControl>

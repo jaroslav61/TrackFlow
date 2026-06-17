@@ -17,7 +17,7 @@ function New-Loco
         Description = $Description
         IconName = ''
         Type = $null
-        LengthCm = 0
+        lengthMm = 0
         WeightT = 0
         DecoderType = $null
         DccSystemName = $null
@@ -49,7 +49,7 @@ function New-Block
 
     [ordered]@{
         '$type' = 'block'
-        LengthCm = 220
+        lengthMm = 220
         BlockLengthCells = 4
         RequestYellow = $false
         MaxSpeedKmh = 120
@@ -57,7 +57,7 @@ function New-Block
         AllowBackward = $true
         AllowForward = $true
         CriticalSection = $false
-        MaxTrainLengthCm = 0
+        MaxTrainlengthMm = 0
         Indicators = @()
         SignalType = 0
         StopPosition = 0

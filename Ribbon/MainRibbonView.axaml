@@ -150,45 +150,29 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
 
-        <Style Selector="ToggleButton.modeToggle /template/ ContentPresenter">
-            <Setter Property="Background" Value="#df9e60" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#1A3B5C" />
-            <Setter Property="BorderThickness" Value="1.5" />
-        </Style>
-
-        <Style Selector="ToggleButton.modeToggle:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D68C45" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-
-        <Style Selector="ToggleButton.modeToggle">
-            <Setter Property="Content" Value="LIVE" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Cursor" Value="Hand" />
-        </Style>
-
-        <Style Selector="ToggleButton.modeToggle:checked /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2f608c" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#132537" />
-            <Setter Property="BorderThickness" Value="1.5" />
-
-        </Style>
-
-        <Style Selector="ToggleButton.modeToggle:checked:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#265279" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-
-        <Style Selector="ToggleButton.modeToggle:checked">
-            <Setter Property="Content" Value="SIMULÁTOR" />
-        </Style>
 
         <Style Selector="Button[Background=Transparent]:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <!-- Štýl pre tlačidlo simulátora v stave RUNNING – pulzujúca animácia opacity -->
+        <Style Selector="Button.simulatorRunning">
+            <Style.Animations>
+                <Animation Duration="0:0:1.4" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1.0" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.55" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <!-- Tlačidlo pripojenia centrály – disabled počas simulácie -->
+        <Style Selector="Button.connectBtn:disabled /template/ ContentPresenter">
+            <Setter Property="Opacity" Value="0.4" />
         </Style>
         
         <Style Selector="Button.zoomBtn">
@@ -230,7 +214,7 @@
                         Grid.Column="0"
                         Margin="0"
                         Padding="0"
-                        SelectedIndex="1">
+                        SelectedIndex="{Binding SelectedRibbonTabIndex, Mode=TwoWay}">
 
                 <TabItem Header="Súbor">
                     <Border Margin="10">
@@ -1107,6 +1091,7 @@
                             Spacing="6">
                     <Button Classes="connectBtn"
                             Command="{Binding ToggleConnectCommand}"
+                            IsEnabled="{Binding CanConnectDcc}"
                             HorizontalContentAlignment="Center"
                             Width="110"
                             Height="30">
@@ -1160,20 +1145,53 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center" />
 
-                        <ToggleButton Classes="modeToggle"
-                                      IsChecked="{Binding Tabs.Operation.IsSimulationMode}"
-                                      Width="174"
-                                      Height="29"
-                                      CornerRadius="3"
-                                      HorizontalContentAlignment="Center"
-                                      VerticalContentAlignment="Center" />
+                        <Button Command="{Binding ToggleSimulatorModeCommand}"
+                                Background="{Binding OperationModeDisplayBackground}"
+                                BorderBrush="{Binding OperationModeDisplayBorderBrush}"
+                                BorderThickness="1.5"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                FontSize="12"
+                                Width="174"
+                                Height="29"
+                                CornerRadius="3"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Cursor="Hand"
+                                Classes.simulatorRunning="{Binding IsSimulationActive}">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <!-- Blikajúci indikátor – viditeľný len keď simulátor beží -->
+                                <Ellipse Width="8" Height="8"
+                                         VerticalAlignment="Center"
+                                         Fill="White"
+                                         IsVisible="{Binding IsSimulationActive}">
+                                    <Ellipse.Styles>
+                                        <Style Selector="Ellipse">
+                                            <Style.Animations>
+                                                <Animation Duration="0:0:0.8" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                                                    <KeyFrame Cue="0%">
+                                                        <Setter Property="Opacity" Value="1.0" />
+                                                    </KeyFrame>
+                                                    <KeyFrame Cue="100%">
+                                                        <Setter Property="Opacity" Value="0.1" />
+                                                    </KeyFrame>
+                                                </Animation>
+                                            </Style.Animations>
+                                        </Style>
+                                    </Ellipse.Styles>
+                                </Ellipse>
+                                <TextBlock Text="{Binding OperationModeDisplayTitle}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
 
                         <TextBlock HorizontalAlignment="Center"
                                    FontSize="11"
                                    Foreground="#4A5A66"
-                                   Text="{Binding Tabs.Operation.IsSimulationMode,
-                            Converter={StaticResource BoolToStringConverter},
-                            ConverterParameter='Bez DCC centrály|Reálna centrála'}" />
+                                   Text="{Binding OperationModeDisplaySubtitle}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

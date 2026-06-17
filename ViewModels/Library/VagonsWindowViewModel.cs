@@ -99,7 +99,7 @@ public partial class VagonsWindowViewModel : ObservableObject
 
         Selected = Vagons.FirstOrDefault();
 
-        // Načítať dostupné názvy súborov ikon z Assets/VagonIcons (vyhľadávať v niekoľkých pravdepodobných umiestneniach)
+        // Načítať dostupné názvy súborov ikon z Assets/WagonIcons (vyhľadávať v niekoľkých pravdepodobných umiestneniach)
         try
         {
             var start = AppDomain.CurrentDomain.BaseDirectory ??
@@ -113,7 +113,7 @@ public partial class VagonsWindowViewModel : ObservableObject
 
             for (var i = 0; i <= maxUp; i++)
             {
-                var candidate = Path.Combine(dir, "Assets", "VagonIcons");
+                var candidate = Path.Combine(dir, "Assets", "WagonIcons");
                 if (Directory.Exists(candidate))
                 {
                     foundDir = Path.GetFullPath(candidate);

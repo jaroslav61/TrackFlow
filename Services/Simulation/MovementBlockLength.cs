@@ -17,6 +17,6 @@ internal static class MovementBlockLength
     internal const double SimBlockLengthMm = 2000.0;
 
     public static double ResolveMovementBlockLengthMm(BlockElement block, bool isSimulationMode)
-        => isSimulationMode ? SimBlockLengthMm : Math.Max(500.0, Math.Max(1, block.LengthCm) * 10.0);
+        => isSimulationMode ? SimBlockLengthMm : Math.Max(500.0, Math.Max(1, block.lengthMm) * 10.0);
 }
 

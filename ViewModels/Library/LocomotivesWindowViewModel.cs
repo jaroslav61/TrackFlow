@@ -103,6 +103,70 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         }
     }
 
+    // Statický zoznam štandardizovaných rozhraní DCC dekodérov
+    public static IReadOnlyList<string> DecoderInterfaces { get; } = new[]
+    {
+        "NEM 651 (6-pin)",
+        "NEM 652 (8-pin)",
+        "Next18",
+        "PluX8",
+        "PluX12",
+        "PluX16",
+        "PluX22",
+        "MTC21 / Zip (21-pin)"
+    };
+
+    public static IReadOnlyList<string> DecoderManufacturers { get; } = new[]
+    {
+        "-- Výrobca --",
+        "ZIMO",
+        "ESU",
+        "Doehler & Haass",
+        "Digitrax",
+        "TCS",
+        "Lenz",
+        "Kühn",
+        "Fleischmann",
+        "Roco",
+        "Märklin",
+        "Trix",
+        "Uhlenbrock",
+    };
+
+    private string _selectedDecoderManufacturer = "-- Výrobca --";
+    public string SelectedDecoderManufacturer
+    {
+        get => _selectedDecoderManufacturer;
+        set
+        {
+            if (SetProperty(ref _selectedDecoderManufacturer, value))
+                MarkDirtyAndRevalidate();
+        }
+    }
+
+    private string _decoderModel = "";
+    public string DecoderModel
+    {
+        get => _decoderModel;
+        set
+        {
+            if (SetProperty(ref _decoderModel, value))
+                MarkDirtyAndRevalidate();
+        }
+    }
+    
+    private string? _selectedDecoderInterface;
+    public string? SelectedDecoderInterface
+    {
+        get => _selectedDecoderInterface;
+        set
+        {
+            if (SetProperty(ref _selectedDecoderInterface, value))
+                MarkDirtyAndRevalidate();  // ← pridať toto
+        }
+        
+    }
+    
     private DccCentralProfileItem? _selectedDigitalSystem = null;
 
     public DccCentralProfileItem? SelectedDigitalSystem
@@ -136,38 +200,38 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         }
     }
 
-    private int _lengthCm;
-    private string _lengthCmText = "0";
+    private int _lengthMm;
+    private string _lengthMmText = "0";
 
-    public int LengthCm
+    public int lengthMm
     {
-        get => _lengthCm;
+        get => _lengthMm;
         set
         {
-            if (_lengthCm == value) return;
-            _lengthCm = value;
-            _lengthCmText = value.ToString();
+            if (_lengthMm == value) return;
+            _lengthMm = value;
+            _lengthMmText = value.ToString();
             OnPropertyChanged();
-            OnPropertyChanged(nameof(LengthCmText));
+            OnPropertyChanged(nameof(lengthMmText));
             MarkDirtyAndRevalidate();
         }
     }
 
-    public string LengthCmText
+    public string lengthMmText
     {
-        get => _lengthCmText;
+        get => _lengthMmText;
         set
         {
             var digitsOnly = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
             if (digitsOnly.Length > 3)
                 digitsOnly = digitsOnly.Substring(0, 3);
 
-            if (SetProperty(ref _lengthCmText, digitsOnly))
+            if (SetProperty(ref _lengthMmText, digitsOnly))
             {
                 if (int.TryParse(digitsOnly, out var val))
                 {
-                    _lengthCm = val;
-                    OnPropertyChanged(nameof(LengthCm));
+                    _lengthMm = val;
+                    OnPropertyChanged(nameof(lengthMm));
                 }
                 MarkDirtyAndRevalidate();
             }
@@ -233,6 +297,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     [ObservableProperty] private string description = "";
     [ObservableProperty] private string addressText = "3";
     [ObservableProperty] private string validationMessage = "";
+    [ObservableProperty] private bool isSoundDecoder;
 
     private int _addressValue = 3;
 
@@ -948,10 +1013,15 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                         .Where(f => allowedExt.Contains(Path.GetExtension(f)));
                     foreach (var f in files)
                     {
+                        var full = Path.GetFullPath(f);
+    
+                        // PODMIENKA: Prepustíme len to, čo má v ceste LocoIcons
+                        if (!full.Contains("LocoIcons", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
                         var fileName = Path.GetFileName(f);
                         if (!AvailableIcons.Any(x => x.Name == fileName))
                         {
-                            var full = Path.GetFullPath(f);
                             AvailableIcons.Add(new IconItem(fileName, full));
                             IconRegistry.Register(fileName, full);
                         }
@@ -976,7 +1046,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         catch
         {
         }
-    }
+     }
 
     public string AddressKindText
     {
@@ -1068,7 +1138,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     partial void OnNameChanged(string value) => MarkDirtyAndRevalidate();
     partial void OnDescriptionChanged(string value) => MarkDirtyAndRevalidate();
-
+    partial void OnIsSoundDecoderChanged(bool value) => MarkDirtyAndRevalidate();
+    
     partial void OnAddressTextChanged(string value)
     {
         if (!_isCoercingAddress)
@@ -1288,7 +1359,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             Name = "";
             Description = "";
             AddressText = "3";
-            LengthCm = 0;
+            lengthMm = 0;
             WeightT = 0;
             SelectedIcon = IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = LocomotiveTypes[0];
@@ -1307,8 +1378,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             LastRunDateText = "";
             LastMaintenanceDateText = "";
             TotalOperationTimeText = "";
-
+            IsSoundDecoder = false;
             LoadFunctionsFromRecord(null);
+            SelectedDecoderManufacturer = "-- Výrobca --";
+            DecoderModel = "";
+            SelectedDecoderInterface = null;
         }
         else
         {
@@ -1318,7 +1392,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             SelectedIcon = IconComboItems.FirstOrDefault(i => i.Name == Selected.IconName) ??
                            IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = Selected.Type ?? LocomotiveTypes[0];
-            LengthCm = Selected.LengthCm;
+            lengthMm = Selected.lengthMm;
             WeightT = Selected.WeightT;
             SelectedDecoderType = Selected.DecoderType ?? DecoderTypes[0];
             // Nájdeme centrálu podľa ID (primárne) alebo display textu (fallback pre staré dáta).
@@ -1339,8 +1413,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             TotalOperationTimeText = totalTime > TimeSpan.Zero 
                 ? $"{(int)totalTime.TotalHours}:{totalTime.Minutes:D2}" 
                 : "";
-
+            IsSoundDecoder = Selected.IsSoundDecoder;
             LoadFunctionsFromRecord(Selected);
+            SelectedDecoderManufacturer = Selected.DecoderManufacturer ?? "-- Výrobca --";
+            DecoderModel = Selected.DecoderModel ?? "";
+            SelectedDecoderInterface = Selected.DecoderInterface;
         }
 
         IsDirty = false;
@@ -1701,7 +1778,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         Name = "";
         Description = "";
         AddressText = NextFreeAddress().ToString();
-        LengthCm    = 0;
+        lengthMm    = 0;
         WeightT     = 0;
         Number = "";
         HomeDepot = "";
@@ -1739,7 +1816,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     Description  = Description ?? "",
                     IconName     = SelectedIcon?.Name ?? "",
                     Type         = SelectedLocomotiveType == LocomotiveTypes[0] ? null : SelectedLocomotiveType,
-                    LengthCm     = LengthCm,
+                    lengthMm     = lengthMm,
                     WeightT      = WeightT,
                     DecoderType  = SelectedDecoderType  == DecoderTypes[0]  ? null : SelectedDecoderType,
                     AssignedCentralProfileId = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.Id,
@@ -1772,6 +1849,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     IsAnalogOperationEnabled = selectedLocomotive?.IsAnalogOperationEnabled ?? false,
                     IsInvertDirectionEnabled = selectedLocomotive?.IsInvertDirectionEnabled ?? false,
                     Functions    = functionDefs,
+                    // Pre EditorMode.Adding:
+                    IsSoundDecoder = IsSoundDecoder,
+                    DecoderManufacturer = SelectedDecoderManufacturer == "-- Výrobca --" ? null : SelectedDecoderManufacturer,
+                    DecoderModel = string.IsNullOrWhiteSpace(DecoderModel) ? null : DecoderModel,
+                    DecoderInterface = SelectedDecoderInterface,
                 };
                 Locomotives.Add(rec);
                 Selected = rec;
@@ -1784,7 +1866,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 Selected.Description  = Description ?? "";
                 Selected.IconName     = SelectedIcon?.Name ?? "";
                 Selected.Type         = SelectedLocomotiveType == LocomotiveTypes[0] ? null : SelectedLocomotiveType;
-                Selected.LengthCm     = LengthCm;
+                Selected.lengthMm     = lengthMm;
                 Selected.WeightT      = WeightT;
                 Selected.DecoderType  = SelectedDecoderType  == DecoderTypes[0]  ? null : SelectedDecoderType;
                 Selected.AssignedCentralProfileId = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.Id;
@@ -1817,6 +1899,10 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 Selected.IsAnalogOperationEnabled = SelectedLocomotive?.IsAnalogOperationEnabled ?? Selected.IsAnalogOperationEnabled;
                 Selected.IsInvertDirectionEnabled = SelectedLocomotive?.IsInvertDirectionEnabled ?? Selected.IsInvertDirectionEnabled;
                 Selected.Functions    = functionDefs;
+                Selected.IsSoundDecoder = IsSoundDecoder;
+                Selected.DecoderManufacturer = SelectedDecoderManufacturer == "-- Výrobca --" ? null : SelectedDecoderManufacturer;
+                Selected.DecoderModel = string.IsNullOrWhiteSpace(DecoderModel) ? null : DecoderModel;
+                Selected.DecoderInterface = SelectedDecoderInterface;
             }
 
             // Uložíme si referenciu na editovanú lokomotívu PRED PersistAndSave,
@@ -1876,6 +1962,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             SelectedLocomotive = Selected;
         }
         LoadSelectedToEditor();
+        
     }
 
     [RelayCommand]
