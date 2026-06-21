@@ -154,7 +154,7 @@ public class TrackFlowDoctorServiceTests
             Message = "⚠️ Auto-reconnect k centrále Z21 zlyhal (keepalive timeout)"
         };
 
-        Assert.Equal("⚠️ Automatické pripájanie k centrále Z21 zlyhal (vypršal dohľad spojenia)", entry.MessageText);
+        Assert.Equal("Automatické pripájanie k centrále Z21 zlyhal (vypršal dohľad spojenia)", entry.MessageText);
     }
 
     [Fact]

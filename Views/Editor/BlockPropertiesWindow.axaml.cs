@@ -141,8 +141,10 @@ public partial class BlockPropertiesWindow : Window
     
     private void DiagramCanvas_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
     {
-        // Kliknutie na prázdny Canvas (mimo indikátora/markeru) zruší výber
+        // Kliknutie na prázdny Canvas (mimo indikátora/markeru) zruší výber.
+        // Ak kliknutie pochádzalo z child elementu (indikátor, marker), ignorujeme ho.
         if (_vm == null) return;
+        if (e.Source != sender) return;
         
         // Zruš výber indikátora a markeru
         _vm.SelectedIndicator = null;
@@ -156,8 +158,6 @@ public partial class BlockPropertiesWindow : Window
         
         // Prekreslenie
         DrawIndicators();
-        
-        e.Handled = true;
     }
 
     private void MarkerPositionSpinner_LostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -181,15 +181,20 @@ public partial class BlockPropertiesWindow : Window
     
     private void IndicatorTypeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (sender is not ComboBox cb) return;
-        if (cb.SelectedItem is not ComboBoxItem item) return;
-        if (item.Tag is not string typeStr) return;
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"SelectionChanged fired, sender={sender?.GetType().Name}");
+        if (sender is not ComboBox cb) { TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", "not ComboBox"); return; }
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"SelectedItem={cb.SelectedItem?.GetType().Name}, value={cb.SelectedItem}");
+        if (cb.SelectedItem is not ComboBoxItem item) { TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", "not ComboBoxItem"); return; }
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"Tag={item.Tag}");
+        if (item.Tag is not string typeStr) { TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", "Tag not string"); return; }
         
         // Parse type
-        if (!System.Enum.TryParse<BlockIndicatorType>(typeStr, out var type)) return;
+        if (!System.Enum.TryParse<BlockIndicatorType>(typeStr, out var type)) { TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"Parse failed: {typeStr}"); return; }
         
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"Calling AddIndicatorCommand with type={type}, _vm={_vm != null}, LengthMm={_vm?.LengthMm}, HasIndicators={_vm?.HasIndicators}");
         // Zavolaj command
         _vm?.AddIndicatorCommand.Execute(type);
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("IndicatorDEBUG", $"After Execute: Indicators.Count={_vm?.Indicators.Count}, HasIndicators={_vm?.HasIndicators}");
         
         // Reset ComboBox späť na placeholder
         cb.SelectedIndex = -1;
@@ -279,7 +284,7 @@ public partial class BlockPropertiesWindow : Window
             diagram.Children.Remove(handle);
         _resizeHandles.Clear();
 
-        if (_vm.LengthMm <= 0 || !_vm.HasIndicators) return;
+        if (!_vm.HasIndicators) return;
 
         // Vykresli každý indikátor (ŽLTÝ na ŠEDOM pozadí bloku)
         foreach (var indicator in _vm.Indicators)
@@ -636,11 +641,13 @@ public partial class BlockPropertiesWindow : Window
         _markerVisuals.Clear();
         _markerTexts.Clear();
 
-        if (_vm.LengthMm <= 0 || !_vm.HasIndicators) return;
+        if (!_vm.HasIndicators) return;
 
         // NOVÉ: Vykresli markery zo všetkých indikátorov
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"DrawMarkers: Indicators={_vm.Indicators.Count}, LengthMm={_vm.LengthMm}");
         foreach (var indicator in _vm.Indicators)
         {
+            TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"Indicator={indicator.Id}, Markers={indicator.Markers.Count}");
             foreach (var marker in indicator.Markers)
             {
                 DrawMarkerFromIndicator(diagram, marker);
@@ -743,7 +750,9 @@ public partial class BlockPropertiesWindow : Window
 
         mc.PointerPressed += (_, e) =>
         {
+            TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"mc.PointerPressed fired: left={e.GetCurrentPoint(mc).Properties.IsLeftButtonPressed}, marker={capturedMarker?.Id}");
             if (!e.GetCurrentPoint(mc).Properties.IsLeftButtonPressed) return;
+            TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"Executing SelectMarkerInIndicatorCommand");
             _vm?.SelectMarkerInIndicatorCommand.Execute(capturedMarker);
             _draggedMarkerCanvas = mc;
             _draggedMarkerKey = markerKey;
@@ -754,7 +763,8 @@ public partial class BlockPropertiesWindow : Window
         mc.PointerMoved += (_, e) =>
         {
             if (_draggedMarkerCanvas != mc) return;
-            if (_vm == null || _vm.LengthMm <= 0) return;
+            if (_vm == null) return;
+            if (_vm.LengthMm <= 0) return; // Drag markera vyžaduje zadanú dĺžku bloku
             
             // Drag marker v rámci jeho indikátora
             var parentIndicator = _vm.Indicators.FirstOrDefault(i => i.Markers.Contains(capturedMarker));

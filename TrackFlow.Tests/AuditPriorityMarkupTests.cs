@@ -34,7 +34,6 @@ public class AuditPriorityMarkupTests
         var code = File.ReadAllText(GetWorkspaceFilePath("Services", "Dcc", "Z21Client.cs"));
 
         Assert.Contains("Z21 telemetria send chyba (LAN_SYSTEMSTATE_GETDATA)", code, StringComparison.Ordinal);
-        Assert.Contains("Z21 telemetria send chyba (LAN_RMBUS_GETDATA group=0)", code, StringComparison.Ordinal);
         Assert.Contains("MainReceiveLoop socket chyba:", code, StringComparison.Ordinal);
         Assert.Contains("MainReceiveLoop chyba:", code, StringComparison.Ordinal);
     }

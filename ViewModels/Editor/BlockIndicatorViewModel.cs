@@ -32,8 +32,9 @@ public partial class BlockIndicatorViewModel : ObservableObject
     [ObservableProperty] private bool isSelected;
 
     // Vypočítané vlastnosti pre Canvas
-    public double StartX => (StartCm / (double)_blocklengthMm) * _canvasWidth;
-    public double Width => ((EndCm - StartCm) / (double)_blocklengthMm) * _canvasWidth;
+    private int EffectiveLengthMm => _blocklengthMm > 0 ? _blocklengthMm : 100;
+    public double StartX => (StartCm / (double)EffectiveLengthMm) * _canvasWidth;
+    public double Width => ((EndCm - StartCm) / (double)EffectiveLengthMm) * _canvasWidth;
     public double CenterX => StartX + Width / 2;
     
     // Ikona podľa typu

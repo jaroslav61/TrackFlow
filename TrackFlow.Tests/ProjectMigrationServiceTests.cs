@@ -20,7 +20,7 @@ public class ProjectMigrationServiceTests
 			SchemaVersion = 3,
 			Locomotives =
 			{
-				new LocoRecord { Name = "sdvfsdffsdfs", DccAddress = 4 },
+				new LocoRecord { Name = "sdvfsdffsdf", DccAddress = 4 },
 				new LocoRecord { Name = "750.131-5", DccAddress = 4 }
 			},
 			Layout = new TrackLayout
@@ -42,7 +42,7 @@ public class ProjectMigrationServiceTests
 					},
 					new SignalElement { Label = "Na2", DccAddress = 0 },
 					new SignalElement { Label = "Na4", DccAddress = 0 },
-					new BlockElement { Label = "Blok 9", LengthCm = 0 }
+					new BlockElement { Label = "Blok 9", lengthMm = 0 }
 				}
 			}
 		};
@@ -55,11 +55,11 @@ public class ProjectMigrationServiceTests
 			.Select(evt => evt.Message)
 			.ToList();
 
-		Assert.Contains("⚠️ Duplicitná DCC adresa lokomotívy.  sdvfsdffsdfs a 750.131-5 majú obe adresu 4. Jedna z nich sa nikdy nebude dať ovládať správne.", events);
-		Assert.Contains("⚠️ Výhybka „Vľ 2“ má nastavenú adresu 0. Má priradený ovládací profil, ale s adresou 0 sa nebude dať ovládať.", events);
-		Assert.Contains("⚠️ Výhybka „VP 2“ nemá priradený ovládací profil. Adresa 24 je nastavená, ale bez profilu sa nebude dať ovládať spoľahlivo.", events);
-		Assert.Contains("⚠️ Návestidlo Na2 má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
-		Assert.Contains("⚠️ Návestidlo Na4 má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
+		Assert.Contains("⚠️ Duplicitná DCC adresa lokomotív.  \"sdvfsdffsdf\" a \"750.131-5\" majú rovnakú adresu 4. Všetky lokomotívy budú ovládané spoločne.", events);
+		Assert.Contains("⚠️ Výhybka „Vľ 2“ má nastavenú adresu 0. Má priradený Digitálny systém, ale s adresou 0 sa nebude dať ovládať.", events);
+		Assert.Contains("⚠️ Výhybka „VP 2“ nemá priradený digitálny sýstem. Adresa 24 je nastavená, ale bez DCC systému sa nebude dať ovládať.", events);
+		Assert.Contains("⚠️ Návestidlo „Na2“ má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
+		Assert.Contains("⚠️ Návestidlo „Na4“ má nastavenú adresu 0. Nebude sa dať ovládať cez DCC.", events);
 		Assert.Contains("⚠️ Blok 9 nemá nastavenú dĺžku. Kalibrovaná jazda nebude fungovať.", events);
 		Assert.DoesNotContain(events, msg => msg.Contains("Id:", System.StringComparison.Ordinal));
 	}

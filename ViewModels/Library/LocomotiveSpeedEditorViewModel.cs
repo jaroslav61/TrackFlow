@@ -56,7 +56,19 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private const double ChartWidth = 824;
     private const double ChartHeight = 522;
     private const int DefaultChartMaxSpeed = 120;
-    private const int DefaultChartMaxStep = 126;
+    private const int DefaultChartMaxStep = 28;
+    private const int DccMaxStep = 126;
+
+    /// <summary>
+    /// Mapuje zobrazovací bod grafu (1–28) na reálny DCC krok (1–126).
+    /// Bod 1 → DCC 4, Bod 28 → DCC 126, lineárne.
+    /// </summary>
+    public static int MapChartStepToDcc(int chartStep)
+    {
+        if (chartStep <= 1) return 4;
+        if (chartStep >= 28) return DccMaxStep;
+        return (int)Math.Round(4 + (chartStep - 1) * (DccMaxStep - 4) / 27.0);
+    }
     private const double MarkerHitRadius = 18;
 
     private const double PerformanceChartLeft = 32;
@@ -1341,9 +1353,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
-    public void SetDecoderStepRange(string? decoderType)
+    public void SetDecoderStepRange(string? decoderType = null)
     {
-        var resolvedMaxStep = ParseDecoderStepRange(decoderType);
+        const int resolvedMaxStep = DefaultChartMaxStep;
         if (resolvedMaxStep == CurrentChartMaxStep
             && string.Equals(DecoderStepAxisTitle, $"Rýchlostný stupeň dekodéra (0-{resolvedMaxStep})", StringComparison.Ordinal))
             return;
@@ -3227,17 +3239,6 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         return (new RelativePoint(firstX, firstY, RelativeUnit.Absolute),
                 new RelativePoint(endX, endY, RelativeUnit.Absolute));
-    }
-
-    private static int ParseDecoderStepRange(string? decoderType)
-    {
-        if (string.IsNullOrWhiteSpace(decoderType))
-            return DefaultChartMaxStep;
-
-        var digits = new string(decoderType.Where(char.IsDigit).ToArray());
-        return int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
-            ? parsed
-            : DefaultChartMaxStep;
     }
 
     private static double CalculateHorizontalAxisLabelLeft(double axisX, string text)

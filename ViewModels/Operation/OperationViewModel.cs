@@ -257,6 +257,12 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         return enabled;
     }
     
+    /// <summary>Event ktorý sa zavolá keď sa lokomotíva priradí do bloku.</summary>
+    public event Action<string>? LocomotiveAssignedToBlock;
+
+    /// <summary>Event ktorý sa zavolá keď sa lokomotíva odstráni z bloku.</summary>
+    public event Action<string>? LocomotiveRemovedFromBlock;
+
     /// <summary>Event ktorý sa zavolá keď sa má schéma prekresliť (View odpočúva).</summary>
     public event System.Action? LayoutRefreshRequested;
 
@@ -1487,6 +1493,16 @@ public partial class OperationViewModel : ObservableObject, IDisposable
     {
         var requestedTrainName = ResolveTrainDisplayName(locoCode);
 
+        // LIVE režim: ak pre túto loko už beží presun, ignoruj duplicitnú aktiváciu
+        if (!IsSimulationMode && !string.IsNullOrWhiteSpace(locoCode) && _activeSimulations.ContainsKey(locoCode))
+        {
+            TrackFlowDoctorService.Instance.Diagnose(
+                "LIVE",
+                $"Duplicitná aktivácia ignorovaná — presun pre [{requestedTrainName}] už beží.",
+                DiagnosticLevel.Info);
+            return RouteActivationResult.Failed("loco-already-moving");
+        }
+
         if (string.IsNullOrWhiteSpace(locoCode))
         {
             TrackFlowDoctorService.Instance.Diagnose("RouteActivation", "Presun vlaku zlyhal: lokomotíva nie je vybraná.", DiagnosticLevel.Warning);
@@ -1745,7 +1761,69 @@ public partial class OperationViewModel : ObservableObject, IDisposable
             var boundaryEntered = false;
             var tailCleared = false;
 
-            if (_runtimeRegistry.IsRouteActive(route.Id) && loco != null)
+            if (_runtimeRegistry.IsRouteActive(route.Id) && loco != null && !IsSimulationMode)
+            {
+                // LIVE režim: odošli DCC príkaz na jazdu, potom čakáme na reálne senzory (S88/R-Bus).
+                _activeSimulations[locoCode] = new ActiveSimulationContext();
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _globalCts.Token, _panicStopCts.Token);
+                var linkedToken = linkedCts.Token;
+
+                // Odošli DCC príkaz — rozjazd lokomotívy
+                var liveSpeed = segmentSpeedLimit > 0 ? segmentSpeedLimit : 50;
+                var liveForward = travelForward;
+                loco.TargetSpeed = liveSpeed;
+                loco.CurrentDisplaySpeed = liveSpeed;
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "LIVE",
+                    $"DCC rozjazd: loco=[{locoCode}] addr=[{loco.DccAddress}] speed=[{liveSpeed}] forward=[{liveForward}] dccClient=[{effectiveDccClient != null}] shouldSend=[{ShouldSendDcc(effectiveDccClient)}]",
+                    DiagnosticLevel.Info);
+                if (ShouldSendDcc(effectiveDccClient) && loco.DccAddress > 0)
+                {
+                    // Krátky delay: Z21 potrebuje chvíľu po connecte/route-activate kým prijme speed príkaz
+                    await _movementDelayAsync(300, linkedToken);
+                    await effectiveDccClient!.SetLocomotiveSpeedAsync(loco.DccAddress, liveSpeed, liveForward, linkedToken);
+                }
+
+                while (_runtimeRegistry.IsRouteActive(route.Id))
+                {
+                    linkedToken.ThrowIfCancellationRequested();
+                    // Cieľový blok obsadený reálnym senzorom a zdrojový uvoľnený — vlak prešiel celý segment
+                    if (segmentTarget.IsOccupied && !segmentSource.IsOccupied)
+                    {
+                        // Zastav lokomotívu — dorazila do cieľového bloku
+                        // CancellationToken.None: stop musí odísť aj keď je token zrušený
+                        loco.TargetSpeed = 0;
+                        loco.CurrentDisplaySpeed = 0;
+                        if (ShouldSendDcc(effectiveDccClient) && loco.DccAddress > 0)
+                            await effectiveDccClient!.SetLocomotiveSpeedAsync(loco.DccAddress, 0, liveForward, CancellationToken.None);
+                        break;
+                    }
+                    // Cieľový blok obsadený ale zdrojový ešte nie je uvoľnený — tail-clear čakáme
+                    if (segmentTarget.IsOccupied && !boundaryEntered)
+                    {
+                        boundaryEntered = true;
+                        MarkTraversalBoundaryEntry(route.Id, segmentSource.Id, segmentTarget.Id);
+                        ApplyBoundaryEntryStateWithoutImmediateRefresh(layout, route, segmentSource, segmentTarget, loco, locoCode);
+                        var isLastSeg = (segmentIndex == traversalBlockIds.Count - 2);
+                        SetTraversalSegmentWindow(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: isLastSeg);
+                        LayoutRefreshRequested?.Invoke();
+                        await UpdateTraversalSignalWindowAsync(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: isLastSeg, effectiveDccClient, linkedToken);
+                        if (!isLastSeg)
+                            await AdvanceReservationWindowInternalAsync(layout, route, locoCode, segmentTarget.Id, segmentTarget.AssignedLocoIsForward, source: "LiveBoundaryEntry");
+                    }
+                    await _movementDelayAsync(100, linkedToken);
+                }
+                if (!tailCleared)
+                {
+                    tailCleared = true;
+                    MarkTraversalTailClear(route.Id, segmentSource.Id, segmentTarget.Id);
+                    await ApplyTailClearStateAsync(layout, route, segmentSource, segmentTarget, effectiveDccClient, linkedToken);
+                    SetTraversalSegmentWindow(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false);
+                    await UpdateTraversalSignalWindowAsync(layout, route, traversalBlockIds, segmentIndex + 1, keepPreviousSegmentActive: false, effectiveDccClient, linkedToken);
+                }
+                _activeSimulations.Remove(locoCode);
+            }
+            else if (_runtimeRegistry.IsRouteActive(route.Id) && loco != null)
             {
                 // Určíme či je to posledný segment cesty (kde vlak musí brzdiť)
                 var isLastSegment = (segmentIndex == traversalBlockIds.Count - 2);
@@ -2180,6 +2258,7 @@ public partial class OperationViewModel : ObservableObject, IDisposable
         {
             loco.IsPlacedOnTrack = true;
             loco.AssignedBlockId = targetBlock.Id;
+            LocomotiveAssignedToBlock?.Invoke(locoCode);
         }
 
         string trainDisplayName = !string.IsNullOrWhiteSpace(loco?.DisplayName)
@@ -3532,6 +3611,40 @@ private async Task UpdateTraversalSignalWindowAsync(
             return routeTurnoutStates.Keys.ToList();
 
         return Array.Empty<string>();
+    }
+
+    public void RemoveLocomotiveFromBlock(string blockId)
+    {
+        var layout = _settings.CurrentProject?.Layout;
+        if (layout == null || string.IsNullOrWhiteSpace(blockId))
+            return;
+
+        var block = layout.Elements.OfType<BlockElement>()
+            .FirstOrDefault(b => string.Equals(b.Id, blockId, StringComparison.OrdinalIgnoreCase));
+        if (block == null)
+            return;
+
+        var locoCode = block.AssignedLocoId;
+        block.AssignedLocoId = null;
+        block.AssignedLocoIsForward = true;
+        block.IsOccupied = false;
+        ClearShadowReservation(block);
+
+        if (!string.IsNullOrWhiteSpace(locoCode))
+        {
+            var loco = Locomotives.FirstOrDefault(l =>
+                string.Equals(l.Code, locoCode, StringComparison.OrdinalIgnoreCase));
+            if (loco != null)
+            {
+                loco.IsPlacedOnTrack = false;
+                loco.AssignedBlockId = null;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(locoCode))
+            LocomotiveRemovedFromBlock?.Invoke(locoCode);
+        MarkDirty();
+        LayoutRefreshRequested?.Invoke();
     }
 
     private void ClearLocoReservations(TrackLayout layout, string locoCode)

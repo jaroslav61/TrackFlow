@@ -151,10 +151,32 @@ public partial class LocomotivesWindow : Window
         }
 
         // CV programming buttons (DCC tab)
+        // CV programming buttons (DCC tab)
         var readCvButton = this.FindControl<Button>("ReadCvButton");
         if (readCvButton != null)
             readCvButton.Click += ReadCvButton_Click;
 
+        var writeCvButton = this.FindControl<Button>("WriteCvButton");
+        if (writeCvButton != null)
+            writeCvButton.Click += WriteCvButton_Click;
+
+        var cvTestSlider = this.FindControl<Slider>("CvTestSlider");
+        if (cvTestSlider != null)
+            cvTestSlider.AddHandler(RangeBase.ValueChangedEvent, OnCvTestSliderChanged, RoutingStrategies.Bubble);
+            cvTestSlider.AddHandler(KeyDownEvent, OnCvTestSliderKeyDown, RoutingStrategies.Bubble);
+
+        var minSpeedCvBox = this.FindControl<NumericUpDown>("MinSpeedCvBox");
+        if (minSpeedCvBox != null)
+            minSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV2");
+
+        var midSpeedCvBox = this.FindControl<NumericUpDown>("MidSpeedCvBox");
+        if (midSpeedCvBox != null)
+            midSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV6");
+
+        var maxSpeedCvBox = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
+        if (maxSpeedCvBox != null)
+            maxSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV5");
+        
         AttachVm(DataContext as LocomotivesWindowViewModel);
         HookSpeedChartInteractions();
     }
@@ -224,6 +246,89 @@ public partial class LocomotivesWindow : Window
         }
     }
 
+    // ── CV testovací slider ───────────────────────────────────────────────────
+
+    private string _activeCvTarget = "";
+
+    private void OnCvBoxGotFocus(string cvTarget)
+    {
+        var slider = this.FindControl<Slider>("CvTestSlider");
+        if (slider == null || !slider.IsEffectivelyEnabled) return;
+        _activeCvTarget = cvTarget;
+        slider.Value = 0;
+    }
+
+    private void OnCvTestSliderKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && sender is Slider slider)
+        {
+            slider.Value = 0;
+            e.Handled = true;
+        }
+    }
+
+    private void OnCvTestSliderChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (sender is not Slider slider) return;
+        if (!slider.IsEffectivelyEnabled) return;
+        if (_activeCvTarget == "") return;
+
+        int rawValue = (int)Math.Round(e.NewValue);
+        int dccSpeed = Math.Abs(rawValue);
+        bool forward = rawValue >= 0;
+
+        var loco = _vm?.SelectedLocomotive;
+        if (loco != null)
+        {
+            switch (_activeCvTarget)
+            {
+                case "CV2": loco.MinSpeedCv = dccSpeed; break;
+                case "CV6": loco.MidSpeedCv = dccSpeed; break;
+                case "CV5": loco.MaxSpeedCv = dccSpeed; break;
+            }
+        }
+
+        _ = SendCvTestSpeedAsync(dccSpeed, forward);
+    }
+
+    private async Task SendCvTestSpeedAsync(int speed, bool forward)
+    {
+        try
+        {
+            if (Owner?.DataContext is not MainWindowViewModel mainVm) return;
+            if (!mainVm.Dcc.IsConnected || mainVm.Dcc.Client is not IDccCentralClient client) return;
+            var loco = _vm?.SelectedLocomotive;
+            if (loco == null) return;
+
+            await client.SetLocomotiveSpeedAsync(loco.DccAddress, speed, forward);
+        }
+        catch (Exception ex)
+        {
+            Program.ReportUnhandledException("LocomotivesWindow.SendCvTestSpeedAsync", ex, isTerminating: false);
+        }
+    }
+
+    // ── WriteCvButton ─────────────────────────────────────────────────────────
+
+    private void WriteCvButton_Click(object? _, RoutedEventArgs __)
+        => _ = WriteCvButton_ClickAsync();
+
+    private async Task WriteCvButton_ClickAsync()
+    {
+        try
+        {
+            if (_vm?.SelectedLocomotive == null) return;
+            var loco = _vm.SelectedLocomotive;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _vm.WriteAllSpeedCvsAsync(loco, cts.Token);
+        }
+        catch (Exception ex)
+        {
+            Program.ReportUnhandledException("LocomotivesWindow.WriteCvButton_Click", ex, isTerminating: false);
+        }
+    }
+
+    
     private async Task StartReadDecoderValuesDialogAsync(
         ReadDecoderValuesWindow dialog,
         Func<int, CancellationToken, Task<int>> readCvFunc)

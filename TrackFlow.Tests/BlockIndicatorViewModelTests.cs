@@ -15,7 +15,7 @@ public sealed class BlockIndicatorViewModelTests
             IsActive = false
         };
 
-        var vm = new BlockIndicatorViewModel(indicator, blockLengthCm: 100);
+        var vm = new BlockIndicatorViewModel(indicator, blocklengthMm: 1000);
 
         Assert.Equal("avares://TrackFlow/Assets/Appicons/16/cont_ind_d.png", vm.IconPath);
     }
@@ -29,7 +29,7 @@ public sealed class BlockIndicatorViewModelTests
             IsActive = true
         };
 
-        var vm = new BlockIndicatorViewModel(indicator, blockLengthCm: 100);
+        var vm = new BlockIndicatorViewModel(indicator, blocklengthMm: 1000);
 
         Assert.Equal("avares://TrackFlow/Assets/Appicons/16/cont_ind.png", vm.IconPath);
     }

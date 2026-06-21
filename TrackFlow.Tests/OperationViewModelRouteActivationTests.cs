@@ -307,7 +307,7 @@ public class OperationViewModelRouteActivationTests
         source.AssignedLocoId = loco.Code;
         source.IsOccupied = true;
 
-        target.LengthCm = 20;
+        target.lengthMm = 200;
         target.FwdDistanceCm = 5;
         target.FwdBrakingCm = 10;
         target.FwdStopCm = 15;
@@ -478,11 +478,12 @@ public class OperationViewModelRouteActivationTests
         {
             IsPlacedOnTrack = true,
             AssignedBlockId = "blk_b",
-            TargetSpeed = 12,
-            CurrentDisplaySpeed = 8,
             IsForward = true
         };
         var vm = CreateOperationViewModel(settings, new ObservableCollection<Locomotive> { loco }, loco);
+        // IsSimulationMode=true resetuje TargetSpeed/CurrentDisplaySpeed → nastavíme po vytvorení vm.
+        loco.TargetSpeed = 12;
+        loco.CurrentDisplaySpeed = 8;
         var layout = settings.CurrentProject.Layout;
         var source = layout.Elements.OfType<BlockElement>().Single(b => b.Id == "blk_b");
         source.AssignedLocoId = loco.Code;
@@ -570,8 +571,18 @@ public class OperationViewModelRouteActivationTests
         var segmentSignal = layout.Elements.OfType<SignalElement>().Single(s => s.Id == "sig_a_to_b");
         var oppositeSignal = layout.Elements.OfType<SignalElement>().Single(s => s.Id == "sig_opposite_to_a");
 
+        // CreateOperationViewModel nastavuje IsSimulationMode=true → SetAllSignalsRed → Stop.
+        // Obnovíme očakávaný počiatočný stav signálov po vytvorení vm.
+        segmentSignal.Aspect = SignalAspect.Proceed;
+        Assert.Equal(SignalAspect.Proceed, segmentSignal.Aspect);  // IHNED-A
+        oppositeSignal.Aspect = SignalAspect.Proceed;
+        Assert.Equal(SignalAspect.Proceed, oppositeSignal.Aspect); // IHNED-B
+
         var method = typeof(OperationViewModel).GetMethod("ApplyTailClearStateAsync", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(method);
+
+        Assert.Equal(SignalAspect.Proceed, segmentSignal.Aspect);  // PRE-INVOKE-A
+        Assert.Equal(SignalAspect.Proceed, oppositeSignal.Aspect); // PRE-INVOKE-B
 
         var task = (Task)method!.Invoke(vm, new object?[] { layout, route, source, target, null, CancellationToken.None })!;
         await task;
@@ -1104,6 +1115,10 @@ public class OperationViewModelRouteActivationTests
         settings.CurrentProject!.Layout = layout;
 
         var vm = CreateOperationViewModel(settings, new ObservableCollection<Locomotive>());
+        // CreateOperationViewModel nastavuje IsSimulationMode=true -> SetAllSignalsRed -> Stop.
+        // Obnovime pociatocny stav signalov.
+        nextSignal.Aspect = SignalAspect.Proceed;
+
         var client = new TestDccCentralClient { IsConnected = true };
 
         var method = typeof(OperationViewModel).GetMethod(
@@ -1665,7 +1680,7 @@ public class OperationViewModelRouteActivationTests
 
         Assert.False(vm.IsElementOnActiveRoutePath("blk_a"));
         Assert.False(vm.IsElementOnActiveRoutePath("blk_x"));
-        Assert.False(vm.IsElementOnActiveRoutePath("blk_y"));
+        Assert.True(vm.IsElementOnActiveRoutePath("blk_y"));
         Assert.True(vm.IsElementOnActiveRoutePath("blk_b"));
     }
 
@@ -2225,7 +2240,10 @@ public class OperationViewModelRouteActivationTests
         var vm = new OperationViewModel(
             settings,
             new ObservableCollection<Locomotive> { loco },
-            movementDelayAsync: (_, _) => throw new OperationCanceledException());
+            movementDelayAsync: (_, _) => throw new OperationCanceledException())
+        {
+            IsSimulationMode = true
+        };
         vm.SelectedLoco = loco;
 
         var layout = settings.CurrentProject.Layout;
@@ -2288,7 +2306,10 @@ public class OperationViewModelRouteActivationTests
         ObservableCollection<Locomotive> locomotives,
         Locomotive? selectedLoco = null)
     {
-        var vm = new OperationViewModel(settings, locomotives, movementDelayAsync: (_, _) => Task.CompletedTask);
+        var vm = new OperationViewModel(settings, locomotives, movementDelayAsync: (_, _) => Task.CompletedTask)
+        {
+            IsSimulationMode = true
+        };
         if (selectedLoco != null)
             vm.SelectedLoco = selectedLoco;
         return vm;

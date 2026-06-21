@@ -131,9 +131,15 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         _remoteEp = new IPEndPoint(ip, port);
 
-        // Handshake cez dočasný socket (samostatné ReceiveAsync). z21 normálne odpovedá v < 50 ms,
-        // krátky timeout drasticky zrýchli prvý úspešný connect.
-        var serial = await TryGetSerialOnceAsync(_remoteEp, ct, timeoutMs: 600);
+        // Handshake cez dočasný socket. z21 normálne odpovedá v < 50 ms;
+// pri zaťažení siete môže prvý paket prísť neskôr — skúsime 3x.
+        uint? serial = null;
+        for (int attempt = 0; attempt < 3 && !serial.HasValue; attempt++)
+        {
+            if (attempt > 0)
+                await Task.Delay(300, ct).ConfigureAwait(false);
+            serial = await TryGetSerialOnceAsync(_remoteEp, ct, timeoutMs: 600);
+        }
         if (!serial.HasValue)
         {
             _remoteEp = null;

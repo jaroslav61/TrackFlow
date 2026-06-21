@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using TrackFlow.Models.Layout;
@@ -14,7 +14,7 @@ public sealed class BlockLengthPersistenceTests
     public void New_Block_Default_Length_Is_Zero()
     {
         var block = new BlockElement();
-        Assert.Equal(0, block.LengthCm);
+        Assert.Equal(0, block.lengthMm);
     }
 
     [Fact]
@@ -23,14 +23,14 @@ public sealed class BlockLengthPersistenceTests
         var block = new BlockElement { MarkerKey = "Block", Label = "B1" };
         var vm = new BlockPropertiesViewModel(block);
 
-        vm.LengthCm = 123;
+        vm.LengthMm = 1230;
         vm.SaveCommand.Execute(null);
 
-        Assert.Equal(123, block.LengthCm);
+        Assert.Equal(1230, block.lengthMm);
     }
 
     [Fact]
-    public void Save_And_Reload_Project_Preserves_Block_LengthCm()
+    public void Save_And_Reload_Project_Preserves_Block_LengthMm()
     {
         var projectPath = Path.Combine(Path.GetTempPath(), $"trackflow-project-{Guid.NewGuid():N}.json");
 
@@ -46,7 +46,7 @@ public sealed class BlockLengthPersistenceTests
                 Label = "Blok 1",
                 X = 100,
                 Y = 200,
-                LengthCm = 321,
+                lengthMm = 3210,
                 BlockLengthCells = 6,
             });
 
@@ -57,7 +57,7 @@ public sealed class BlockLengthPersistenceTests
             reloaded.OpenProject(projectPath);
 
             var loadedBlock = reloaded.CurrentProject!.Layout.Elements.OfType<BlockElement>().Single();
-            Assert.Equal(321, loadedBlock.LengthCm);
+            Assert.Equal(3210, loadedBlock.lengthMm);
         }
         finally
         {
@@ -66,4 +66,3 @@ public sealed class BlockLengthPersistenceTests
         }
     }
 }
-

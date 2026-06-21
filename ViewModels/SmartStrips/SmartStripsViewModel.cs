@@ -71,6 +71,7 @@ public partial class SmartStripsViewModel : ObservableObject
                 loco.IsPlacedOnTrack = false;
                 loco.AssignedBlockId = null;
                 loco.IsActive = false; // vrátiť opacity späť
+                ActiveLocomotives.Remove(loco);
             }
         }
 
@@ -81,6 +82,8 @@ public partial class SmartStripsViewModel : ObservableObject
             target.IsPlacedOnTrack = true;
             target.AssignedBlockId = block.Id;
             target.IsActive = true; // okamžitá opacity 100 v Smart páse
+            if (!ActiveLocomotives.Contains(target))
+                ActiveLocomotives.Add(target);
         }
     }
 
@@ -121,7 +124,7 @@ public partial class SmartStripsViewModel : ObservableObject
         // Maintain ActiveLocomotives collection
         if (loco.IsActive)
         {
-            if (!ActiveLocomotives.Contains(loco))
+            if (loco.IsPlacedOnTrack && !ActiveLocomotives.Contains(loco))
                 ActiveLocomotives.Add(loco); // add to end
 
             // Move loco to position after existing active locos to preserve activation order
@@ -597,7 +600,7 @@ public partial class SmartStripsViewModel : ObservableObject
             // Aktivovať všetky lokomotívy v blokoch — vyčistiť ActiveLocomotives a pridať len tie v blokoch
             ActiveLocomotives.Clear();
             var activeCountBefore = Locomotives.Count(l => l.IsActive);
-            foreach (var loco in Locomotives.Where(l => assignedIds.Contains(l.Code)).ToList())
+            foreach (var loco in Locomotives.Where(l => assignedIds.Contains(l.Code) || l.IsPlacedOnTrack).ToList())
             {
                 loco.IsActive = true;
                 ActiveLocomotives.Add(loco);

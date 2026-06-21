@@ -220,6 +220,7 @@
               <StackPanel Grid.Column="0">
                 <HeaderedContentControl Classes="gb" Header="Indikátory">
                   <StackPanel Spacing="5" Margin="0,12,0,2">
+                    <StackPanel Spacing="4">
                     <ComboBox Name="IndicatorTypeComboBox" 
                               Height="26" 
                               HorizontalAlignment="Stretch" 
@@ -245,6 +246,12 @@
                         </StackPanel>
                       </ComboBoxItem>
                     </ComboBox>
+                    </StackPanel>
+                    <Button Content="Odstraniť indikátor"
+                            Command="{Binding DeleteCurrentIndicatorCommand}"
+                            Background="#C62828" Foreground="White"
+                            HorizontalAlignment="Stretch" Height="28"
+                            IsEnabled="{Binding HasIndicators}"/>
                   </StackPanel>
                 </HeaderedContentControl>
 

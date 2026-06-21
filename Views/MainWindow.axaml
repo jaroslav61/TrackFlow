@@ -6,7 +6,7 @@
         xmlns:smart="clr-namespace:TrackFlow.Views.SmartStrips"
         xmlns:views="clr-namespace:TrackFlow.Views"
         xmlns:m="clr-namespace:TrackFlow.Models"
-	x:Class="TrackFlow.Views.MainWindow"
+		x:Class="TrackFlow.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
 		x:Name="RootWindow"
 		Title="{Binding WindowTitle}"

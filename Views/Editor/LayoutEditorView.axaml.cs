@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
@@ -1975,6 +1975,23 @@ public partial class LayoutEditorView : UserControl
             var propsItem = MakeItem(vm.PropertiesMenuText, "prop.png", vm.ShowElementPropertiesCommand);
             propsItem.IsEnabled = hasProperties;
             menu.Items.Add(propsItem);
+
+            // Odstraniť lokomotívu — len pre blok s priradenou lokomotívou
+            if (element is TrackFlow.Models.Layout.BlockElement blockEl
+                && !string.IsNullOrWhiteSpace(blockEl.AssignedLocoId))
+            {
+                menu.Items.Add(new Separator());
+                var removeLocoItem = MakeItem("Odstraniť lokomotívu", "delete.png");
+                removeLocoItem.Click += (_, _) =>
+                {
+                    blockEl.AssignedLocoId = null;
+                    blockEl.AssignedLocoIsForward = true;
+                    blockEl.IsOccupied = false;
+                    vm.RequestBlockRepaint?.Invoke(blockEl);
+                    vm.CaptureUndoCheckpoint("Odstraniť lokomotívu");
+                };
+                menu.Items.Add(removeLocoItem);
+            }
             menu.Items.Add(new Separator());
         }
 

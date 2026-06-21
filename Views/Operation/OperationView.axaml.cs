@@ -1216,15 +1216,12 @@ public partial class OperationView : UserControl
 
             // Drop sa môže udiať iba v Operation režime → automaticky aktivovať lokomotívu,
             // aby sa okamžite zobrazil Dashboard a v smart páse mala plnú opacity.
-            if (!loco.IsActive)
+            var mainWindow = this.GetVisualRoot() as Window;
+            if (mainWindow?.DataContext is ViewModels.MainWindowViewModel mainVm && mainVm.SmartStrips != null)
             {
-                var mainWindow = this.GetVisualRoot() as Window;
-                if (mainWindow?.DataContext is ViewModels.MainWindowViewModel mainVm && mainVm.SmartStrips != null)
-                {
-                    loco.IsActive = true;
-                    if (!mainVm.SmartStrips.ActiveLocomotives.Contains(loco))
-                        mainVm.SmartStrips.ActiveLocomotives.Add(loco);
-                }
+                loco.IsActive = true;
+                if (!mainVm.SmartStrips.ActiveLocomotives.Contains(loco))
+                    mainVm.SmartStrips.ActiveLocomotives.Add(loco);
             }
 
             e.Handled = true;
@@ -1365,6 +1362,8 @@ public partial class OperationView : UserControl
         }
     }
 
+    private ContextMenu? _openContextMenu;
+
     private System.Threading.Tasks.Task OnBlockPointerPressedAsync(PointerPressedEventArgs e, BlockElement targetBlock)
     {
         if (DataContext is not OperationViewModel vm)
@@ -1380,7 +1379,10 @@ public partial class OperationView : UserControl
         if (!e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
             return System.Threading.Tasks.Task.CompletedTask;
 
+        _openContextMenu?.Close();
         var menu = BuildBlockContextMenu(vm, targetBlock);
+        _openContextMenu = menu;
+        menu.Closed += (_, _) => _openContextMenu = null;
         menu.Open(this);
         e.Handled = true;
         return System.Threading.Tasks.Task.CompletedTask;
@@ -1411,20 +1413,25 @@ public partial class OperationView : UserControl
 
         var moveItem = new MenuItem
         {
-            Header = "Presunut vybranu lokomotivu sem",
+            Header = "Presunúť sem",
             IsEnabled = canMove
         };
         moveItem.Click += async (_, _) => await ExecuteMoveToBlockAsync(vm, targetBlock);
 
-        var targetInfo = new MenuItem
+        var hasLoco = !string.IsNullOrWhiteSpace(targetBlock.AssignedLocoId);
+        var removeLocoItem = new MenuItem
         {
-            Header = $"Cielovy blok: {targetBlock.Label}",
-            IsEnabled = false
+            Header = "Odstraniť lokomotívu",
+            IsEnabled = hasLoco
+        };
+        removeLocoItem.Click += (_, _) =>
+        {
+            vm.RemoveLocomotiveFromBlock(targetBlock.Id);
         };
 
         return new ContextMenu
         {
-            ItemsSource = new object[] { moveItem, targetInfo }
+            ItemsSource = new object[] { moveItem, new Separator(), removeLocoItem }
         };
     }
 

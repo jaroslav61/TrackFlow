@@ -689,23 +689,15 @@
                             </Border>
                             <Border Grid.Row="1" Padding="8">
                                 <!-- ZMENA: Len dva čisté stĺpce. Prvý pre texty vľavo, druhý pohltí zvyšok -->
-                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,16,Auto"
+                                <Grid RowDefinitions="Auto,Auto,Auto,16,Auto"
                                       ColumnDefinitions="Auto, 135, *"
                                       ColumnSpacing="8"
-                                      RowSpacing="4">
+                                      RowSpacing="14">
 
-                                    <!-- ROW 0: Krok dekodéra -->
+                                    <!-- ROW 0: DCC systém -->
                                     <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
-                                               Text="Krok dekodéra:" />
-                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                                              HorizontalAlignment="Stretch"
-                                              ItemsSource="{Binding DecoderTypes}"
-                                              SelectedItem="{Binding SelectedDecoderType, Mode=TwoWay}" />
-
-                                    <!-- ROW 1: DCC systém -->
-                                    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
                                                Text="DCC systém:" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
                                               HorizontalAlignment="Stretch"
                                               ItemsSource="{Binding DigitalSystems}"
                                               SelectedItem="{Binding SelectedDigitalSystem, Mode=TwoWay}"
@@ -718,28 +710,28 @@
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
 
-                                    <!-- ROW 2: Typ dekodéra (výrobca + model) -->
-                                    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
+                                    <!-- ROW 1: Typ dekodéra (výrobca + model) -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
                                                Text="Typ dekodéra:" />
-                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left"
+                                    <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left"
                                               Width="135"
                                               ItemsSource="{Binding DecoderManufacturers}"
                                               SelectedItem="{Binding SelectedDecoderManufacturer, Mode=TwoWay}" />
-                                    <TextBox Grid.Row="2" Grid.Column="2" HorizontalAlignment="Stretch"
+                                    <TextBox Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch"
                                              VerticalAlignment="Center"
                                              FontSize="12"
                                              MaxLength="30"
                                              Text="{Binding DecoderModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Watermark="Model"/>
                                  
-                                    <!-- ROW 3: Rozhranie + Zvuk -->
-                                    <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
+                                    <!-- ROW 2: Rozhranie + Zvuk -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
                                                Text="Rozhranie:"/>
-                                    <ComboBox Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left"
+                                    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left"
                                               Width="135"
                                               ItemsSource="{Binding DecoderInterfaces}"
                                               SelectedItem="{Binding SelectedDecoderInterface, Mode=TwoWay}" />
-                                    <StackPanel Grid.Row="3" Grid.Column="2"
+                                    <StackPanel Grid.Row="2" Grid.Column="2"
                                                 Orientation="Horizontal"
                                                 Spacing="4"
                                                 HorizontalAlignment="Right"
@@ -758,12 +750,12 @@
                                         </Border>
                                     </StackPanel>
 
-                                    <!-- ROW 4: Adresa -->
-                                    <TextBlock Grid.Row="4" Grid.Column="0"
+                                    <!-- ROW 3: Adresa -->
+                                    <TextBlock Grid.Row="3" Grid.Column="0"
                                                VerticalAlignment="Center"
                                                FontSize="12"
                                                Text="Adresa:" />
-                                    <StackPanel Grid.Row="4" Grid.Column="1"
+                                    <StackPanel Grid.Row="3" Grid.Column="1"
                                                 Orientation="Horizontal" Spacing="8"
                                                 VerticalAlignment="Center">
                                         <TextBox x:Name="AddressBox"
@@ -778,9 +770,8 @@
                                                    Foreground="#5B6575" />
                                     </StackPanel>
 
-                                    <!-- ROW 5: Tlačidlá -->
-                                    <!-- ROW 5: Tlačidlá -->
-                                    <UniformGrid Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Rows="1"
+                                    <!-- ROW 4: Tlačidlá -->
+                                    <UniformGrid Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Rows="1"
                                                  HorizontalAlignment="Stretch"
                                                  VerticalAlignment="Bottom"
                                                  Margin="0,15,0,0">
@@ -1454,7 +1445,8 @@
                             <Grid Margin="4"
                                   RowDefinitions="Auto,4,Auto,4,Auto,*,Auto"
                                   Grid.IsSharedSizeScope="True"
-                                  x:CompileBindings="False">
+                                  x:CompileBindings="False"
+                                  IsEnabled="{Binding IsLocomotiveSelected, FallbackValue=False}">
 
                                 <!-- Sekcia 0: Hlavná lišta DCC komunikácie -->
                                 <Border Grid.Row="0" BorderBrush="#C8C8C8" BorderThickness="1">
@@ -1490,7 +1482,7 @@
                                     <!-- Rýchlostný profil (CV1-6) -->
                                     <Border Grid.Column="0" BorderBrush="#C8C8C8" BorderThickness="1"
                                             Background="#F2F6FA"
-                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
                                         <StackPanel>
                                             <Border Background="#E8E8E8" Padding="6,3">
                                                 <StackPanel Orientation="Horizontal" Spacing="0">
@@ -1502,58 +1494,77 @@
                                                 </StackPanel>
                                             </Border>
                                             <Grid Classes="dccDisabledTextContent" Margin="4"
-                                                  RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
-                                                  ColumnDefinitions="156,58,*" ColumnSpacing="4">
-                                                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
-                                                            Spacing="0" Margin="5,2,0,2">
-                                                    <TextBlock Text="Minimálna rýchlosť" FontSize="12"
-                                                               VerticalAlignment="Center" />
-                                                    <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText" Text="CV2" />
-                                                    </Border>
-                                                </StackPanel>
-                                                <NumericUpDown x:Name="MinSpeedCvBox" Grid.Row="0" Grid.Column="1"
-                                                               Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
-                                                               Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                               FormatString="0" />
-                                                <Slider Grid.Row="0" Grid.Column="2" Classes="dccCompactSlider"
-                                                        Minimum="0" Maximum="255" Width="220"
-                                                        Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                        VerticalAlignment="Center" />
+                                                  ColumnDefinitions="*,Auto" ColumnSpacing="8">
 
-                                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
-                                                            Spacing="0" Margin="5,2,0,2">
-                                                    <TextBlock Text="Stredná rýchlosť" FontSize="12" Padding="0,0,12,0"
-                                                               VerticalAlignment="Center" />
-                                                    <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText" Text="CV6" />
-                                                    </Border>
-                                                </StackPanel>
-                                                <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1"
-                                                               Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
-                                                               Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                               FormatString="0" />
-                                                <Slider Grid.Row="1" Grid.Column="2" Classes="dccCompactSlider"
-                                                        Minimum="0" Maximum="255" Width="220"
-                                                        Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                        VerticalAlignment="Center" />
+                                                <!-- Ľavá strana: registre a výsledky -->
+                                                <Grid Grid.Column="0"
+                                                      RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
+                                                      ColumnDefinitions="156,58,70" ColumnSpacing="4">
+                                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                                                                Spacing="0" Margin="5,2,0,2">
+                                                        <TextBlock Text="Minimálna rýchlosť" FontSize="12"
+                                                                   VerticalAlignment="Center" />
+                                                        <Border Classes="dccCvBadge">
+                                                            <TextBlock Classes="dccCvBadgeText" Text="CV2" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <NumericUpDown x:Name="MinSpeedCvBox" Grid.Row="0" Grid.Column="1"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
+                                                                   FormatString="0" />
+                                                    <TextBlock x:Name="MinSpeedKmhText" Grid.Row="0" Grid.Column="2"
+                                                               Text="-- km/h" FontSize="11" Foreground="#888"
+                                                               VerticalAlignment="Center" Margin="4,0,0,0" />
 
-                                                <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal"
-                                                            Spacing="0" Margin="5,2,0,2">
-                                                    <TextBlock Text="Maximálna rýchlosť" FontSize="11"
-                                                               Padding="0,0,5,0" VerticalAlignment="Center" />
-                                                    <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText" Text="CV5" />
-                                                    </Border>
+                                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
+                                                                Spacing="0" Margin="5,2,0,2">
+                                                        <TextBlock Text="Stredná rýchlosť" FontSize="12" Padding="0,0,12,0"
+                                                                   VerticalAlignment="Center" />
+                                                        <Border Classes="dccCvBadge">
+                                                            <TextBlock Classes="dccCvBadgeText" Text="CV6" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
+                                                                   FormatString="0" />
+                                                    <TextBlock x:Name="MidSpeedKmhText" Grid.Row="1" Grid.Column="2"
+                                                               Text="-- km/h" FontSize="11" Foreground="#888"
+                                                               VerticalAlignment="Center" Margin="4,0,0,0" />
+
+                                                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal"
+                                                                Spacing="0" Margin="5,2,0,2">
+                                                        <TextBlock Text="Maximálna rýchlosť" FontSize="11"
+                                                                   Padding="0,0,5,0" VerticalAlignment="Center" />
+                                                        <Border Classes="dccCvBadge">
+                                                            <TextBlock Classes="dccCvBadgeText" Text="CV5" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <NumericUpDown x:Name="MaxSpeedCvBox" Grid.Row="2" Grid.Column="1"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
+                                                                   FormatString="0" />
+                                                    <TextBlock x:Name="MaxSpeedKmhText" Grid.Row="2" Grid.Column="2"
+                                                               Text="-- km/h" FontSize="11" Foreground="#888"
+                                                               VerticalAlignment="Center" Margin="4,0,0,0" />
+                                                </Grid>
+
+                                                <!-- Pravá strana: testovací slider -->
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                                                            HorizontalAlignment="Right" Spacing="2" Margin="8,0,4,0">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <TextBlock Grid.Column="0" Text="VZAD" FontSize="10"
+                                                                   Foreground="#666" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="2" Text="VPRED" FontSize="10"
+                                                                   Foreground="#666" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                    <Slider x:Name="CvTestSlider" Classes="dccCompactSlider"
+                                                            Minimum="-127" Maximum="127" Value="0"
+                                                            Width="160" VerticalAlignment="Center" />
+                                                    <TextBlock Text="Ovládanie testovacej jazdy" FontSize="10"
+                                                               Foreground="#888" HorizontalAlignment="Center" />
                                                 </StackPanel>
-                                                <NumericUpDown x:Name="MaxSpeedCvBox" Grid.Row="2" Grid.Column="1"
-                                                               Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
-                                                               Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                               FormatString="0" />
-                                                <Slider Grid.Row="2" Grid.Column="2" Classes="dccCompactSlider"
-                                                        Minimum="0" Maximum="255" Width="220"
-                                                        Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
-                                                        VerticalAlignment="Center" />
+
                                             </Grid>
                                         </StackPanel>
                                     </Border>
@@ -1561,7 +1572,7 @@
                                     <!-- Dynamika jazdy (CV3, CV4) -->
                                     <Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1"
                                             Background="#F2F6FA"
-                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
                                         <StackPanel>
                                             <Border Background="#E8E8E8" Padding="6,3">
                                                 <StackPanel Orientation="Horizontal" Spacing="0">
@@ -1645,7 +1656,7 @@
                                     <!-- Smer a BEMF regulácia (CV29) -->
                                     <Border Grid.Column="0" Grid.ColumnSpan="3" BorderBrush="#C8C8C8"
                                             BorderThickness="1" Background="#F2F8F4"
-                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}">
+                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
                                         <StackPanel>
                                             <Border Background="#E8E8E8" Padding="6,3">
                                                 <StackPanel Orientation="Horizontal" Spacing="0">

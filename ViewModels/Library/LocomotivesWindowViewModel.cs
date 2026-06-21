@@ -46,9 +46,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     public ObservableCollection<string> LocomotiveTypes { get; } =
         new() { "-- Zvoľte typ lokomotívy --", "Parna", "Dieselová", "Elektricka" };
 
-    public ObservableCollection<string> DecoderTypes { get; } = new()
-        { "-- Zvoľte typ dekodéra --", "DCC 14", "DCC 27", "DCC 28", "DCC 126" };
-
     /// <summary>Jeden riadok v ComboBoxe DCC centrály.</summary>
     public sealed class DccCentralProfileItem
     {
@@ -85,21 +82,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _selectedLocomotiveType, value)) MarkDirtyAndRevalidate();
-        }
-    }
-
-    private string _selectedDecoderType = "-- Zvoľte typ dekodéra --";
-
-    public string SelectedDecoderType
-    {
-        get => _selectedDecoderType;
-        set
-        {
-            if (SetProperty(ref _selectedDecoderType, value))
-            {
-                SpeedEditor.SetDecoderStepRange(value);
-                MarkDirtyAndRevalidate();
-            }
         }
     }
 
@@ -337,11 +319,14 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 _selectedLocomotive.PropertyChanged += OnSelectedLocomotivePropertyChanged;
 
             OnPropertyChanged(nameof(SelectedLocomotive));
+            OnPropertyChanged(nameof(IsLocomotiveSelected));
             OnPropertyChanged(nameof(IsDccProgrammingEnabled));
             OnPropertyChanged(nameof(IsDisableDynamicsForMeasurement));
             OnPropertyChanged(nameof(IsGlobalDccProgrammingAvailable));
         }
     }
+
+    public bool IsLocomotiveSelected => SelectedLocomotive != null;
 
     // Proxy vlastnosti kvôli spätnej kompatibilite v testoch / logike.
     // Stav sa drží výhradne v SelectedLocomotive.
@@ -1250,6 +1235,21 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             ct: ct);
     }
 
+    public async Task WriteAllSpeedCvsAsync(LocoRecord loco, CancellationToken ct = default)
+    {
+        await WriteProgrammingCvAsync(2, loco.MinSpeedCv, ct);
+        await WriteProgrammingCvAsync(6, loco.MidSpeedCv, ct);
+        await WriteProgrammingCvAsync(5, loco.MaxSpeedCv, ct);
+        await WriteProgrammingCvAsync(3, loco.AccelerationCv, ct);
+        await WriteProgrammingCvAsync(4, loco.BrakingCv, ct);
+    }
+    
+    public async Task WriteProgrammingCvsAsync(params (int CvAddress, int Value)[] cvs)
+    {
+        foreach (var (cvAddress, value) in cvs)
+            await WriteProgrammingCvAsync(cvAddress, value);
+    }
+    
     private int ApplyCv29State(int cv29Value)
     {
         if (SelectedLocomotive != null)
@@ -1363,7 +1363,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             WeightT = 0;
             SelectedIcon = IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = LocomotiveTypes[0];
-            SelectedDecoderType = DecoderTypes[0];
             SelectedDigitalSystem = null;
             SelectedEpoch = EpochChoices[0];
             SelectedScale = ScaleChoices[0];
@@ -1392,9 +1391,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             SelectedIcon = IconComboItems.FirstOrDefault(i => i.Name == Selected.IconName) ??
                            IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = Selected.Type ?? LocomotiveTypes[0];
-            lengthMm = Selected.lengthMm;
-            WeightT = Selected.WeightT;
-            SelectedDecoderType = Selected.DecoderType ?? DecoderTypes[0];
             // Nájdeme centrálu podľa ID (primárne) alebo display textu (fallback pre staré dáta).
             SelectedDigitalSystem = ResolveDigitalSystemItem(Selected);
             SelectedEpoch = GetEpochWithYears(Selected.Epoch) ?? EpochChoices[0];
@@ -1818,7 +1814,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     Type         = SelectedLocomotiveType == LocomotiveTypes[0] ? null : SelectedLocomotiveType,
                     lengthMm     = lengthMm,
                     WeightT      = WeightT,
-                    DecoderType  = SelectedDecoderType  == DecoderTypes[0]  ? null : SelectedDecoderType,
+                    DecoderType  = null,
                     AssignedCentralProfileId = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.Id,
                     DccSystemName = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.DisplayText,
                     Epoch        = SelectedEpoch == EpochChoices[0] ? string.Empty : ExtractEpochNumber(SelectedEpoch),
@@ -1868,7 +1864,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 Selected.Type         = SelectedLocomotiveType == LocomotiveTypes[0] ? null : SelectedLocomotiveType;
                 Selected.lengthMm     = lengthMm;
                 Selected.WeightT      = WeightT;
-                Selected.DecoderType  = SelectedDecoderType  == DecoderTypes[0]  ? null : SelectedDecoderType;
+                Selected.DecoderType  = null;
                 Selected.AssignedCentralProfileId = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.Id;
                 Selected.DccSystemName = (SelectedDigitalSystem == null || SelectedDigitalSystem.Id == Guid.Empty) ? null : SelectedDigitalSystem.DisplayText;
                 Selected.Epoch        = SelectedEpoch == EpochChoices[0] ? string.Empty : ExtractEpochNumber(SelectedEpoch);

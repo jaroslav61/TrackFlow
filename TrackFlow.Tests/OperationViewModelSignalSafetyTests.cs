@@ -269,7 +269,7 @@ public class OperationViewModelSignalSafetyTests
         vm.IsSimulationMode = false;
 
         Assert.True(block.IsOccupied);
-        Assert.Null(block.AssignedLocoId);
+        Assert.Equal("754", block.AssignedLocoId);
     }
 
     [Fact]

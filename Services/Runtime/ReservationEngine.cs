@@ -373,7 +373,7 @@ internal sealed class ReservationEngine
         var routeLocoId = _callbacks.ResolvePrimaryRouteLocoId(request.Layout, request.Route);
         var currentReservedLocoId = request.SourceBlock.ReservedLocoId;
         var reservationOwnerRouteId = !string.IsNullOrWhiteSpace(currentReservedLocoId) || request.SourceBlock.IsShadowSet
-            ? _callbacks.ResolveOwningRouteForBlock(request.Layout, request.SourceBlock.Id, null)
+            ? _callbacks.ResolveOwningRouteForBlock(request.Layout, request.SourceBlock.Id, request.Route.Id)
             : null;
         bool reservationOwnedByAnotherRoute =
             !string.IsNullOrWhiteSpace(reservationOwnerRouteId)
@@ -854,7 +854,3 @@ internal sealed class ReservationEngine
         return null;
     }
 }
-
-
-
-

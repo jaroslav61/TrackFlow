@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia;
 using Avalonia.Controls;
@@ -412,6 +412,28 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         Tabs = new MainTabsViewModel(SettingsManager, SmartStrips.Locomotives);
 
         Tabs.Operation.PropertyChanged += OnOperationPropertyChanged;
+        Tabs.Operation.LocomotiveAssignedToBlock += locoCode =>
+        {
+            var loco = SmartStrips.Locomotives.FirstOrDefault(l =>
+                string.Equals(l.Code, locoCode, StringComparison.OrdinalIgnoreCase));
+            if (loco != null)
+            {
+                loco.IsActive = true;
+                if (!SmartStrips.ActiveLocomotives.Contains(loco))
+                    SmartStrips.ActiveLocomotives.Add(loco);
+            }
+        };
+        Tabs.Operation.LocomotiveRemovedFromBlock += locoCode =>
+        {
+            var loco = SmartStrips.Locomotives.FirstOrDefault(l =>
+                string.Equals(l.Code, locoCode, StringComparison.OrdinalIgnoreCase));
+            if (loco != null)
+            {
+                loco.IsPlacedOnTrack = false;
+                loco.IsActive = false;
+                SmartStrips.ActiveLocomotives.Remove(loco);
+            }
+        };
 
         // Napoj ModeManager – lazy wrapper cez lambda, aby fungoval aj keď ShowConfirmDialogAsync
         // je nastavený neskôr z View (po konštruktore).
@@ -1673,6 +1695,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         var syncId = Guid.NewGuid().ToString("N")[..8];
         try
         {
+            // Obnov napájanie koľajiska — Z21 ho po reconnecte vypne
+            if (Dcc.Client is { IsConnected: true })
+                await Dcc.Client.TrackPowerOnAsync();
+
             Log.Information("DCC connect sync {SyncId}: start all-red push", syncId);
             await Tabs.Operation.SetAllSignalsRedAndPushAsync(Dcc.Client, syncId: syncId);
 

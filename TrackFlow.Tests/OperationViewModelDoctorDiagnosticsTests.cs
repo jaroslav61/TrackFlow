@@ -971,7 +971,7 @@ public class OperationViewModelDoctorDiagnosticsTests
                 }
 
                 return Task.CompletedTask;
-            });
+            }) { IsSimulationMode = true };
         vmRef.Value = vm;
 
         AddActiveRoute(vm, blockerRoute.Id);
@@ -1107,7 +1107,7 @@ public class OperationViewModelDoctorDiagnosticsTests
                 }
 
                 return Task.CompletedTask;
-            });
+            }) { IsSimulationMode = true };
         vmRef.Value = vm;
 
         var result = await vm.MoveLocomotiveBetweenBlocksAsync(loco.Code, sourceBlock.Id, sharedBlock.Id, preferredRouteDefinitionId: waitRoute.Id);
@@ -1157,6 +1157,9 @@ public class OperationViewModelDoctorDiagnosticsTests
         InvokeSetTraversalSegmentWindow(vm, layout, oldRoute, oldRoute.BlockIds, leadSegmentIndex: 1);
         InvokeInitializeRouteRuntime(vm, nextRoute.Id, blockA.Id, nextRoute.BlockIds, loco.Code);
         InvokeSetTraversalSegmentWindow(vm, layout, nextRoute, nextRoute.BlockIds, leadSegmentIndex: 0);
+
+        // blockY je CurrentBlockId pre oldRoute runtime → ResolvePrimaryRouteLocoId ho číta.
+        blockY.AssignedLocoId = loco.Code;
 
         sharedX.IsShadowSet = true;
         sharedX.ReservedLocoId = loco.Code;
@@ -1283,7 +1286,7 @@ public class OperationViewModelDoctorDiagnosticsTests
                 }
 
                 return Task.CompletedTask;
-            });
+            }) { IsSimulationMode = true };
         vmRef.Value = vm;
 
         AddActiveRoute(vm, blockerRoute.Id);
@@ -1517,7 +1520,10 @@ public class OperationViewModelDoctorDiagnosticsTests
         var vm = new OperationViewModel(
             settings,
             new ObservableCollection<Locomotive> { loco1, loco2 },
-            movementDelayAsync: (_, _) => Task.CompletedTask);
+            movementDelayAsync: (_, _) => Task.CompletedTask)
+        {
+            IsSimulationMode = true
+        };
 
         var task1 = vm.MoveLocomotiveBetweenBlocksAsync(loco1.Code, source1.Id, target1.Id, preferredRouteDefinitionId: route1.Id);
         var task2 = vm.MoveLocomotiveBetweenBlocksAsync(loco2.Code, source2.Id, target2.Id, preferredRouteDefinitionId: route2.Id);
@@ -1572,7 +1578,10 @@ public class OperationViewModelDoctorDiagnosticsTests
                     }
 
                     return Task.Delay(1, token);
-                });
+                })
+            {
+                IsSimulationMode = true
+            };
 
             AddActiveRoute(vm, blockerRoute.Id);
             SetRouteRuntime(vm, blockerRoute.Id, stateName: "Active", segmentIndex: 0, currentBlockId: blockerSourceBlock.Id);
@@ -1621,7 +1630,10 @@ public class OperationViewModelDoctorDiagnosticsTests
             settings,
             new ObservableCollection<Locomotive> { loco },
             movementDelayAsync: (_, _) => Task.CompletedTask,
-            waitMaxDuration: TimeSpan.Zero);
+            waitMaxDuration: TimeSpan.Zero)
+        {
+            IsSimulationMode = true
+        };
 
         AddActiveRoute(vm, blockerRoute.Id);
         SetRouteRuntime(vm, blockerRoute.Id, stateName: "Active", segmentIndex: 0, currentBlockId: blockerSourceBlock.Id);

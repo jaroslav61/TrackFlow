@@ -28,6 +28,35 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-21 18:00
+===================
+**Oblasť:** `TrackFlow.Tests/OperationViewModelRouteActivationTests.cs`, `TrackFlow.Tests/OperationViewModelDoctorDiagnosticsTests.cs`, `TrackFlow.Tests/ProjectMigrationServiceTests.cs`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`, `Services/Runtime/ReservationEngine.cs`
+**Zmena:** Opravených 5 failujúcich unit testov a 1 produkčný bug v `ReservationEngine`.
+**Dôvod:** Po sérii rozsiahlejších zmien v LIVE režime, OperationMode refaktore a vizualizácii ciest sa nahromadilo 5 testov ktoré failovali — 4 z dôvodu nesprávnych predpokladov v testoch a 1 kvôli reálnemu bugu v produkcii.
+**Riešenie:**
+• `ReservationEngine.ReleaseAsync` — produkčný bug: pri hľadaní vlastníka zdrojového bloku po tail-clear sa `ResolveOwningRouteForBlock` volalo bez `excludeRouteId`, čím vlastná trasa (napr. `r_old`) nachádzala sama seba a nesprávne vyhodnocovala cudziu rezerváciu ako „svoju". Fix: odovzdávať `request.Route.Id` ako `excludeRouteId`, aby sa hľadala len skutočne cudzia trasa.
+• `ApplyTailClearStateAsync_NezhadzujeProtismerneNavestidlo` — signály boli po `CreateOperationViewModel` (ktorý volá `SetAllSignalsRed` cez `IsSimulationMode=true`) nastavené na Stop; opravené nastavením aspektov signálov na Proceed až po vytvorení vm.
+• `UpdateTraversalSignalWindowAsync_Odbocka_NegenerujeSlowCaution` — rovnaká príčina: `nextSignal.Aspect` bol Stop po `SetAllSignalsRed`; obnovené na Proceed po vytvorení vm.
+• `MoveLocomotiveBetweenBlocksAsync_AutoDirectionSaNezmeniAkLocoNieJeZastavena` — `IsSimulationMode=true` resetuje `TargetSpeed` a `CurrentDisplaySpeed` loka; rýchlosti sa teraz nastavujú po vytvorení vm.
+• `TailClear_NezmazeCerstvuRezervaciuNadvaznejTrasy` — `blockY.AssignedLocoId` nebol nastavený, takže `ResolvePrimaryRouteLocoId` vracalo `null` a rezervácia sa nesprávne mazala; opravené nastavením `blockY.AssignedLocoId = loco.Code`.
+• `SetTraversalSegmentWindow_NaFinalnomLeadNeobnoviCelyRoutePath` — očakávaná hodnota `blk_y` zmenená z `False` na `True` (zámer: vizuálna spojnica svietiaca aj pri brzdení v poslednom bloku).
+• `ProjectMigrationServiceTests` — úvodzovky v diagnostických hláseniach návestidiel zosúladené s produkčným formátom (`„Na2"` namiesto `Na2`).
+• `LocomotiveSpeedEditorMarkupTests` — testy rýchlostného grafu aktualizované na fixných 28 bodov (graf nezávisí od `DecoderSteps`).
+**Výsledok:** `Test summary: total: 845; failed: 0; succeeded: 842; skipped: 3`.
+
+## 2026-06-21 10:00
+===================
+**Oblasť:** `ViewModels/Operation/OperationViewModel.cs`, `Services/Runtime/ReservationEngine.cs`, `Services/Signals/SignalSafetyEngine.cs`, `Services/Dcc/Z21Client.cs`, `TrackFlow.Tests/OperationViewModelRouteActivationTests.cs`
+**Zmena:** Implementácia jazdy podľa zvolenej cesty v LIVE režime, oprava zobrazovania dashboardu lokomotívy v Prevádzkovom režime, implementácia 1000 virtuálnych krokov, odstránenie lokomotívy z bloku a vymazanie kontaktného indikátora a markeru vo vlastnostiach bloku.
+**Dôvod:** Séria funkčných a UX rozšírení pre LIVE prevádzku a správu layoutu.
+**Riešenie:**
+• **LIVE jazda podľa cesty** — `MoveLocomotiveBetweenBlocksAsync` dostala non-simulačnú vetvu: odosiela DCC príkazy rýchlosti cez Z21 a polluje S88 senzory v 100ms slučke až kým cieľový blok nie je obsadený a zdrojový uvoľnený.
+• **Dashboard lokomotívy** — opravené podmienky zobrazovania dashboard panela; panel sa zobrazuje len ak je lokomotíva skutočne umiestnená na trati (`IsPlacedOnTrack`).
+• **1000 virtuálnych krokov** — implementácia jemnejšej rýchlostnej stupnice pre simuláciu aj LIVE režim.
+• **Odstránenie lokomotívy z bloku** — pridaná akcia „Odstrániť lokomotívu" do kontextového menu bloku v Prevádzkovom aj Editorovom pohľade; korektne uvoľní priradenie bez narušenia aktívnych ciest.
+• **Vymazanie indikátora a markeru** — vo vlastnostiach bloku je možné odstrániť kontaktný indikátor a vizuálny marker priamo z properties panela.
+**Výsledok:** LIVE režim je funkčný pre senzorami riadenú jazdu; dashboard a kontextové menu sú konzistentné s aktuálnym stavom lokomotívy.
+
 ## 2026-06-14 20:35
 ===================
 **Oblasť:** `ViewModels/Operation/OperationViewModel.cs`, `ViewModels/Editor/LayoutEditorViewModel.cs`, `TrackFlow.Tests/OperationViewModelSignalSafetyTests.cs`

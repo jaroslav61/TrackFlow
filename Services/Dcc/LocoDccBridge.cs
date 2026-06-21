@@ -2,6 +2,8 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using TrackFlow.Models;
 
 namespace TrackFlow.Services.Dcc;
@@ -9,15 +11,18 @@ namespace TrackFlow.Services.Dcc;
 /// <summary>
 /// Sleduje zmeny na runtime kollekcii Locomotive a posiela DCC príkazy cez DccConnectionService.
 /// Registruje sa na PropertyChanged každej aktívnej lokomotívy.
+/// Plynulé zrýchľovanie a brzdenie zabezpečuje LocomotiveMotionController.
 /// </summary>
 public sealed class LocoDccBridge : IDisposable
 {
     private readonly DccConnectionService _dcc;
+    private readonly LocomotiveMotionController _motionController;
     private ObservableCollection<Locomotive>? _locomotives;
 
     public LocoDccBridge(DccConnectionService dcc)
     {
-        _dcc = dcc ?? throw new ArgumentNullException(nameof(dcc));
+        _dcc             = dcc ?? throw new ArgumentNullException(nameof(dcc));
+        _motionController = new LocomotiveMotionController(new DccClientProxy(dcc));
     }
 
     /// <summary>Napojí bridge na kolekciu lokomotív (zvyčajne SmartStripsViewModel.Locomotives).</summary>
@@ -78,17 +83,34 @@ public sealed class LocoDccBridge : IDisposable
             case nameof(Locomotive.CurrentDisplaySpeed):
             case nameof(Locomotive.IsForward):
             case nameof(Locomotive.IsReverse):
-                var speed = Math.Clamp(loco.CurrentDisplaySpeed, 0, 126);
                 var forward = loco.IsForward || (!loco.IsForward && !loco.IsReverse);
 
-                if (_trackStopped && speed > 0)
+                if (loco.Record != null)
                 {
-                    _trackStopped = false;
-                    _ = SendPowerOnThenSpeedAsync(address, speed, forward);
+                    // Plynulý pohyb cez LocomotiveMotionController (0–100 → 0–1000 VirtualSpeed)
+                    var virtualTarget = Math.Clamp(loco.TargetSpeed * 10.0, 0.0, 1000.0);
+
+                    if (_trackStopped && loco.TargetSpeed > 0)
+                    {
+                        _trackStopped = false;
+                        _ = _dcc.Client.TrackPowerOnAsync();
+                    }
+
+                    _motionController.SetTarget(loco.Record, virtualTarget, forward);
                 }
                 else
                 {
-                    _ = _dcc.Client.SetLocomotiveSpeedAsync(address, speed, forward);
+                    // Fallback ak Record nie je k dispozícii – priamy príkaz bez rampingu
+                    var speed = Math.Clamp(loco.CurrentDisplaySpeed, 0, 126);
+                    if (_trackStopped && speed > 0)
+                    {
+                        _trackStopped = false;
+                        _ = SendPowerOnThenSpeedAsync(address, speed, forward);
+                    }
+                    else
+                    {
+                        _ = _dcc.Client.SetLocomotiveSpeedAsync(address, speed, forward);
+                    }
                 }
                 break;
         }
@@ -105,6 +127,12 @@ public sealed class LocoDccBridge : IDisposable
     {
         _trackStopped = true;
         _ = _dcc.Client.EmergencyStopAsync();
+
+        // Zastav aj MotionController pre všetky aktívne lokomotívy
+        if (_locomotives != null)
+            foreach (var loco in _locomotives)
+                if (loco.Record != null)
+                    _ = _motionController.EmergencyStopAsync(loco.Record);
     }
 
     // Stav funkcií: kľúč = "address:fnIndex", hodnota = true/false (zapnutá/vypnutá)
@@ -149,6 +177,44 @@ public sealed class LocoDccBridge : IDisposable
         return state;
     }
 
-    public void Dispose() => Detach();
+    public void Dispose()
+    {
+        Detach();
+        _ = _motionController.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Proxy ktoré vždy deleguje na aktuálny DccConnectionService.Client.
+    /// Zabezpečuje že LocomotiveMotionController používa správneho klienta
+    /// aj po zmene typu centrály.
+    /// </summary>
+    private sealed class DccClientProxy : IDccCentralClient
+    {
+        private readonly DccConnectionService _svc;
+        public DccClientProxy(DccConnectionService svc) => _svc = svc;
+
+        public bool IsConnected => _svc.Client.IsConnected;
+        public uint? SerialNumber => _svc.Client.SerialNumber;
+
+        public Task<bool> ConnectAsync(string host, int port, CancellationToken ct = default)
+            => _svc.Client.ConnectAsync(host, port, ct);
+
+        public void Disconnect() => _svc.Client.Disconnect();
+
+        public Task SetLocomotiveSpeedAsync(int address, int speed, bool forward, CancellationToken ct = default)
+            => _svc.Client.SetLocomotiveSpeedAsync(address, speed, forward, ct);
+
+        public Task SetLocomotiveFunctionAsync(int address, int functionIndex, bool active, CancellationToken ct = default)
+            => _svc.Client.SetLocomotiveFunctionAsync(address, functionIndex, active, ct);
+
+        public Task EmergencyStopAsync(CancellationToken ct = default)
+            => _svc.Client.EmergencyStopAsync(ct);
+
+        public Task TrackPowerOnAsync(CancellationToken ct = default)
+            => _svc.Client.TrackPowerOnAsync(ct);
+
+        public Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default)
+            => _svc.Client.SetTurnoutAsync(address, branch, activate, ct);
+    }
 }
 

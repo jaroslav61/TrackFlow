@@ -611,7 +611,11 @@ public partial class BlockPropertiesViewModel : ObservableObject
     [RelayCommand]
     private void AddMarkerToSelectedIndicator(string markerTypeAndDirection)
     {
-        if (SelectedIndicator == null || !HasIndicators) return;
+        if (!HasIndicators) return;
+        // Ak nie je vybraný indikátor, automaticky vyber prvý
+        if (SelectedIndicator == null)
+            SelectedIndicator = Indicators.FirstOrDefault();
+        if (SelectedIndicator == null) return;
         
         // Parse "FwdDistance" -> Type=Distance, Direction=Forward
         bool isForward = markerTypeAndDirection.StartsWith("Fwd");
@@ -629,6 +633,32 @@ public partial class BlockPropertiesViewModel : ObservableObject
         // Notifikuj UI o zmene markerov
         OnPropertyChanged(nameof(SelectedIndicatorMarkers));
     }
+
+    /// <summary>
+    /// Zmaže vybraný indikátor aj so všetkými jeho markermi
+    /// </summary>
+    [RelayCommand]
+    private void DeleteCurrentIndicator()
+    {
+        if (SelectedIndicator == null) return;
+
+        var toRemove = SelectedIndicator;
+        Indicators.Remove(toRemove);
+        SelectedIndicator = Indicators.FirstOrDefault();
+
+        // Synchronizuj model bloku
+        var indicatorModel = _block.Indicators.FirstOrDefault(i => i.Id == toRemove.Id);
+        if (indicatorModel != null)
+            _block.Indicators.Remove(indicatorModel);
+
+        OnPropertyChanged(nameof(HasIndicators));
+        OnPropertyChanged(nameof(CanAddMarkers));
+        OnPropertyChanged(nameof(AreMarkersEnabled));
+        OnPropertyChanged(nameof(AreMarkerPropertiesEnabled));
+        OnPropertyChanged(nameof(AreSignalAndShuntingEnabled));
+    }
+
+    public bool CanDeleteCurrentIndicator => SelectedIndicator != null;
 
     /// <summary>
     /// Zmaže vybraný marker
@@ -653,7 +683,9 @@ public partial class BlockPropertiesViewModel : ObservableObject
     [RelayCommand]
     private void SelectMarkerInIndicator(IndicatorMarkerViewModel marker)
     {
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"SelectMarkerInIndicator called: marker={marker?.Id}, type={marker?.Type}");
         SelectedMarker = marker;
+        TrackFlow.Services.TrackFlowDoctorService.Instance.Diagnose("MarkerDEBUG", $"After set: SelectedMarker={SelectedMarker?.Id}, AreMarkerPropertiesEnabled={AreMarkerPropertiesEnabled}");
         
         // Notifikuj zmeny enabled/disabled stavov
         OnPropertyChanged(nameof(AreMarkersEnabled));

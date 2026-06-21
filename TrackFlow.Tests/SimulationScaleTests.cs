@@ -56,20 +56,20 @@ public class SimulationScaleTests
     [Fact]
     public void ResolveEffectiveMarkerProfile_InSimulation_MapsMarkersProportionallyToVirtualLength()
     {
-        var targetBlock = new BlockElement { LengthCm = 200 };
+        var targetBlock = new BlockElement { lengthMm = 2000 };
         var rawProfile = CreateMarkerProfile(0, 100, 180);
 
         var effective = ResolveEffectiveMarkerProfile(rawProfile, targetBlock, 2_000, true);
 
         Assert.Equal(0, GetMarkerValue(effective, "DistanceCm"));
-        Assert.Equal(100, GetMarkerValue(effective, "BrakingCm"));
-        Assert.Equal(180, GetMarkerValue(effective, "StopCm"));
+        Assert.Equal(10, GetMarkerValue(effective, "BrakingCm"));
+        Assert.Equal(18, GetMarkerValue(effective, "StopCm"));
     }
 
     [Fact]
     public void ResolveEffectiveMarkerProfile_InSimulation_WithoutBlockLength_ReturnsEmptyProfileForFallback()
     {
-        var targetBlock = new BlockElement { LengthCm = 0 };
+        var targetBlock = new BlockElement { lengthMm = 0 };
         var rawProfile = CreateMarkerProfile(0, 100, 180);
 
         var effective = ResolveEffectiveMarkerProfile(rawProfile, targetBlock, 2_000, true);

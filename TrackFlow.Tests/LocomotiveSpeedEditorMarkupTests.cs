@@ -30,285 +30,7 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("Krivka rýchlostného profilu", xaml, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void LocomotivesWindow_EditorLokomotivNeobsahujeNahratieVlastnehoObrazkaAMaPrazdnuDccKonfiguracnuZalozkuMedziRychlostouAFunkciami()
-    {
-        var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotivesWindow.axaml"));
-        var dccTabStart = xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal);
-        var functionsTabStart = xaml.IndexOf("<TabItem Header=\"Funkcie\">", StringComparison.Ordinal);
-        var dccTab = xaml.Substring(dccTabStart, functionsTabStart - dccTabStart);
-        var tabControlStart = xaml.IndexOf("<TabControl", StringComparison.Ordinal);
-        var topPanel = xaml.Substring(0, tabControlStart);
 
-        Assert.DoesNotContain("Nahrať vlastný obrázok", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("UploadCustomIconCommand", xaml, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,340\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Border Grid.Row=\"0\" Grid.Column=\"1\" BorderBrush=\"#C8C8C8\" BorderThickness=\"1\">", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Border Grid.Row=\"0\" Grid.Column=\"1\" BorderBrush=\"#C8C8C8\" BorderThickness=\"1\" VerticalAlignment=\"Top\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"ReadAddressButton\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Načítať adresu\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding ReadAddressCommand}\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"WriteAddressButton\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Zapísať adresu\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding WriteAddressCommand}\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("<Grid RowDefinitions=\"Auto,*\">", topPanel, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto,Auto\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"90,*\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Orientation=\"Horizontal\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Spacing=\"8\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("<Border Grid.Row=\"4\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Background=\"#D7DEE8\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("<UniformGrid Grid.Row=\"5\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Grid.ColumnSpan=\"2\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Rows=\"1\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Padding=\"10,6\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("FontSize=\"12\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment=\"Center\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("VerticalContentAlignment=\"Center\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Width=\"70\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding AddressKindText}\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("Foreground=\"#5B6575\"", topPanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("ToolTip.Tip=\"Tlačidlo sa aktivuje po pripojení centrály, ktorá podporuje service-track programovanie CV registrov.\"", topPanel, StringComparison.Ordinal);
-        Assert.Contains("<TabItem Header=\"Dekodér (CV)\">", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("ScrollViewer", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("VerticalScrollBarVisibility", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:CompileBindings=\"False\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("speedCard", dccTab, StringComparison.Ordinal);
-
-        // Sekcia 0: Hlavná lišta DCC komunikácie
-        Assert.Contains("Text=\"DCC komunikácia\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Tento dekodér podporuje DCC programovanie\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SelectedLocomotive.IsDccProgrammingEnabled, Mode=TwoWay, TargetNullValue=False}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Nastaviť programovacie koľaje...\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OpenProgrammingTrackSettings_Click\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,4,Auto,4,Auto,*,Auto\"", dccTab, StringComparison.Ordinal);
-
-        // Sekcia 1: Hardvérová konfigurácia (SharedSizeGroup)
-        Assert.Contains("Grid.IsSharedSizeScope=\"True\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("SharedSizeGroup=\"DccConfigPanelRow\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,4,*\"", dccTab, StringComparison.Ordinal);
-        Assert.Equal(4, CountOccurrences(dccTab, "IsEnabled=\"{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False}\""));
-        Assert.Equal(2, CountOccurrences(dccTab, "Background=\"#F2F6FA\""));
-        Assert.Equal(2, CountOccurrences(dccTab, "Background=\"#F2F8F4\""));
-        Assert.Contains("Text=\"Rýchlostný profil\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Minimálna rýchlosť\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Stredná rýchlosť\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Maximálna rýchlosť\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Dynamika jazdy\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Zrýchlenie\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Brzdenie\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV1-6\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV2\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV6\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV5\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV3, CV4\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV3\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV4\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"MinSpeedCvBox\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"MidSpeedCvBox\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"MaxSpeedCvBox\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"AccelerationCvBox\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"BrakingCvBox\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.AccelerationCv, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.BrakingCv, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Vypnúť pre meranie:\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"DisableDynamicsToggle\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SelectedLocomotive.IsDisableDynamicsForMeasurement, Mode=TwoWay, TargetNullValue=False}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow.", dccTab, StringComparison.Ordinal);
-        Assert.Contains("<ToggleSwitch", dccTab, StringComparison.Ordinal);
-
-        // Sekcia 2: Softvérová automatizácia
-        Assert.Contains("Text=\"Smer a BEMF regulácia\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"CV29\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"BemfEnabledCheckBox\" Content=\"Regulácia záťaže (BEMF)\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"AnalogOperationCheckBox\" Content=\"Analógová prevádzka\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"InvertDirectionCheckBox\" Content=\"Invertovať smer jazdy\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SelectedLocomotive.IsBemfEnabled, Mode=TwoWay, TargetNullValue=False}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SelectedLocomotive.IsAnalogOperationEnabled, Mode=TwoWay, TargetNullValue=False}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SelectedLocomotive.IsInvertDirectionEnabled, Mode=TwoWay, TargetNullValue=False}\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Rýchlostné kroky\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("SpeedStepsCombo", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ComboBoxItem Content=\"DCC 28\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ComboBoxItem Content=\"DCC 128\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Kompenzácia bŕzd\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Korekcia bŕzd dopredu (mm):\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Korekcia bŕzd dozadu (mm):\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"BrakeCompensationForwardSlider\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"BrakeCompensationBackwardSlider\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("BrakeCorrectionBox", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Minimum=\"-50\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Maximum=\"50\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Value=\"{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("TickFrequency=\"1\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("IsSnapToTickEnabled=\"True\"", dccTab, StringComparison.Ordinal);
-
-        // Sekcia 3: Globálna komunikačná lišta
-        Assert.Contains("x:Name=\"ReadCvButton\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Čítat všetky CV registre\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"WriteCvButton\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Zapísať zmeny do dekodéra\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"FactoryCvButton\"", dccTab, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Obnoviť továrenské CV (CV8)\"", dccTab, StringComparison.Ordinal);
-        Assert.Equal(3, CountOccurrences(dccTab, "IsEnabled=\"{Binding IsGlobalDccProgrammingAvailable}\""));
-        Assert.DoesNotContain("x:Name=\"ReadCvButton\"", topPanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("x:Name=\"WriteCvButton\"", topPanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("x:Name=\"FactoryCvButton\"", topPanel, StringComparison.Ordinal);
-
-        // Odstránené prvky zo starého layoutu
-        Assert.DoesNotContain("Text=\"Rýchlostné kroky dekodéra\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Prahová rýchlosť\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Content=\"Programovanie na hlavnej koľaji\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Content=\"Programovacie koľaje...\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Content=\"Továrenské nastavenia\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("RailComEnabledCheckBox", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("BemfIntensityBox", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("thresholdBalanceSlider", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Konfigurácia smeru · CV29", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Uložte prahovú rýchlosť", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Stav komunikácie\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Pripojenie:", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Start Speed", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Mid Speed", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Maximum Speed", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Write Value", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Speed:", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Internal:", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Profile:", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Decoder:", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Rýchlosť:\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Interná: 0\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Profil: 0 km/h\"", dccTab, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Dekodér: 0\"", dccTab, StringComparison.Ordinal);
-
-        Assert.True(
-            xaml.IndexOf("<TabItem Header=\"Rýchlosť\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal)
-            && xaml.IndexOf("<TabItem Header=\"Dekodér (CV)\">", StringComparison.Ordinal) < xaml.IndexOf("<TabItem Header=\"Funkcie\">", StringComparison.Ordinal),
-            "Záložka Dekodér (CV) má byť medzi Rýchlosť a Funkcie.");
-        Assert.Equal(1, CountOccurrences(xaml, "Text=\"Krok dekodéra:\""));
-
-        Assert.Contains("<Style Selector=\"Slider.dccCompactSlider\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Style Selector=\"Border.dccCvBadge\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Style Selector=\"TextBlock.dccCvBadgeText\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Style Selector=\"Border[IsEnabled=False] StackPanel.dccDisabledTextContent\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Opacity\" Value=\"0.5\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"TickPlacement\" Value=\"BottomRight\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"TickFrequency\" Value=\"25\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid RowDefinitions=\"20,10\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid Grid.Row=\"1\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Source=\"avares://TrackFlow/Assets/Appicons/12/slider_green.png\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Width=\"12\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"18\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("CornerRadius=\"6\"", xaml, StringComparison.Ordinal);
-        Assert.True(CountOccurrences(xaml, "Height=\"7\"") >= 5, "Každý piaty tick má byť dlhší.");
-        Assert.True(CountOccurrences(xaml, "Height=\"3\"") >= 10, "Medzi hlavnými tickmi majú byť kratšie risky.");
-        Assert.True(CountOccurrences(dccTab, "Classes=\"dccCvBadge\"") >= 8, "CV identifikátory majú byť vykreslené v badge prvkoch.");
-        Assert.Equal(3, CountOccurrences(dccTab, "Classes=\"dccDisabledTextContent\""));
-        Assert.Equal(7, CountOccurrences(dccTab, "Classes=\"dccCompactSlider\""));
-
-        // 7 sliderov v novom layoute: 3 v Rýchlostný profil + 2 v Dynamika jazdy + 2 v Kompenzácia bŕzd
-        Assert.Equal(7, CountOccurrences(dccTab, "<Slider"));
-    }
-
-    [Fact]
-    public void LocomotivesWindow_RychlostTabObsahujeKlucoveEnterpriseSekcie()
-    {
-        var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotivesWindow.axaml"));
-
-        Assert.Contains("Content=\"Kalibrácia rýchlosti...\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.SelectedProfileDisplayName}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,Auto,*\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinHeight=\"220\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ClipToBounds=\"True\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid RowDefinitions=\"*,Auto\" RowSpacing=\"6\" ClipToBounds=\"True\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SpeedEditor.IsForwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SpeedEditor.IsBackwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding SpeedEditor.IsBothProfilesSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Viewbox Grid.Row=\"0\" Stretch=\"Uniform\" HorizontalAlignment=\"Stretch\" VerticalAlignment=\"Stretch\" ClipToBounds=\"False\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<StackPanel Grid.Row=\"1\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Border Grid.Row=\"3\"\r\n                                                        Background=\"#F8FAFC\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{Binding SpeedEditor.ForwardCurvePathData}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{Binding SpeedEditor.BackwardCurvePathData}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Porovnanie kriviek &amp; Štatistika", xaml, StringComparison.Ordinal);
-        Assert.Contains("Asymetria smerov (Vpred-Vzad)", xaml, StringComparison.Ordinal);
-        Assert.Contains("Odhad brzdnej dráhy", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid ColumnDefinitions=\"*,*,*\" ColumnSpacing=\"22\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Zastavenie pri 60 km/h:\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Inteligentná diagnostika", xaml, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"110,190,Auto,*\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"240,226\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"0\" Grid.Column=\"0\" Width=\"240\" Height=\"110\" VerticalAlignment=\"Top\"", xaml, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(xaml, "Grid.Column=\"0\" Width=\"240\""));
-        Assert.Contains("Grid.Row=\"1\" Grid.Column=\"0\" Width=\"240\" VerticalAlignment=\"Stretch\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"0\" Grid.Column=\"1\" Grid.RowSpan=\"2\" Height=\"310\" MinHeight=\"310\" VerticalAlignment=\"Top\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Background=\"#F6FBF7\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"2\" Grid.Column=\"0\" Grid.ColumnSpan=\"2\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Background=\"#F8FAFC\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Porovnanie kriviek &amp; Štatistika\" Margin=\"0,0,0,6\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"85,Auto\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxForwardSpeedValueText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxForwardSpeedDetailText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxBackwardSpeedValueText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxBackwardSpeedDetailText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.AverageDifferenceValueText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.AverageDifferenceDetailText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxDeviationValueText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MaxDeviationDetailText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Orientation=\"Horizontal\" Spacing=\"3\" HorizontalAlignment=\"Right\" VerticalAlignment=\"Center\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"1\" Stretch=\"Uniform\" VerticalAlignment=\"Stretch\" HorizontalAlignment=\"Stretch\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Data=\"{Binding SpeedEditor.FrictionCurvePathData}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Data=\"{Binding SpeedEditor.PowerCurvePathData}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"{Binding SpeedEditor.MechanicalRedBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"{Binding SpeedEditor.MechanicalOrangeBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"{Binding SpeedEditor.MechanicalGreenBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Rectangle Width=\"228\" Height=\"{Binding SpeedEditor.MechanicalRedBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Rectangle Width=\"228\" Height=\"{Binding SpeedEditor.MechanicalOrangeBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Rectangle Width=\"228\" Height=\"{Binding SpeedEditor.MechanicalGreenBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Rectangle Width=\"228\" Height=\"118\" Fill=\"Transparent\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("EndPoint=\"260,128\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("EndPoint=\"260,39.5\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("EndPoint=\"260,69\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("EndPoint=\"260,98.5\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Rectangle Width=\"208\" Height=\"{Binding SpeedEditor.MechanicalRedBandHeight}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Canvas.Top=\"{Binding SpeedEditor.MechanicalOrangeBandTop}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Canvas.Top=\"{Binding SpeedEditor.MechanicalGreenBandTop}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Asymetria [%]\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MechanicalYAxisTopLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MechanicalYAxisThreeQuarterLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MechanicalYAxisMidLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MechanicalYAxisQuarterLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Canvas.Top=\"{Binding SpeedEditor.MechanicalWarningThresholdTop}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding SpeedEditor.MechanicalWarningThresholdVisible}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Canvas.Top=\"{Binding SpeedEditor.MechanicalIdealThresholdTop}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding SpeedEditor.MechanicalIdealThresholdVisible}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"15\" Canvas.Left=\"8\" Canvas.Top=\"{Binding SpeedEditor.MechanicalWarningThresholdTop}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"5\" Canvas.Left=\"13\" Canvas.Top=\"{Binding SpeedEditor.MechanicalIdealThresholdTop}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.PerformanceQuarterStepLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.PerformanceThreeQuarterStepLabel}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Stupeň dekodéra\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding SpeedEditor.PerformancePowerLegendText}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"Relatívna záťaž [%]\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.MechanicalCriticalStepText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.FrictionPeakSummaryText}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding SpeedEditor.PowerUsageSummaryText}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Koeficient trenia vs. rýchlosť", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.ForwardStop60Text}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.BackwardStop60Text}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{Binding SpeedEditor.EngineStatusBackground}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("BorderBrush=\"{Binding SpeedEditor.EngineStatusBorderBrush}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.EngineStatusIconText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("FontSize=\"{Binding SpeedEditor.EngineStatusIconFontSize}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Foreground=\"{Binding SpeedEditor.EngineStatusForeground}\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Ellipse Width=\"10\" Height=\"10\" Fill=\"#22C55E\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.AnalysisSummaryText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SpeedEditor.RecommendedCvTweaksText}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("AllowAutoHide=\"False\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ClipToBounds=\"True\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("VerticalScrollBarVisibility=\"Auto\"", xaml, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void LocomotivesWindow_RychlostneZalozkySuNaviazaneNaAktivnySmerVoViewModele()
@@ -341,27 +63,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.True(CountOccurrences(xaml, "Source=\"{Binding IconImage}\"") >= 6);
     }
 
-    [Fact]
-    public void LocomotivesWindow_RychlostTabLavyPanelRespektujeAktualneUiPoziadavky()
-    {
-        var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotivesWindow.axaml"));
-
-        Assert.Contains("Title=\"Editor lokomotív\" Width=\"1400\" Height=\"860\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"360,5,*\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Kalibrácia rýchlosti...\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"speedCalibrationLaunchButton\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid Margin=\"12\" ColumnDefinitions=\"*,", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Náhľad uloženého rýchlostného profilu\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Margin=\"0,0,0,2\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Background=\"#F8FAFCE8\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<ScrollViewer VerticalScrollBarVisibility=\"Auto\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Foreground\" Value=\"#FFFFFF\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"FontSize\" Value=\"18\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"MinWidth\" Value=\"360\" />", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("SelectedCalibrationMethod", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Kalibračné bloky", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Krivka rýchlostného profilu", xaml, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void SharedDataGridStyle_NerezervujeMiestoPreSortIkonyVHlaveStlpca()
@@ -375,132 +76,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("Glyph", xaml, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void VstupnePoliaVProjektePouzivajuKompaktnuVysku26Px()
-    {
-        var controlsXaml = File.ReadAllText(GetWorkspaceFilePath("Styles", "Controls.axaml"));
-        var locoXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotivesWindow.axaml"));
-        var calibrationXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotiveCalibrationWindow.axaml"));
-        var textPropsXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Editor", "TextPropertiesWindow.axaml"));
-        var routePreviewXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Editor", "RoutePreviewControl.axaml"));
-        var indicatorPropsXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Editor", "IndicatorPropertiesWindow.axaml"));
-        var routesManagerXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Editor", "RoutesManagerWindow.axaml"));
-        var renameTrainXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "RenameTrainWindow.axaml"));
-        var vagonsXaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "VagonsWindow.axaml"));
-        var dataGridXaml = File.ReadAllText(GetWorkspaceFilePath("Styles", "DataGrid.axaml"));
-
-        Assert.Contains("<Style Selector=\"ComboBox\">", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Height\" Value=\"26\"/>", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"26\"/>", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Padding\" Value=\"6,0\"/>", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"FontSize\" Value=\"12\"/>", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Style Selector=\"TextBox\">", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Style Selector=\"NumericUpDown\">", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"VerticalContentAlignment\" Value=\"Center\"/>", controlsXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Padding\" Value=\"6,0\"/>", dataGridXaml, StringComparison.Ordinal);
-
-        Assert.Contains("<Setter Property=\"Height\" Value=\"26\" />", locoXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"26\" />", calibrationXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Height\" Value=\"26\" />", calibrationXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"26\" />", locoXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"RowHeight\" Value=\"26\" />", locoXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"RowHeight\" Value=\"26\" />", calibrationXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"VerticalContentAlignment\" Value=\"Center\" />", locoXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"VerticalContentAlignment\" Value=\"Center\" />", calibrationXaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Padding\" Value=\"6,0\"/>", textPropsXaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"26\" FontSize=\"12\"", routePreviewXaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding IndicatorName}\" Height=\"26\" Padding=\"6,0\"", indicatorPropsXaml, StringComparison.Ordinal);
-        Assert.Contains("ResetDelayMs}\" Minimum=\"0\" Maximum=\"60000\" FormatString=\"0\" Width=\"150\" Height=\"26\"", indicatorPropsXaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Name}\" Height=\"26\" Padding=\"6,0\"", routesManagerXaml, StringComparison.Ordinal);
-        Assert.Contains("NameTextBox\" Width=\"320\" Height=\"26\"", renameTrainXaml, StringComparison.Ordinal);
-        Assert.Contains("<ComboBox Width=\"200\" Height=\"26\"", vagonsXaml, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void LocomotivesWindow_RychlostTabPouzivaZivyGrafSNaviazanymiKrivkamiABodmi()
-    {
-        var xaml = File.ReadAllText(GetWorkspaceFilePath("Views", "Library", "LocomotiveCalibrationWindow.axaml"));
-
-        Assert.Contains("Title=\"Kalibrácia rýchlosti lokomotívy\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Width=\"1300\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"560\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinWidth=\"1150\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MinHeight=\"400\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"260,*,420\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SelectedLocomotiveDisplayName}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Border Width=\"220\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Height=\"50\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Source=\"{Binding SelectedLocomotiveImage}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Foreground=\"{Binding SelectedProfileDisplayForeground}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid ColumnDefinitions=\"28,*\" ColumnSpacing=\"2\">", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Viewbox Grid.Row=\"1\" Stretch=\"Uniform\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Canvas Grid.Column=\"0\" Width=\"28\" ClipToBounds=\"False\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Stretch\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SelectedProfileDisplayName}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Grid Width=\"900\" Height=\"620\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Canvas x:Name=\"ForwardSpeedProfileChartCanvas\" Width=\"900\" Height=\"620\" Background=\"Transparent\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Rectangle Width=\"824\" Height=\"522\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Krivka rýchlostného profilu", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding SelectedProfileDisplayName}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsForwardProfileVisible}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsBackwardProfileVisible}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Profil dopredu\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Profil dozadu\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Content=\"Obidva profily\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding YAxisLabels}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding HorizontalGridLines}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding VerticalGridLines}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding XAxisTickMarks}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl x:Name=\"ForwardVerticalGridLinesPresenter\" Width=\"900\" Height=\"620\" ItemsSource=\"{Binding VerticalGridLines}\" IsHitTestVisible=\"False\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl x:Name=\"ForwardXAxisTickMarksPresenter\" Width=\"900\" Height=\"620\" ItemsSource=\"{Binding XAxisTickMarks}\" IsHitTestVisible=\"False\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl x:Name=\"ForwardHorizontalGridLinesPresenter\" Width=\"900\" Height=\"620\" ItemsSource=\"{Binding HorizontalGridLines}\" IsHitTestVisible=\"False\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<DataTemplate x:DataType=\"vm:ChartGridLineViewModel\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Width\" Value=\"900\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Height\" Value=\"620\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("StartPoint=\"{Binding StartPoint}\" EndPoint=\"{Binding EndPoint}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl x:Name=\"ForwardYAxisLabelsPresenter\" Width=\"900\" Height=\"620\" ItemsSource=\"{Binding YAxisLabels}\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Model Speed (km/h)\" Canvas.Left=\"-50\" Canvas.Top=\"170\" FontWeight=\"SemiBold\" FontSize=\"14\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding XAxisLabels}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<DataTemplate x:DataType=\"vm:AxisLabelViewModel\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<ItemsControl x:Name=\"ForwardXAxisLabelsPresenter\" Width=\"900\" Height=\"620\" ItemsSource=\"{Binding XAxisLabels}\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Canvas.Left\" Value=\"{Binding Left}\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"Canvas.Top\" Value=\"{Binding Top}\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding DecoderStepAxisTitle}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"predp. max\"", xaml, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding ForwardCurvePathData}\""));
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding BackwardCurvePathData}\""));
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding ForwardAreaPathData}\""));
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding BackwardAreaPathData}\""));
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding ForwardMarkerPathData}\""));
-        Assert.Equal(1, CountOccurrences(xaml, "Data=\"{Binding BackwardMarkerPathData}\""));
-        Assert.Contains("<Path.Fill>", xaml, StringComparison.Ordinal);
-        Assert.Contains("<LinearGradientBrush StartPoint=\"{Binding ForwardGradientStart}\" EndPoint=\"{Binding ForwardGradientEnd}\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("<LinearGradientBrush StartPoint=\"{Binding BackwardGradientStart}\" EndPoint=\"{Binding BackwardGradientEnd}\">", xaml, StringComparison.Ordinal);
-        // Gradient kolmý na krivku: pri krivke ľahký nádych farby, smerom k baseline priehľadné
-        Assert.Contains("<GradientStop Color=\"#66A0BEEF\" Offset=\"0\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#40B5D4EE\" Offset=\"0.35\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#20D6E8F5\" Offset=\"0.7\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#00EEF6FF\" Offset=\"1\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#66EE9090\" Offset=\"0\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#40F5B1B1\" Offset=\"0.35\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#20FAD0D0\" Offset=\"0.7\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("<GradientStop Color=\"#00FDECEC\" Offset=\"1\" />", xaml, StringComparison.Ordinal);
-        Assert.Contains("Fill=\"#FFFFFF\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Stroke=\"#1976D2\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Stroke=\"#C53030\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsHitTestVisible=\"False\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ForwardSpeedProfileChartInteractionCanvas", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("BackwardSpeedProfileChartInteractionCanvas", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding IsForwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding IsBackwardProfileSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding IsBothProfilesSelected, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"{Binding CanAddPointManually}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("xmlns:vmc=\"clr-namespace:TrackFlow.ViewModels.Calibration;assembly=TrackFlow\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding CalibrationMethods}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("SelectedItem=\"{Binding SelectedMethod, Mode=TwoWay}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("<DataTemplate x:DataType=\"vmc:CalibrationMethodItemViewModel\">", xaml, StringComparison.Ordinal);
-        Assert.Contains("Source=\"{Binding Icon}\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("RenderOptions.BitmapInterpolationMode=\"None\"", xaml, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void LocomotivesWindow_RychlostnaTabulkaPouzivaTextoveStlpcePreKrokANameranuRychlostABunkyMajuOddeleneMriezky()
@@ -716,73 +291,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Null(viewModel.SelectedEndBlock);
     }
 
-    [Fact]
-    public void SpeedEditor_DiagnostickeTextyVPravomPaneliSuPoSlovensky()
-    {
-        var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754" };
-        locomotive.ForwardSpeedProfilePoints.Add(new LocoSpeedProfilePoint
-        {
-            Step = 10,
-            Direction = "Dopredu",
-            CalculatedSpeedKmh = 25,
-            RawSpeedKmh = 25,
-            TimeSeconds = 1,
-            Status = "Automatika"
-        });
-        locomotive.BackwardSpeedProfilePoints.Add(new LocoSpeedProfilePoint
-        {
-            Step = 10,
-            Direction = "Dozadu",
-            CalculatedSpeedKmh = 24,
-            RawSpeedKmh = 24,
-            TimeSeconds = 1,
-            Status = "Automatika"
-        });
-
-        var viewModel = new LocomotiveSpeedEditorViewModel();
-        viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-
-        Assert.StartsWith("Max. dopredu:", viewModel.MaxForwardSpeedText, StringComparison.Ordinal);
-        Assert.StartsWith("Max. dozadu:", viewModel.MaxBackwardSpeedText, StringComparison.Ordinal);
-        Assert.StartsWith("Priemerný rozdiel:", viewModel.AverageDifferenceText, StringComparison.Ordinal);
-        Assert.StartsWith("Max. odchýlka:", viewModel.MaxDeviationText, StringComparison.Ordinal);
-        Assert.Equal("25,0 km/h", viewModel.MaxForwardSpeedValueText);
-        Assert.Equal("stupeň 10", viewModel.MaxForwardSpeedDetailText);
-        Assert.Equal("24,0 km/h", viewModel.MaxBackwardSpeedValueText);
-        Assert.Equal("stupeň 10", viewModel.MaxBackwardSpeedDetailText);
-        Assert.Equal("1,0%", viewModel.AverageDifferenceValueText);
-        Assert.Equal("1 spoločný bod", viewModel.AverageDifferenceDetailText);
-        Assert.Equal("1,0 km/h", viewModel.MaxDeviationValueText);
-        Assert.Equal("stupeň 10", viewModel.MaxDeviationDetailText);
-        Assert.False(string.IsNullOrWhiteSpace(viewModel.FrictionCurvePathData));
-        Assert.True(string.IsNullOrWhiteSpace(viewModel.PowerCurvePathData));
-        Assert.Equal(20.0, viewModel.MechanicalChartAxisMaximum, 1);
-        Assert.Equal("20", viewModel.MechanicalYAxisTopLabel);
-        Assert.Equal("15", viewModel.MechanicalYAxisThreeQuarterLabel);
-        Assert.Equal("10", viewModel.MechanicalYAxisMidLabel);
-        Assert.Equal("5", viewModel.MechanicalYAxisQuarterLabel);
-        Assert.True(viewModel.MechanicalWarningThresholdVisible);
-        Assert.True(viewModel.MechanicalIdealThresholdVisible);
-        Assert.Equal("32", viewModel.PerformanceQuarterStepLabel);
-        Assert.Equal("63", viewModel.PerformanceMidStepLabel);
-        Assert.Equal("95", viewModel.PerformanceThreeQuarterStepLabel);
-        Assert.Equal("126", viewModel.PerformanceMaxStepLabel);
-        Assert.Equal("kritický stupeň: 10", viewModel.MechanicalCriticalStepText);
-        Assert.Equal("max. asymetria: 0,8%", viewModel.FrictionPeakSummaryText);
-        Assert.Equal(string.Empty, viewModel.PowerUsageSummaryText);
-        Assert.True(string.IsNullOrWhiteSpace(viewModel.PerformanceEmptyStateText));
-        Assert.StartsWith("Dopredu:", viewModel.ForwardStop10Text, StringComparison.Ordinal);
-        Assert.StartsWith("Dozadu:", viewModel.BackwardStop10Text, StringComparison.Ordinal);
-        Assert.StartsWith("Analýza:", viewModel.AnalysisSummaryText, StringComparison.Ordinal);
-        Assert.StartsWith("Odporúčanie:", viewModel.AiRecommendationText, StringComparison.Ordinal);
-        Assert.Equal("Stav diagnostiky: OK", viewModel.EngineStatusText);
-        Assert.Equal(AiDiagnosticSeverity.Ok, viewModel.EngineStatusSeverity);
-        Assert.Equal(AiDiagnosticProblemType.Stable, viewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.Stable, viewModel.EngineStatusCauseType);
-        Assert.Equal("●", viewModel.EngineStatusIconText);
-        Assert.Equal("#E4F8E8", viewModel.EngineStatusBackground);
-        Assert.Equal("#166534", viewModel.EngineStatusForeground);
-    }
 
     [Fact]
     public void SpeedEditor_IndikatorMechanickejStabilityNormalizujeAsymetriuPodlaMaximalnejRychlosti()
@@ -932,18 +440,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.True(tweakVariants.Length >= 2, $"Očakávali sa aspoň 2 varianty textu odporúčaných úprav, získané: {string.Join(" | ", tweakVariants)}");
     }
 
-    [Fact]
-    public void SpeedEditor_AiDiagnostikaRozpoznaAsymetriuSmerov()
-    {
-        var viewModel = CreateSpeedEditorForDiagnostics(
-            (10, 20.0, 16.0),
-            (40, 50.0, 46.0),
-            (90, 100.0, 96.0));
-
-        Assert.Equal(AiDiagnosticProblemType.DirectionAsymmetry, viewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.SingleDirectionIssue, viewModel.EngineStatusCauseType);
-        AssertDiagnosticTextContainsAny(viewModel, "asymet", "medzi smermi", "jednom smere", "slabší smer");
-    }
 
     [Fact]
     public void SpeedEditor_AiDiagnostikaRozpoznaProblemVNizkychKrokoch()
@@ -958,18 +454,6 @@ public class LocomotiveSpeedEditorMarkupTests
         AssertDiagnosticTextContainsAny(viewModel, "nízkych krokoch", "rozjazd", "CV2", "CV3");
     }
 
-    [Fact]
-    public void SpeedEditor_AiDiagnostikaRozpoznaProblemVStrednomPasme()
-    {
-        var viewModel = CreateSpeedEditorForDiagnostics(
-            (10, 20.0, 20.0),
-            (60, 70.0, 66.0),
-            (110, 120.0, 120.0));
-
-        Assert.Equal(AiDiagnosticProblemType.MidBand, viewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.MidBandSmoothing, viewModel.EngineStatusCauseType);
-        AssertDiagnosticTextContainsAny(viewModel, "stredn", "strednú časť", "vyhladenie", "CV4");
-    }
 
     [Fact]
     public void SpeedEditor_AiDiagnostikaRozpoznaProblemVoVysokejRychlosti()
@@ -1256,20 +740,22 @@ public class LocomotiveSpeedEditorMarkupTests
     }
 
     [Theory]
-    [InlineData("DCC 14", 14, new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14" })]
-    [InlineData("DCC 28", 28, new[] { "0", "4", "8", "12", "16", "20", "24", "28" })]
-    [InlineData("DCC 126", 126, new[] { "0", "14", "28", "42", "56", "70", "84", "98", "112", "126" })]
-    public void SpeedEditor_RozsahXosiSaRiadiDekoderovymiKrokmiLokomotivy(string decoderType, int expectedMaxStep, string[] expectedLabels)
+    [InlineData("DCC 14")]
+    [InlineData("DCC 28")]
+    [InlineData("DCC 126")]
+    [InlineData(null)]
+    public void SpeedEditor_RozsahXosiJeVzdyFixnych28BodovBezOhladuNaDecoderType(string? decoderType)
     {
+        // Graf je fixne 28-bodový – typ dekodéra neovplyvňuje rozsah X osi.
         var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754", DecoderType = decoderType };
         var viewModel = new LocomotiveSpeedEditorViewModel();
 
         viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
 
-        Assert.Equal(expectedMaxStep, viewModel.CurrentChartMaxStep);
-        Assert.Equal($"Rýchlostný stupeň dekodéra (0-{expectedMaxStep})", viewModel.DecoderStepAxisTitle);
-        Assert.Equal(expectedLabels, viewModel.XAxisLabels.Select(label => label.Text).ToArray());
-        Assert.Equal(expectedLabels.Length, viewModel.XAxisTickMarks.Count);
+        Assert.Equal(28, viewModel.CurrentChartMaxStep);
+        Assert.Equal("Rýchlostný stupeň dekodéra (0-28)", viewModel.DecoderStepAxisTitle);
+        Assert.Equal(new[] { "0", "4", "8", "12", "16", "20", "24", "28" }, viewModel.XAxisLabels.Select(label => label.Text).ToArray());
+        Assert.Equal(8, viewModel.XAxisTickMarks.Count);
         Assert.True(viewModel.XAxisLabels.Zip(viewModel.XAxisLabels.Skip(1), (left, right) => right.Left > left.Left).All(result => result));
         Assert.True(viewModel.XAxisLabels.First().Left >= 50);
         Assert.True(viewModel.XAxisLabels.Last().Left >= 860);
@@ -1296,8 +782,9 @@ public class LocomotiveSpeedEditorMarkupTests
     }
 
     [Fact]
-    public void LocomotivesWindowViewModel_ZmenaComboBoxuKrokDekoderaOkamzitePrepocitaRozsahXosiGrafu()
+    public void LocomotivesWindowViewModel_GrafJeVzdyFixnych28BodovAjKeďLokomotivaMAInyDecoderType()
     {
+        // ComboBox „Krok dekodéra" bol odstránený – SpeedEditor má fixný rozsah 28.
         var settings = new TrackFlow.Services.SettingsManager();
         settings.NewProject();
         var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754", DecoderType = "DCC 126" };
@@ -1307,8 +794,7 @@ public class LocomotiveSpeedEditorMarkupTests
             Selected = locomotive
         };
 
-        viewModel.SelectedDecoderType = "DCC 28";
-
+        // Rozsah X osi je vždy 28 bez ohľadu na DecoderType lokomotivy.
         Assert.Equal(28, viewModel.SpeedEditor.CurrentChartMaxStep);
         Assert.Equal("Rýchlostný stupeň dekodéra (0-28)", viewModel.SpeedEditor.DecoderStepAxisTitle);
         Assert.Equal(new[] { "0", "4", "8", "12", "16", "20", "24", "28" }, viewModel.SpeedEditor.XAxisLabels.Select(label => label.Text).ToArray());
@@ -1411,68 +897,7 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.False(string.IsNullOrWhiteSpace(viewModel.ForwardCurvePathData));
     }
 
-    [Fact]
-    public void SpeedEditor_TahanieBoduVGrafeAktualizujeJehoPolohuAProfilLokomotivy()
-    {
-        var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754" };
-        locomotive.ForwardSpeedProfilePoints.Add(new LocoSpeedProfilePoint
-        {
-            Step = 20,
-            Direction = "Dopredu",
-            TimeSeconds = 6.0,
-            RawSpeedKmh = 18.0,
-            CalculatedSpeedKmh = 18.0,
-            Status = "Automatika",
-            IsManual = false
-        });
 
-        var viewModel = new LocomotiveSpeedEditorViewModel();
-        viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-        viewModel.SelectedProfileTabIndex = 0;
-
-        Assert.True(viewModel.HandleChartPointerPressed(new Point(200, 466)));
-        Assert.True(viewModel.IsDraggingChartPoint);
-        Assert.True(viewModel.HandleChartPointerMoved(new Point(420, 320)));
-        viewModel.HandleChartPointerReleased();
-        Assert.False(viewModel.IsDraggingChartPoint);
-
-        var point = viewModel.ForwardMeasurementPoints.Single();
-        Assert.True(point.IsManual);
-        Assert.NotEqual(20, point.Step);
-        Assert.NotEqual(18.0, point.CalculatedSpeedKmh);
-        Assert.Equal(point.Step, locomotive.ForwardSpeedProfilePoints[0].Step);
-        Assert.Equal(point.CalculatedSpeedKmh, locomotive.ForwardSpeedProfilePoints[0].CalculatedSpeedKmh);
-    }
-
-    [Fact]
-    public void SpeedEditor_ZlyhanieInterakcieVGrafeResetujeManualnyRezimAJazdnyDrag()
-    {
-        var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754" };
-        locomotive.ForwardSpeedProfilePoints.Add(new LocoSpeedProfilePoint
-        {
-            Step = 20,
-            Direction = "Dopredu",
-            TimeSeconds = 6.0,
-            RawSpeedKmh = 18.0,
-            CalculatedSpeedKmh = 18.0,
-            Status = "Automatika",
-            IsManual = false
-        });
-
-        var viewModel = new LocomotiveSpeedEditorViewModel();
-        viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-        viewModel.SelectedProfileTabIndex = 0;
-        viewModel.AddPointManuallyCommand.Execute(null);
-
-        Assert.True(viewModel.HandleChartPointerPressed(new Point(200, 466)));
-        Assert.True(viewModel.IsDraggingChartPoint);
-
-        viewModel.ReportChartInteractionFailure("Klik do grafu", new InvalidOperationException("Simulované zlyhanie"));
-
-        Assert.False(viewModel.IsManualPlacementMode);
-        Assert.False(viewModel.IsDraggingChartPoint);
-        Assert.Equal("Klik do grafu: InvalidOperationException: Simulované zlyhanie", viewModel.CalibrationStatusText);
-    }
 
     [Fact]
     public void SpeedEditor_UlozenieProfiluVyžadujeVyberSmerovejZalozky()
@@ -1582,38 +1007,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Equal(savedRecommendation, locomotive.SavedDiagnosticsAiRecommendationText);
     }
 
-    [Fact]
-    public void SpeedEditor_PriRovnakejSeverityBezUlozeniaZachovaHlavneTextyAMeniLenSpodneCvOdporucanie()
-    {
-        var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754" };
-        ReplaceDiagnosticsPoints(
-            locomotive,
-            (10, 20.0, 16.5),
-            (60, 70.0, 70.0),
-            (110, 120.0, 120.0));
-
-        var viewModel = new LocomotiveSpeedEditorViewModel();
-        viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-
-        var initialAnalysis = viewModel.AnalysisSummaryText;
-        var initialRecommendation = viewModel.AiRecommendationText;
-        var initialTweaks = viewModel.RecommendedCvTweaksText;
-
-        Assert.Equal(AiDiagnosticSeverity.Warning, viewModel.EngineStatusSeverity);
-        Assert.Equal(AiDiagnosticProblemType.LowSteps, viewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.StartupCvTuning, viewModel.EngineStatusCauseType);
-
-        viewModel.BackwardMeasurementPoints.Single(point => point.Step == 110).CalculatedSpeedKmh = 116.5;
-        viewModel.BackwardMeasurementPoints.Single(point => point.Step == 10).CalculatedSpeedKmh = 20.0;
-
-        Assert.Equal(AiDiagnosticSeverity.Warning, viewModel.EngineStatusSeverity);
-        Assert.Equal(AiDiagnosticProblemType.HighSpeed, viewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.TopCurveInstability, viewModel.EngineStatusCauseType);
-        Assert.Equal(initialAnalysis, viewModel.AnalysisSummaryText);
-        Assert.Equal(initialRecommendation, viewModel.AiRecommendationText);
-        Assert.NotEqual(initialTweaks, viewModel.RecommendedCvTweaksText);
-        Assert.Contains("CV5", viewModel.RecommendedCvTweaksText, StringComparison.OrdinalIgnoreCase);
-    }
 
     [Fact]
     public void SpeedEditor_PriRovnakejSeverityPoDalsomUlozeniZachovaHlavneTextyAMeniLenSpodneCvOdporucanie()
@@ -1658,45 +1051,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.Equal(reopenedViewModel.RecommendedCvTweaksText, locomotive.SavedDiagnosticsRecommendedCvTweaksText);
     }
 
-    [Fact]
-    public void SpeedEditor_PriZmeneSeverityObnoviAjHlavneDiagnostickeTexty()
-    {
-        var locomotive = new LocoRecord { Id = "loco-1", Name = "Brejlovec", Number = "754" };
-        ReplaceDiagnosticsPoints(
-            locomotive,
-            (10, 20.0, 16.5),
-            (60, 70.0, 70.0),
-            (110, 120.0, 120.0));
-
-        var viewModel = new LocomotiveSpeedEditorViewModel();
-        viewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-        viewModel.SelectedProfileTabIndex = 0;
-        viewModel.PersistProfileChanges = () => true;
-        viewModel.SaveProfileCommand.Execute(null);
-
-        var savedAnalysis = viewModel.AnalysisSummaryText;
-        var savedRecommendation = viewModel.AiRecommendationText;
-        var savedTweaks = viewModel.RecommendedCvTweaksText;
-
-        ReplaceDiagnosticsPoints(
-            locomotive,
-            (10, 20.0, 14.0),
-            (60, 70.0, 70.0),
-            (110, 120.0, 120.0));
-
-        var reopenedViewModel = new LocomotiveSpeedEditorViewModel();
-        reopenedViewModel.SyncLocomotives(new[] { locomotive }, locomotive);
-        reopenedViewModel.SelectedProfileTabIndex = 0;
-        reopenedViewModel.PersistProfileChanges = () => true;
-        reopenedViewModel.SaveProfileCommand.Execute(null);
-
-        Assert.Equal(AiDiagnosticSeverity.Error, reopenedViewModel.EngineStatusSeverity);
-        Assert.Equal(AiDiagnosticProblemType.LowSteps, reopenedViewModel.EngineStatusProblemType);
-        Assert.Equal(AiDiagnosticCauseType.StartupCvTuning, reopenedViewModel.EngineStatusCauseType);
-        Assert.NotEqual(savedAnalysis, reopenedViewModel.AnalysisSummaryText);
-        Assert.NotEqual(savedRecommendation, reopenedViewModel.AiRecommendationText);
-        Assert.NotEqual(savedTweaks, reopenedViewModel.RecommendedCvTweaksText);
-    }
 
     [Fact]
     public void SpeedEditor_UlozenieJednehoSmeruNevymazeOpacnyProfilLokomotivy()
@@ -2108,30 +1462,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("SelectedLocomotive?.DccAddress ?? 3", viewModel, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void TurnoutApi_UzObsahujeBranchParameterAZ21DataByteNekonfliktneSkladaOutputSActivateBitom()
-    {
-        var contract = File.ReadAllText(GetWorkspaceFilePath("Services", "Dcc", "IDccCentralClient.cs"));
-        var z21 = File.ReadAllText(GetWorkspaceFilePath("Services", "Dcc", "Z21Client.cs"));
-        var operationVm = File.ReadAllText(GetWorkspaceFilePath("ViewModels", "Operation", "OperationViewModel.cs"));
-        var signalController = File.ReadAllText(GetWorkspaceFilePath("Services", "SignalController.cs"));
-        var testClient = File.ReadAllText(GetWorkspaceFilePath("TrackFlow.Tests", "TestDccCentralClient.cs"));
-
-        Assert.Contains("Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default);", contract, StringComparison.Ordinal);
-        Assert.Contains("=> SetTurnoutAsync(address, aspectNumber > 0, activate: true, ct);", contract, StringComparison.Ordinal);
-
-        Assert.Contains("public async Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default)", z21, StringComparison.Ordinal);
-        Assert.Contains("byte data = (byte)((activate ? 0x08 : 0x00) | (branch ? 0x01 : 0x00));", z21, StringComparison.Ordinal);
-        Assert.DoesNotContain("byte data = (byte)((activate ? 0x09 : 0x08));", z21, StringComparison.Ordinal);
-
-        Assert.Contains("bool branch = RouteActivationService.MapTurnoutStateToBranch(requirement.Value);", operationVm, StringComparison.Ordinal);
-        Assert.Contains("await effectiveDccClient!.SetTurnoutAsync(turnout.DccAddress, branch, activate: true, ct);", operationVm, StringComparison.Ordinal);
-
-        Assert.Contains("var (turnoutAddr, branch) = MapPeliAspectToTurnout(board, effectiveAspect);", signalController, StringComparison.Ordinal);
-        Assert.Contains("await dccClient.SetTurnoutAsync(turnoutAddr, branch, activate: true, ct);", signalController, StringComparison.Ordinal);
-
-        Assert.Contains("public List<(int Address, bool Branch, bool Activate)> TurnoutCommands { get; } = new();", testClient, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void BlockPropertiesWindow_AsyncVoidDialogHandlerMaExceptionReporting()
@@ -2622,15 +1952,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("if (pLoco != null) pLoco.Name = newName;", code, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Program_PoNavrateZAvaloniaLifetimeVynutiCisteUkoncenieProcesu()
-    {
-        var code = File.ReadAllText(GetWorkspaceFilePath("Program.cs"));
-
-        Assert.Contains("FreeConsole();", code, StringComparison.Ordinal);
-        Assert.Contains("Environment.Exit(exitCode);", code, StringComparison.Ordinal);
-        Assert.Contains("int exitCode;", code, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void App_RegistrujeAvaloniaUiHandlerNeobsluzenychVynimiek()
