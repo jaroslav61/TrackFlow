@@ -5,9 +5,9 @@
         xmlns:vm="clr-namespace:TrackFlow.ViewModels.Library;assembly=TrackFlow"
         xmlns:conv="clr-namespace:TrackFlow.Converters;assembly=TrackFlow"
         x:Class="TrackFlow.Views.Library.LocomotivesWindow" x:DataType="vm:LocomotivesWindowViewModel"
-        Title="Editor lokomotív" 
+        Title="Editor lokomotív"
         Width="1400"
-        MinWidth="1400"        
+        MinWidth="1400"
         Height="860"
         MinHeight="860"
         WindowStartupLocation="CenterOwner"
@@ -16,7 +16,6 @@
         <conv:IconNameToPathConverter x:Key="IconNameToPathConverter" />
         <conv:StringNotNullOrWhiteSpaceToBoolConverter x:Key="StringNotNullOrWhiteSpaceToBoolConverter" />
         <conv:EqualsStringConverter x:Key="EqualsStringConverter" />
-        <conv:ObjectNullToBoolConverter x:Key="ObjectNullToBoolConverter" />
         <DataTemplate x:Key="CalibrationIndicatorComboItemTemplate" x:DataType="vm:CalibrationIndicatorOption">
             <StackPanel Orientation="Horizontal" Spacing="7" MinWidth="210">
                 <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center"
@@ -222,6 +221,52 @@
             </Setter>
         </Style>
 
+        <Style Selector="Slider.dccBrakeSlider">
+            <Setter Property="Margin" Value="0,2,0,2" />
+            <Setter Property="TickPlacement" Value="BottomRight" />
+            <Setter Property="Template">
+                <ControlTemplate x:DataType="Slider">
+                    <Grid RowDefinitions="16,10">
+                        <Grid.Styles>
+                            <Style Selector="TickBar">
+                                <Setter Property="ReservedSpace" Value="{Binding #PART_Track.Thumb.Bounds}" />
+                            </Style>
+                        </Grid.Styles>
+                        <Grid Grid.Row="0" Margin="6,0" Height="16" VerticalAlignment="Center">
+                            <Border Height="2" Background="#7C8796" CornerRadius="1" VerticalAlignment="Center" />
+                            <primitives:Track x:Name="PART_Track"
+                                              Orientation="Horizontal"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Minimum="{TemplateBinding Minimum}"
+                                              Maximum="{TemplateBinding Maximum}"
+                                              Value="{TemplateBinding Value}">
+                                <primitives:Track.Thumb>
+                                    <Thumb Width="12" Height="18" Background="Transparent">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Image Width="12" Height="18"
+                                                       Source="avares://TrackFlow/Assets/Appicons/12/slider_green.png"
+                                                       Stretch="Uniform" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </primitives:Track.Thumb>
+                            </primitives:Track>
+                        </Grid>
+                        <TickBar Grid.Row="1"
+                                 Fill="#9CA3AF"
+                                 Minimum="{TemplateBinding Minimum}"
+                                 Maximum="{TemplateBinding Maximum}"
+                                 TickFrequency="{TemplateBinding TickFrequency}"
+                                 Placement="Bottom"
+                                 Height="5"
+                                 Margin="6,0,6,0" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
         <Style Selector="Border.dccCvBadge">
             <Setter Property="Background" Value="#ECEFF3" />
             <Setter Property="BorderBrush" Value="#D1D5DB" />
@@ -316,7 +361,6 @@
             <Setter Property="Padding" Value="6,2" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Style.Resources>
-                <x:Double x:Key="RadioButtonControlSize">12</x:Double>
             </Style.Resources>
         </Style>
 
@@ -354,7 +398,7 @@
             <Setter Property="FontSize" Value="12" />
         </Style>
 
-        <Style Selector="TextBox.speedCompactTextBox">
+        <Style Selector="TextBox.speedNumericUpDown">
             <Setter Property="Height" Value="26" />
             <Setter Property="MinHeight" Value="26" />
             <Setter Property="FontSize" Value="12" />
@@ -722,11 +766,11 @@
                                              FontSize="12"
                                              MaxLength="30"
                                              Text="{Binding DecoderModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Watermark="Model"/>
-                                 
+                                             Watermark="Model" />
+
                                     <!-- ROW 2: Rozhranie + Zvuk -->
                                     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontSize="12"
-                                               Text="Rozhranie:"/>
+                                               Text="Rozhranie:" />
                                     <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left"
                                               Width="135"
                                               ItemsSource="{Binding DecoderInterfaces}"
@@ -743,7 +787,7 @@
                                         <Border Width="45" HorizontalAlignment="Right">
                                             <ToggleSwitch HorizontalAlignment="Left"
                                                           VerticalAlignment="Center"
-                                                        
+
                                                           IsChecked="{Binding IsSoundDecoder}"
                                                           OnContent=""
                                                           OffContent="" />
@@ -1093,7 +1137,7 @@
                                         Classes="speedCard"
                                         Padding="10,10,10,4"
                                         ClipToBounds="False">
-                                    <Grid RowDefinitions="110,190,Auto,*" ColumnDefinitions="240,226" RowSpacing="10"
+                                    <Grid RowDefinitions="110,190,Auto,*" ColumnDefinitions="240,*" RowSpacing="10"
                                           ColumnSpacing="10" ClipToBounds="False">
                                         <Border Grid.Row="0" Grid.Column="0" Width="240" Height="110"
                                                 VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#DCE5EF"
@@ -1320,71 +1364,8 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <Border Grid.Row="2" Grid.Column="1" Width="226" HorizontalAlignment="Left"
-                                                Background="#F8FAFC" BorderBrush="#DCE5EF" BorderThickness="1"
-                                                CornerRadius="8" Padding="8">
-                                            <StackPanel Spacing="6">
-
-
-                                                <StackPanel Spacing="2" Margin="0,8,0,0">
-                                                    <TextBlock Text="Korekcia bŕzd dopredu (mm):" FontWeight="SemiBold"
-                                                               FontSize="12" Foreground="#475569" />
-                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6"
-                                                          VerticalAlignment="Center">
-                                                        <Slider Grid.Column="0"
-                                                                Classes="dccCompactSlider"
-                                                                Minimum="-50"
-                                                                Maximum="50"
-                                                                TickFrequency="1"
-                                                                IsSnapToTickEnabled="True"
-                                                                SmallChange="1"
-                                                                LargeChange="10"
-                                                                VerticalAlignment="Center"
-                                                                Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
-
-                                                        <TextBox Grid.Column="1"
-                                                                 Classes="speedCompactTextBox"
-                                                                 Width="40"
-                                                                 MinWidth="40"
-                                                                 Height="24"
-                                                                 HorizontalContentAlignment="Right"
-                                                                 VerticalContentAlignment="Center"
-                                                                 FontSize="11"
-                                                                 Text="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
-                                                    </Grid>
-                                                </StackPanel>
-
-                                                <StackPanel Spacing="2" Margin="0,8,0,0">
-                                                    <TextBlock Text="Korekcia bŕzd dozadu (mm):" FontWeight="SemiBold"
-                                                               FontSize="12" Foreground="#475569" />
-                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6"
-                                                          VerticalAlignment="Center">
-                                                        <Slider Grid.Column="0"
-                                                                Classes="dccCompactSlider"
-                                                                Minimum="-50"
-                                                                Maximum="50"
-                                                                TickFrequency="1"
-                                                                IsSnapToTickEnabled="True"
-                                                                SmallChange="1"
-                                                                LargeChange="10"
-                                                                VerticalAlignment="Center"
-                                                                Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
-
-                                                        <TextBox Grid.Column="1"
-                                                                 Classes="speedCompactTextBox"
-                                                                 Width="40"
-                                                                 MinWidth="40"
-                                                                 Height="24"
-                                                                 HorizontalContentAlignment="Right"
-                                                                 VerticalContentAlignment="Center"
-                                                                 FontSize="11"
-                                                                 Text="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
-                                                    </Grid>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Height="310"
+                                        <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="3" Height="448" Width="226"
+                                                HorizontalAlignment="Left"
                                                 MinHeight="310" VerticalAlignment="Top" Background="#F6FBF7"
                                                 BorderBrush="#CFE7D3" BorderThickness="1" CornerRadius="8" Padding="8"
                                                 ClipToBounds="True">
@@ -1443,7 +1424,7 @@
 
                         <TabItem Header="Dekodér (CV)">
                             <Grid Margin="4"
-                                  RowDefinitions="Auto,4,Auto,4,Auto,*,Auto"
+                                  RowDefinitions="Auto,4,Auto,4,Auto,4,Auto"
                                   Grid.IsSharedSizeScope="True"
                                   x:CompileBindings="False"
                                   IsEnabled="{Binding IsLocomotiveSelected, FallbackValue=False}">
@@ -1509,7 +1490,8 @@
                                                         </Border>
                                                     </StackPanel>
                                                     <NumericUpDown x:Name="MinSpeedCvBox" Grid.Row="0" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
+                                                                   Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
                                                     <TextBlock x:Name="MinSpeedKmhText" Grid.Row="0" Grid.Column="2"
@@ -1518,14 +1500,16 @@
 
                                                     <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
                                                                 Spacing="0" Margin="5,2,0,2">
-                                                        <TextBlock Text="Stredná rýchlosť" FontSize="12" Padding="0,0,12,0"
+                                                        <TextBlock Text="Stredná rýchlosť" FontSize="12"
+                                                                   Padding="0,0,12,0"
                                                                    VerticalAlignment="Center" />
                                                         <Border Classes="dccCvBadge">
                                                             <TextBlock Classes="dccCvBadgeText" Text="CV6" />
                                                         </Border>
                                                     </StackPanel>
                                                     <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
+                                                                   Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
                                                     <TextBlock x:Name="MidSpeedKmhText" Grid.Row="1" Grid.Column="2"
@@ -1541,7 +1525,8 @@
                                                         </Border>
                                                     </StackPanel>
                                                     <NumericUpDown x:Name="MaxSpeedCvBox" Grid.Row="2" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0" Maximum="255"
+                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
+                                                                   Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
                                                     <TextBlock x:Name="MaxSpeedKmhText" Grid.Row="2" Grid.Column="2"
@@ -1649,42 +1634,206 @@
                                 <!-- Sekcia 2: Softvérová automatizácia (2 panely so SharedSizeGroup) -->
                                 <Grid Grid.Row="4"
                                       ColumnDefinitions="*,4,*">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" SharedSizeGroup="DccConfigPanelRow" />
-                                    </Grid.RowDefinitions>
 
                                     <!-- Smer a BEMF regulácia (CV29) -->
-                                    <Border Grid.Column="0" Grid.ColumnSpan="3" BorderBrush="#C8C8C8"
-                                            BorderThickness="1" Background="#F2F8F4"
+                                    <Border Grid.Column="0"
+                                            BorderBrush="#C8C8C8"
+                                            BorderThickness="1"
+                                            Background="#F2F8F4"
                                             IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
+
                                         <StackPanel>
-                                            <Border Background="#E8E8E8" Padding="6,3">
-                                                <StackPanel Orientation="Horizontal" Spacing="0">
-                                                    <TextBlock Text="Smer a BEMF regulácia" FontWeight="Bold"
-                                                               FontSize="13" VerticalAlignment="Center" />
+                                            <Border Background="#E8E8E8"
+                                                    Padding="6,3">
+
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="0">
+
+                                                    <TextBlock Text="Smer a BEMF regulácia"
+                                                               FontWeight="Bold"
+                                                               FontSize="13"
+                                                               VerticalAlignment="Center" />
+
                                                     <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText" Text="CV29" />
+                                                        <TextBlock Classes="dccCvBadgeText"
+                                                                   Text="CV29" />
+
                                                     </Border>
                                                 </StackPanel>
                                             </Border>
-                                            <StackPanel Margin="9,16,4,6" Spacing="6">
+
+                                            <StackPanel Margin="9,16,4,6"
+                                                        Spacing="6">
                                                 <CheckBox x:Name="BemfEnabledCheckBox"
-                                                          Content="Regulácia záťaže (BEMF)" FontSize="12"
+                                                          Content="Regulácia záťaže (BEMF)"
+                                                          FontSize="12"
                                                           HorizontalAlignment="Left"
                                                           IsChecked="{Binding SelectedLocomotive.IsBemfEnabled, Mode=TwoWay, TargetNullValue=False}" />
                                                 <CheckBox x:Name="AnalogOperationCheckBox"
-                                                          Content="Analógová prevádzka" FontSize="12"
+                                                          Content="Analógová prevádzka"
+                                                          FontSize="12"
                                                           HorizontalAlignment="Left"
                                                           IsChecked="{Binding SelectedLocomotive.IsAnalogOperationEnabled, Mode=TwoWay, TargetNullValue=False}" />
+
                                                 <CheckBox x:Name="InvertDirectionCheckBox"
-                                                          Content="Invertovať smer jazdy" FontSize="12"
+                                                          Content="Invertovať smer jazdy"
+                                                          FontSize="12"
                                                           HorizontalAlignment="Left"
                                                           IsChecked="{Binding SelectedLocomotive.IsInvertDirectionEnabled, Mode=TwoWay, TargetNullValue=False}" />
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
 
+                                    <!-- Korekcia bŕzd -->
+                                    <Border Grid.Column="2"
+                                            BorderBrush="#C8C8C8"
+                                            BorderThickness="1"
+                                            Background="#F2F6FA"
+                                            IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
 
+                                        <StackPanel Classes="dccDisabledTextContent">
+
+                                            <Border Background="#E8E8E8"
+                                                    Padding="6,3">
+                                                <TextBlock Text="Korekcia bŕzd"
+                                                           FontWeight="Bold"
+                                                           FontSize="13" />
+                                            </Border>
+
+                                            <StackPanel Margin="8,8,8,8"
+                                                        Spacing="8">
+
+                                                <!-- Korekcia bŕzd dopredu -->
+                                                <Grid ColumnDefinitions="400,Auto"
+                                                      ColumnSpacing="6">
+
+                                                    <StackPanel Grid.Column="0"
+                                                                Spacing="2">
+
+                                                        <TextBlock Text="Korekcia bŕzd dopredu (mm):"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#475569" />
+
+                                                        <Slider Width="400"
+                                                                Classes="dccBrakeSlider"
+                                                                Minimum="0"
+                                                                Maximum="100"
+                                                                TickFrequency="2"
+                                                                IsSnapToTickEnabled="True"
+                                                                TickPlacement="BottomRight"
+                                                                SmallChange="1"
+                                                                LargeChange="5"
+                                                                Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
+
+                                                        <Grid ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*">
+                                                            <TextBlock Grid.Column="0" Text="0"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1" Text="10"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="2" Text="20"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="3" Text="30"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="4" Text="40"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="5" Text="50"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="6" Text="60"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="7" Text="70"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="8" Text="80"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="9" Text="90"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="10" Text="100"
+                                                                       HorizontalAlignment="Center" />
+                                                        </Grid>
+
+                                                    </StackPanel>
+
+                                                    <NumericUpDown Grid.Column="1"
+                                                                   Classes="speedNumericUpDown"
+                                                                   Width="65"
+                                                                   MinWidth="65"
+                                                                   Height="24"
+                                                                   FontSize="11"
+                                                                   FormatString="0"
+                                                                   HorizontalContentAlignment="Right"
+                                                                   VerticalContentAlignment="Center"
+                                                                   Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
+
+                                                </Grid>
+
+                                                <!-- Korekcia bŕzd dozadu -->
+                                                <Grid ColumnDefinitions="400,Auto"
+                                                      ColumnSpacing="6">
+
+                                                    <StackPanel Grid.Column="0"
+                                                                Spacing="2">
+
+                                                        <TextBlock Text="Korekcia bŕzd dozadu (mm):"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#475569" />
+
+                                                        <Slider Width="400"
+                                                                Classes="dccBrakeSlider"
+                                                                Minimum="0"
+                                                                Maximum="100"
+                                                                TickFrequency="2"
+                                                                IsSnapToTickEnabled="True"
+                                                                TickPlacement="BottomRight"
+                                                                SmallChange="1"
+                                                                LargeChange="5"
+                                                                Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
+
+                                                        <Grid ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*">
+                                                            <TextBlock Grid.Column="0" Text="0"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1" Text="10"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="2" Text="20"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="3" Text="30"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="4" Text="40"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="5" Text="50"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="6" Text="60"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="7" Text="70"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="8" Text="80"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="9" Text="90"
+                                                                       HorizontalAlignment="Center" />
+                                                            <TextBlock Grid.Column="10" Text="100"
+                                                                       HorizontalAlignment="Center" />
+                                                        </Grid>
+
+                                                    </StackPanel>
+
+                                                    <NumericUpDown Grid.Column="1"
+                                                                   Classes="speedNumericUpDown"
+                                                                   Width="65"
+                                                                   MinWidth="65"
+                                                                   Height="24"
+                                                                   FontSize="11"
+                                                                   FormatString="0"
+                                                                   HorizontalContentAlignment="Right"
+                                                                   VerticalContentAlignment="Center"
+                                                                   Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
+
+                                                </Grid>
+
+                                            </StackPanel>
+
+                                        </StackPanel>
+
+                                    </Border>
                                 </Grid>
 
                                 <!-- Sekcia 3: Globálna komunikačná lišta -->

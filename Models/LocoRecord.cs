@@ -312,7 +312,7 @@ public sealed class LocoRecord : ObservableObject
                 return;
 
             // Legacy value drives both directions when old data/API sets only BrakeCorrection.
-            var mirroredDirectional = Math.Clamp((double)coerced, -50.0, 50.0);
+            var mirroredDirectional = Math.Clamp((double)coerced, 0.0, 100.0);
             if (_brakeCompensationForward != mirroredDirectional)
             {
                 _brakeCompensationForward = mirroredDirectional;
@@ -332,7 +332,7 @@ public sealed class LocoRecord : ObservableObject
         get => _brakeCompensationForward;
         set
         {
-            var coerced = Math.Clamp(value, -50.0, 50.0);
+            var coerced = Math.Clamp(value, 0.0, 100.0);
             if (!SetProperty(ref _brakeCompensationForward, coerced))
                 return;
 
@@ -345,7 +345,7 @@ public sealed class LocoRecord : ObservableObject
         get => _brakeCompensationBackward;
         set
         {
-            var coerced = Math.Clamp(value, -50.0, 50.0);
+            var coerced = Math.Clamp(value, 0.0, 100.0);
             if (!SetProperty(ref _brakeCompensationBackward, coerced))
                 return;
 
@@ -396,7 +396,7 @@ public sealed class LocoRecord : ObservableObject
 
     private void SyncLegacyBrakeCorrectionFromDirectional()
     {
-        var legacy = Math.Clamp((int)Math.Round((_brakeCompensationForward + _brakeCompensationBackward) / 2.0, MidpointRounding.AwayFromZero), -100, 100);
+        var legacy = Math.Clamp((int)Math.Round((_brakeCompensationForward + _brakeCompensationBackward) / 2.0, MidpointRounding.AwayFromZero), 0, 100);
         if (_brakeCorrection == legacy)
             return;
 
