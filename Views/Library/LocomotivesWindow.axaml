@@ -1424,7 +1424,7 @@
 
                         <TabItem Header="Dekodér (CV)">
                             <Grid Margin="4"
-                                  RowDefinitions="Auto,4,Auto,4,Auto,4,Auto"
+                                  RowDefinitions="Auto,4,Auto,4,*,4,Auto"
                                   Grid.IsSharedSizeScope="True"
                                   x:CompileBindings="False"
                                   IsEnabled="{Binding IsLocomotiveSelected, FallbackValue=False}">
@@ -1636,7 +1636,7 @@
                                       ColumnDefinitions="*,4,*">
 
                                     <!-- Smer a BEMF regulácia (CV29) -->
-                                    <Border Grid.Column="0"
+                                    <Border Grid.Column="2"
                                             BorderBrush="#C8C8C8"
                                             BorderThickness="1"
                                             Background="#F2F8F4"
@@ -1685,7 +1685,7 @@
                                     </Border>
 
                                     <!-- Korekcia bŕzd -->
-                                    <Border Grid.Column="2"
+                                    <Border Grid.Column="0"
                                             BorderBrush="#C8C8C8"
                                             BorderThickness="1"
                                             Background="#F2F6FA"
@@ -1695,9 +1695,17 @@
 
                                             <Border Background="#E8E8E8"
                                                     Padding="6,3">
-                                                <TextBlock Text="Korekcia bŕzd"
-                                                           FontWeight="Bold"
-                                                           FontSize="13" />
+
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="0">
+
+                                                    <TextBlock Text="Korekcia bŕzd"
+                                                               FontWeight="Bold"
+                                                               FontSize="13"
+                                                               VerticalAlignment="Center" />
+
+                                                </StackPanel>
+
                                             </Border>
 
                                             <StackPanel Margin="8,8,8,8"
@@ -1713,7 +1721,8 @@
                                                         <TextBlock Text="Korekcia bŕzd dopredu (mm):"
                                                                    FontSize="12"
                                                                    FontWeight="SemiBold"
-                                                                   Foreground="#475569" />
+                                                                   Foreground="#475569"
+                                                                   Margin="0,5,0,0"/>
 
                                                         <Slider Width="400"
                                                                 Classes="dccBrakeSlider"
@@ -1762,6 +1771,7 @@
                                                                    FormatString="0"
                                                                    HorizontalContentAlignment="Right"
                                                                    VerticalContentAlignment="Center"
+                                                                   Margin="0,5,0,0"
                                                                    Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
 
                                                 </Grid>
@@ -1776,7 +1786,8 @@
                                                         <TextBlock Text="Korekcia bŕzd dozadu (mm):"
                                                                    FontSize="12"
                                                                    FontWeight="SemiBold"
-                                                                   Foreground="#475569" />
+                                                                   Foreground="#475569"
+                                                                   Margin="0,20,0,0"/>
 
                                                         <Slider Width="400"
                                                                 Classes="dccBrakeSlider"
@@ -1825,6 +1836,7 @@
                                                                    FormatString="0"
                                                                    HorizontalContentAlignment="Right"
                                                                    VerticalContentAlignment="Center"
+                                                                   Margin="0,20,0,0"
                                                                    Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
 
                                                 </Grid>
@@ -1837,10 +1849,13 @@
                                 </Grid>
 
                                 <!-- Sekcia 3: Globálna komunikačná lišta -->
-                                <Grid Grid.Row="6" ColumnDefinitions="*,6,*,6,*" Margin="0,2,0,0">
+                                <Grid Grid.Row="6"
+                                      ColumnDefinitions="*,4,*"
+                                      Margin="0,8,0,0">
+
                                     <Button x:Name="ReadCvButton"
                                             Grid.Column="0"
-                                            Content="Čítat všetky CV registre"
+                                            Content="Čítať všetky CV registre"
                                             Height="35"
                                             FontWeight="SemiBold"
                                             FontSize="12"
@@ -1858,15 +1873,6 @@
                                             HorizontalContentAlignment="Center"
                                             IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
 
-                                    <Button x:Name="FactoryCvButton"
-                                            Grid.Column="4"
-                                            Content="Obnoviť továrenské CV (CV8)"
-                                            Height="35"
-                                            FontWeight="SemiBold"
-                                            FontSize="12"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
                                 </Grid>
 
                             </Grid>
