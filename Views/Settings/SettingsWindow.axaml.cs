@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window
     private GeneralSettingsView? _generalPage;
     private DccSettingsView? _dccPage;
     private ModelClockSettingsView? _clockPage;
+    private ScaleSettingsView? _scalePage;
     private ColorsSettingsView? _colorsPage;
 
     public SettingsWindow()
@@ -89,7 +90,8 @@ public partial class SettingsWindow : Window
         {
             1 => _dccPage ??= new DccSettingsView(),
             2 => _clockPage ??= new ModelClockSettingsView(),
-            3 => _colorsPage ??= new ColorsSettingsView(),
+            3 => _scalePage ??= new ScaleSettingsView(),
+            4 => _colorsPage ??= new ColorsSettingsView(),
             _ => _generalPage ??= new GeneralSettingsView()
         };
     }

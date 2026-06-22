@@ -1,4 +1,5 @@
-﻿<Styles xmlns="https://github.com/avaloniaui">
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:behaviors="clr-namespace:TrackFlow.Behaviors;assembly=TrackFlow">
 
     <Style Selector="TextBox">
         <Setter Property="Height" Value="26" />
@@ -14,6 +15,7 @@
         <Setter Property="Padding" Value="6,0" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="behaviors:NumericInputBehavior.RestrictToNumbers" Value="True" />
     </Style>
 
     <!-- Vnútorný TextBox NumericUpDown nesmie dediť fixnú výšku 15 px -->

@@ -693,10 +693,90 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             _mgr.Dirty.MarkDirty("dcc-override");
     }
 
+    // ── Vypočítané informácie o mierke ─────────────────────────────────────
+
+    private static string FormatModelLength(double realMm, double ratio)
+    {
+        var modelMm = realMm / ratio;
+        if (modelMm >= 1000.0)
+            return $"{modelMm / 1000.0:0.##} m";
+        if (modelMm >= 10.0)
+            return $"{modelMm / 10.0:0.#} cm";
+        return $"{modelMm:0.0} mm";
+    }
+
+    private static string FormatModelSpeed(double realKmh, double ratio)
+    {
+        var modelKmh = realKmh / ratio;
+        if (modelKmh < 1.0)
+            return $"{modelKmh * 1000.0:0.##} m/h";
+        return $"{modelKmh:0.###} km/h";
+    }
+
+    private static string FormatModelTime(double realSeconds, double ratio)
+    {
+        var modelSec = realSeconds / ratio;
+        if (modelSec < 60.0)
+            return $"{modelSec:0.#} s";
+        return $"{modelSec / 60.0:0.#} min";
+    }
+
+    private double CurrentScaleDivisor =>
+        TrackFlow.Services.Simulation.SimulationScaleResolver.ResolveScaleDivisor(Scale);
+
+    public string ScaleInfoNameDisplay
+    {
+        get
+        {
+            var normalized = NormalizeScale(Scale);
+            return normalized.ToUpperInvariant() switch
+            {
+                "H0" => "H0",
+                "TT" => "TT",
+                "N"  => "N",
+                _    => normalized
+            };
+        }
+    }
+
+    public string ScaleInfo60KmhDisplay      => FormatModelSpeed(60.0,        CurrentScaleDivisor);
+    public string ScaleInfo60MpsDisplay      => FormatModelSpeedMs(60.0,      CurrentScaleDivisor);
+    public string ScaleInfo120KmhDisplay     => FormatModelSpeed(120.0,       CurrentScaleDivisor);
+    public string ScaleInfo120MpsDisplay     => FormatModelSpeedMs(120.0,     CurrentScaleDivisor);
+    public string ScaleInfo1KmDisplay          => FormatModelLength(1_000_000,  CurrentScaleDivisor);
+    public string ScaleInfoLoco20mDisplay      => FormatModelLength(20_000,     CurrentScaleDivisor);
+    public string ScaleInfoWagon26mDisplay     => FormatModelLength(26_000,     CurrentScaleDivisor);
+    public string ScaleInfoSwitch30mDisplay    => FormatModelLength(30_000,     CurrentScaleDivisor);
+    public string ScaleInfoModelHourDisplay    => FormatModelTime(3600.0,       CurrentScaleDivisor);
+    public string ScaleInfoModelDayDisplay     => FormatModelTime(86_400.0,     CurrentScaleDivisor);
+    public string ScaleInfoPlatform200mDisplay => FormatModelLength(200_000,    CurrentScaleDivisor);
+
+    private static string FormatModelSpeedMs(double realKmh, double ratio)
+    {
+        var ms = realKmh / ratio / 3.6;
+        if (ms < 0.01)
+            return $"{ms * 100.0:0.##} cm/s";
+        return $"{ms:0.####} m/s";
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+
     partial void OnScaleChanged(string value)
     {
         // Keep ComboBox selection in sync with persisted code.
         OnPropertyChanged(nameof(SelectedScaleItem));
+        OnPropertyChanged(nameof(ScaleInfoNameDisplay));
+        OnPropertyChanged(nameof(ScaleInfo60KmhDisplay));
+        OnPropertyChanged(nameof(ScaleInfo60MpsDisplay));
+        OnPropertyChanged(nameof(ScaleInfo120KmhDisplay));
+        OnPropertyChanged(nameof(ScaleInfo120MpsDisplay));
+        OnPropertyChanged(nameof(ScaleInfo1KmDisplay));
+        OnPropertyChanged(nameof(ScaleInfoLoco20mDisplay));
+        OnPropertyChanged(nameof(ScaleInfoWagon26mDisplay));
+        OnPropertyChanged(nameof(ScaleInfoSwitch30mDisplay));
+        OnPropertyChanged(nameof(ScaleInfoModelHourDisplay));
+        OnPropertyChanged(nameof(ScaleInfoModelDayDisplay));
+        OnPropertyChanged(nameof(ScaleInfoPlatform200mDisplay));
 
         // Dirty = project has unsaved changes indicator. Users expect this to react to scale changes
         // even if the scale is currently coming from app defaults (UseProjectForScale == false),
