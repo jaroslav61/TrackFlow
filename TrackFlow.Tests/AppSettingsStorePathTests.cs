@@ -7,11 +7,23 @@ namespace TrackFlow.Tests;
 
 public sealed class AppSettingsStorePathTests
 {
+    private static string GetExpectedBaseDirectory()
+    {
+        var exePath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(exePath))
+        {
+            var dir = Path.GetDirectoryName(exePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+                return dir;
+        }
+        return AppDomain.CurrentDomain.BaseDirectory;
+    }
+
     [Fact]
     public void Constructor_WithRelativePath_AnchorsToExecutableBaseDirectory()
     {
         var relativePath = Path.Combine("test-output", $"settings-{Guid.NewGuid():N}.json");
-        var expected = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+        var expected = Path.Combine(GetExpectedBaseDirectory(), relativePath);
 
         var store = new AppSettingsStore(relativePath);
 
@@ -21,8 +33,8 @@ public sealed class AppSettingsStorePathTests
     [Fact]
     public void SaveApp_CreatesSettingsFile_WhenMissing()
     {
-        var relativePath = Path.Combine("test-output", $"settings-{Guid.NewGuid():N}.json");
-        var store = new AppSettingsStore(relativePath);
+        var filePath = Path.Combine(Path.GetTempPath(), "trackflow-tests", $"settings-{Guid.NewGuid():N}.json");
+        var store = new AppSettingsStore(filePath);
 
         try
         {
@@ -53,4 +65,3 @@ public sealed class AppSettingsStorePathTests
         }
     }
 }
-

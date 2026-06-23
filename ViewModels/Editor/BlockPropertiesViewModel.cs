@@ -651,7 +651,7 @@ public partial class BlockPropertiesViewModel : ObservableObject
         if (indicatorModel != null)
             _block.Indicators.Remove(indicatorModel);
 
-        OnPropertyChanged(nameof(HasIndicators));
+        HasIndicators = Indicators.Count > 0;
         OnPropertyChanged(nameof(CanAddMarkers));
         OnPropertyChanged(nameof(AreMarkersEnabled));
         OnPropertyChanged(nameof(AreMarkerPropertiesEnabled));
@@ -859,55 +859,49 @@ public partial class BlockPropertiesViewModel : ObservableObject
     [RelayCommand]
     private void AddIndicator(BlockIndicatorType type)
     {
-        if (lengthMm <= 0) return;
+        int effectiveLength = lengthMm > 0 ? lengthMm : 100;
 
         if (Indicators.Count == 0)
         {
-            // Prvý indikátor - pokryje celý blok
             var indicator = new BlockIndicator
             {
                 Type = type,
                 Name = GenerateIndicatorName(type, 1),
                 StartCm = 0,
-                EndCm = lengthMm,
+                EndCm = effectiveLength,
                 IsSelected = true
             };
-            var vm = new BlockIndicatorViewModel(indicator, lengthMm, CanvasWidth);
+            var vm = new BlockIndicatorViewModel(indicator, effectiveLength, CanvasWidth);
             Indicators.Add(vm);
-            SelectedIndicator = vm; // NASTAVENIE VYBRANÉHO INDIKÁTORA
+            SelectedIndicator = vm;
         }
         else
         {
-            // Binárne delenie vybraného indikátora
             var selected = Indicators.FirstOrDefault(i => i.IsSelected) ?? Indicators.Last();
             int mid = (selected.StartCm + selected.EndCm) / 2;
-            int originalEndCm = selected.EndCm; // Ulož pôvodný koniec
-            
-            // Zmenši pôvodný indikátor na prvú polovicu
+            int originalEndCm = selected.EndCm;
+
             selected.EndCm = mid;
-            
-            // Vytvor druhý indikátor na druhú polovicu
+
             int indicatorNumber = Indicators.Count + 1;
             var newIndicator = new BlockIndicator
             {
                 Type = type,
                 Name = GenerateIndicatorName(type, indicatorNumber),
                 StartCm = mid,
-                EndCm = originalEndCm, // Použij uložený pôvodný koniec
+                EndCm = originalEndCm,
                 IsSelected = true
             };
-            
-            // Zruš výber pôvodného
+
             selected.IsSelected = false;
-            
-            var vm = new BlockIndicatorViewModel(newIndicator, lengthMm, CanvasWidth);
+
+            var vm = new BlockIndicatorViewModel(newIndicator, effectiveLength, CanvasWidth);
             Indicators.Add(vm);
-            SelectedIndicator = vm; // NASTAVENIE VYBRANÉHO INDIKÁTORA
-            
-            // Rozdeľ markery podľa pozície
+            SelectedIndicator = vm;
+
             RedistributeMarkersAfterSplit(selected.Id, vm.Id, mid);
         }
-        
+
         HasIndicators = Indicators.Count > 0;
     }
 

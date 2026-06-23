@@ -428,13 +428,14 @@ public partial class BlockPropertiesWindow : Window
             
             double currentX = e.GetPosition(diagram).X;
             double deltaX = currentX - _dragStartX;
-            double deltaCm = (deltaX / DiagWidth) * _vm.LengthMm;
+            int effectiveLengthMm = _vm.LengthMm > 0 ? _vm.LengthMm : 100;
+            double deltaCm = (deltaX / DiagWidth) * effectiveLengthMm;
             
             int newStartCm = (int)(_dragStartCm + deltaCm);
             int indicatorWidth = indicator.EndCm - indicator.StartCm;
             
             // Obmedzenie - indikátor nesmie vyjsť mimo bloku
-            newStartCm = System.Math.Clamp(newStartCm, 0, _vm.LengthMm - indicatorWidth);
+            newStartCm = System.Math.Clamp(newStartCm, 0, effectiveLengthMm - indicatorWidth);
             int newEndCm = newStartCm + indicatorWidth;
             
             indicator.StartCm = newStartCm;
@@ -541,57 +542,52 @@ public partial class BlockPropertiesWindow : Window
         var indicator = _vm.Indicators.FirstOrDefault(i => i.Id == _draggedIndicatorId);
         if (indicator == null) return;
 
-        // Prepočítaj pozíciu myši na cm
+        int effectiveLengthMm = _vm.LengthMm > 0 ? _vm.LengthMm : 100;
+
         double clampedX = System.Math.Clamp(mouseX, DiagLeft, DiagLeft + DiagWidth);
         double fraction = (clampedX - DiagLeft) / DiagWidth;
-        int newCm = (int)(fraction * _vm.LengthMm);
+        int newCm = (int)(fraction * effectiveLengthMm);
 
-        // Ulož staré hodnoty pre prepočet markerov
         int oldStartCm = indicator.StartCm;
         int oldEndCm = indicator.EndCm;
 
         if (isLeftHandle)
         {
-            // Ľavý handle - mení StartCm
-            int proposedStart = System.Math.Clamp(newCm, 0, indicator.EndCm - 10); // Min 10cm šírka
+            int proposedStart = System.Math.Clamp(newCm, 0, indicator.EndCm - 10);
             indicator.StartCm = proposedStart;
         }
         else
         {
-            // Pravý handle - mení EndCm
-            int proposedEnd = System.Math.Clamp(newCm, indicator.StartCm + 10, _vm.LengthMm); // Min 10cm šírka
+            int proposedEnd = System.Math.Clamp(newCm, indicator.StartCm + 10, effectiveLengthMm);
             indicator.EndCm = proposedEnd;
         }
 
-        // VIZUÁLNA AKTUALIZÁCIA počas dragu - priama manipulácia s Border elementom
         if (_indicatorVisuals.TryGetValue(indicator.Id, out var border))
         {
             double newX = DiagLeft + indicator.StartX;
             double newWidth = indicator.Width;
-            
+        
             border.Width = newWidth;
             Canvas.SetLeft(border, newX);
-            
-            // Aktualizuj aj resize handles
+        
             var handles = _resizeHandles.Where(h => 
             {
                 var left = Canvas.GetLeft(h);
                 return (isLeftHandle && left < DiagLeft + DiagWidth / 2) || 
                        (!isLeftHandle && left >= DiagLeft + DiagWidth / 2);
             }).ToList();
-            
+        
             if (handles.Count >= 2)
             {
-                Canvas.SetLeft(handles[0], newX - 10); // Left handle
-                Canvas.SetLeft(handles[1], newX + newWidth - 10); // Right handle
+                Canvas.SetLeft(handles[0], newX - 10);
+                Canvas.SetLeft(handles[1], newX + newWidth - 10);
             }
         }
 
-        // Prepočítaj markery a dynamicky ich prekresli
         if (oldStartCm != indicator.StartCm || oldEndCm != indicator.EndCm)
         {
             _vm.RecalculateMarkersForIndicator(indicator.Id, oldStartCm, oldEndCm);
-            DrawMarkers(); // Dynamické prekreslenie
+            DrawMarkers();
         }
     }
 
