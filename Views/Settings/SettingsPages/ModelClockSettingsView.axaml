@@ -103,7 +103,7 @@
                                IsEnabled="{Binding HasOpenProject}"
                                Minimum="1"
                                Maximum="5"
-                               Increment="0.1"
+                               Increment="0.5"
                                FormatString="F1"
                                Value="{Binding SimulationSpeedFactor, Mode=TwoWay}"/>
 

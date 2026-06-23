@@ -293,6 +293,9 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
             TimeService.Instance.SimulationSpeedFactor = normalized;
 
+            OnPropertyChanged(nameof(ScaleInfoModelHourDisplay));
+            OnPropertyChanged(nameof(ScaleInfoModelDayDisplay));
+
             if (!_suppressAutoDefaults && _mgr.Project != null)
             {
                 _mgr.Project.SimulationSpeedFactor = normalized;
@@ -699,26 +702,24 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     {
         var modelMm = realMm / ratio;
         if (modelMm >= 1000.0)
-            return $"{modelMm / 1000.0:0.##} m";
+            return $"{modelMm / 1000.0:0.00} m";
         if (modelMm >= 10.0)
-            return $"{modelMm / 10.0:0.#} cm";
-        return $"{modelMm:0.0} mm";
+            return $"{modelMm / 10.0:0.00} cm";
+        return $"{modelMm:0.00} mm";
     }
 
     private static string FormatModelSpeed(double realKmh, double ratio)
     {
         var modelKmh = realKmh / ratio;
-        if (modelKmh < 1.0)
-            return $"{modelKmh * 1000.0:0.##} m/h";
-        return $"{modelKmh:0.###} km/h";
+        return $"{modelKmh:0.00} km/h";
     }
 
     private static string FormatModelTime(double realSeconds, double ratio)
     {
         var modelSec = realSeconds / ratio;
         if (modelSec < 60.0)
-            return $"{modelSec:0.#} s";
-        return $"{modelSec / 60.0:0.#} min";
+            return $"{modelSec:0.00} s";
+        return $"{modelSec / 60.0:0.00} min";
     }
 
     private double CurrentScaleDivisor =>
@@ -747,16 +748,16 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public string ScaleInfoLoco20mDisplay      => FormatModelLength(20_000,     CurrentScaleDivisor);
     public string ScaleInfoWagon26mDisplay     => FormatModelLength(26_000,     CurrentScaleDivisor);
     public string ScaleInfoSwitch30mDisplay    => FormatModelLength(30_000,     CurrentScaleDivisor);
-    public string ScaleInfoModelHourDisplay    => FormatModelTime(3600.0,       CurrentScaleDivisor);
-    public string ScaleInfoModelDayDisplay     => FormatModelTime(86_400.0,     CurrentScaleDivisor);
+    public string ScaleInfoModelHourDisplay    => FormatModelTime(3600.0,    SimulationSpeedFactor);
+    public string ScaleInfoModelDayDisplay     => FormatModelTime(86_400.0,  SimulationSpeedFactor);
     public string ScaleInfoPlatform200mDisplay => FormatModelLength(200_000,    CurrentScaleDivisor);
 
     private static string FormatModelSpeedMs(double realKmh, double ratio)
     {
         var ms = realKmh / ratio / 3.6;
         if (ms < 0.01)
-            return $"{ms * 100.0:0.##} cm/s";
-        return $"{ms:0.####} m/s";
+            return $"{ms * 100.0:0.00} cm/s";
+        return $"{ms:0.00} m/s";
     }
 
     // ───────────────────────────────────────────────────────────────────────

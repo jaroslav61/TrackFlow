@@ -19,7 +19,8 @@
     <Border Grid.Row="0"
             BorderBrush="#C8C8C8"
             BorderThickness="1"
-            Background="#FFFFFF">
+            Background="#FFFFFF"
+            CornerRadius="6">
       <Grid RowDefinitions="Auto,*">
         <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
           <TextBlock Text="Pripojenie k DCC centrále"
@@ -172,10 +173,13 @@
               Background="#F2F6FA"
               BorderBrush="#C8D5CC"
               BorderThickness="1"
+              CornerRadius="6"
               IsEnabled="{Binding HasSelectedCentral}">
         <Grid RowDefinitions="Auto,*">
 
-          <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
+          <Border Grid.Row="0" 
+                  Background="#E8E8E8" 
+                  Padding="8,4">
             <TextBlock Text="Konfigurácia programovacej koľaje"
                        FontWeight="Bold"
                        FontSize="13" />
@@ -227,7 +231,8 @@
     <Border Grid.Column="2"
         Background="#F2F6FA"
         BorderBrush="#C8D5CC"
-        BorderThickness="1">
+        BorderThickness="1"
+        CornerRadius="6">
   <Grid RowDefinitions="Auto,*">
     <Border Grid.Row="0" Background="#E8E8E8" Padding="8,4">
       <TextBlock Text="Režim a správanie konfigurácie"
