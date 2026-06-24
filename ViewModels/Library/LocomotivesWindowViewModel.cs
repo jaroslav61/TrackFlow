@@ -1442,6 +1442,17 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             SelectedDecoderManufacturer = Selected.DecoderManufacturer ?? "-- Výrobca --";
             DecoderModel = Selected.DecoderModel ?? "";
             SelectedDecoderInterface = Selected.DecoderInterface;
+
+            // CV display fields sa nikdy nenačítavajú z modelu — vždy štartujú na 0/false
+            if (SelectedLocomotive != null)
+            {
+                SelectedLocomotive.IsDccProgrammingEnabled = false;
+                SelectedLocomotive.MinSpeedCv = 0;
+                SelectedLocomotive.MidSpeedCv = 0;
+                SelectedLocomotive.MaxSpeedCv = 0;
+                SelectedLocomotive.AccelerationCv = 0;
+                SelectedLocomotive.BrakingCv = 0;
+            }
         }
 
         IsDirty = false;
@@ -1858,12 +1869,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     LastRunDate  = ParseDate(LastRunDateText),
                     LastMaintenanceDate = ParseDate(LastMaintenanceDateText),
                     TotalOperationTime = ParseOperationTime(TotalOperationTimeText),
-                    IsDccProgrammingEnabled = selectedLocomotive?.IsDccProgrammingEnabled ?? true,
-                    MinSpeedCv = selectedLocomotive?.MinSpeedCv ?? 0,
-                    MidSpeedCv = selectedLocomotive?.MidSpeedCv ?? 0,
-                    MaxSpeedCv = selectedLocomotive?.MaxSpeedCv ?? 0,
-                    AccelerationCv = selectedLocomotive?.AccelerationCv ?? 0,
-                    BrakingCv = selectedLocomotive?.BrakingCv ?? 0,
                     IsDisableDynamicsForMeasurement = selectedLocomotive?.IsDisableDynamicsForMeasurement ?? false,
                     BrakeCorrection = selectedLocomotive?.BrakeCorrection ?? 0,
                     BrakeCompensationForward = selectedLocomotive?.BrakeCompensationForward ?? 0,
@@ -1908,12 +1913,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 Selected.LastRunDate  = ParseDate(LastRunDateText);
                 Selected.LastMaintenanceDate = ParseDate(LastMaintenanceDateText);
                 Selected.TotalOperationTime = ParseOperationTime(TotalOperationTimeText);
-                Selected.IsDccProgrammingEnabled = SelectedLocomotive?.IsDccProgrammingEnabled ?? Selected.IsDccProgrammingEnabled;
-                Selected.MinSpeedCv = SelectedLocomotive?.MinSpeedCv ?? Selected.MinSpeedCv;
-                Selected.MidSpeedCv = SelectedLocomotive?.MidSpeedCv ?? Selected.MidSpeedCv;
-                Selected.MaxSpeedCv = SelectedLocomotive?.MaxSpeedCv ?? Selected.MaxSpeedCv;
-                Selected.AccelerationCv = SelectedLocomotive?.AccelerationCv ?? Selected.AccelerationCv;
-                Selected.BrakingCv = SelectedLocomotive?.BrakingCv ?? Selected.BrakingCv;
                 Selected.IsDisableDynamicsForMeasurement = SelectedLocomotive?.IsDisableDynamicsForMeasurement ?? Selected.IsDisableDynamicsForMeasurement;
                 Selected.BrakeCorrection = SelectedLocomotive?.BrakeCorrection ?? Selected.BrakeCorrection;
                 Selected.BrakeCompensationForward = SelectedLocomotive?.BrakeCompensationForward ?? Selected.BrakeCompensationForward;

@@ -421,6 +421,15 @@
             <Setter Property="BorderThickness" Value="0" />
         </Style>
 
+        <!-- Potlač selection highlight v CV speed NumericUpDown poliach -->
+        <Style Selector="NumericUpDown#MinSpeedCvBox /template/ TextBox,
+                         NumericUpDown#MidSpeedCvBox /template/ TextBox,
+                         NumericUpDown#MaxSpeedCvBox /template/ TextBox,
+                         NumericUpDown#AccelerationCvBox /template/ TextBox,
+                         NumericUpDown#BrakingCvBox /template/ TextBox">
+            <Setter Property="SelectionBrush" Value="Transparent" />
+        </Style>
+
     </Window.Styles>
 
     <Grid RowDefinitions="*,Auto" Margin="10">
@@ -1488,6 +1497,7 @@
 
                                                     <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
                                                                 Spacing="0" Margin="5,2,0,2">
+                                                        
                                                         <TextBlock Text="Minimálna rýchlosť" FontSize="12"
                                                                    VerticalAlignment="Center" />
                                                         <Border Classes="dccCvBadge">

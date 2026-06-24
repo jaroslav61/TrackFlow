@@ -167,15 +167,27 @@ public partial class LocomotivesWindow : Window
 
         var minSpeedCvBox = this.FindControl<NumericUpDown>("MinSpeedCvBox");
         if (minSpeedCvBox != null)
-            minSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV2");
+        {
+            minSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(minSpeedCvBox, 1, 10);
+            minSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
+            minSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(minSpeedCvBox);
+        }
 
         var midSpeedCvBox = this.FindControl<NumericUpDown>("MidSpeedCvBox");
         if (midSpeedCvBox != null)
-            midSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV6");
+        {
+            midSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(midSpeedCvBox, 32, 128);
+            midSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
+            midSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(midSpeedCvBox);
+        }
 
         var maxSpeedCvBox = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
         if (maxSpeedCvBox != null)
-            maxSpeedCvBox.GotFocus += (_, _) => OnCvBoxGotFocus("CV5");
+        {
+            maxSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(maxSpeedCvBox, 1, 255);
+            maxSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
+            maxSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(maxSpeedCvBox);
+        }
         
         AttachVm(DataContext as LocomotivesWindowViewModel);
         HookSpeedChartInteractions();
@@ -249,13 +261,95 @@ public partial class LocomotivesWindow : Window
     // ── CV testovací slider ───────────────────────────────────────────────────
 
     private string _activeCvTarget = "";
+    private NumericUpDown? _activeSpeedCvBox;
+    private bool _cvSliderUpdating;
 
-    private void OnCvBoxGotFocus(string cvTarget)
+    private void OnSpeedCvBoxGotFocus(NumericUpDown box, double min, double max)
     {
+        bool alreadyActive = _activeSpeedCvBox == box;
+
+        _activeSpeedCvBox = box;
+        _activeCvTarget = box.Name switch
+        {
+            "MinSpeedCvBox" => "CV2",
+            "MidSpeedCvBox" => "CV6",
+            "MaxSpeedCvBox" => "CV5",
+            _ => ""
+        };
+
         var slider = this.FindControl<Slider>("CvTestSlider");
-        if (slider == null || !slider.IsEffectivelyEnabled) return;
-        _activeCvTarget = cvTarget;
-        slider.Value = 0;
+        if (slider != null)
+            slider.IsEnabled = true;
+
+        _cvSliderUpdating = true;
+
+        if (!alreadyActive)
+        {
+            box.Value = (decimal)min;
+            if (slider != null)
+            {
+                slider.Minimum = min;
+                slider.Maximum = max;
+                slider.Value = min;
+            }
+        }
+        else
+        {
+            if (slider != null)
+            {
+                slider.Minimum = min;
+                slider.Maximum = max;
+                slider.Value = Math.Clamp(box.Value.HasValue ? (double)box.Value.Value : min, min, max);
+            }
+        }
+
+        _cvSliderUpdating = false;
+    }
+
+    private void OnSpeedCvBoxLostFocus()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var minBox = this.FindControl<NumericUpDown>("MinSpeedCvBox");
+            var midBox = this.FindControl<NumericUpDown>("MidSpeedCvBox");
+            var maxBox = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
+            var slider = this.FindControl<Slider>("CvTestSlider");
+
+            bool anyFocused = minBox?.IsKeyboardFocusWithin == true ||
+                              midBox?.IsKeyboardFocusWithin == true ||
+                              maxBox?.IsKeyboardFocusWithin == true ||
+                              slider?.IsKeyboardFocusWithin == true ||
+                              slider?.IsFocused == true;
+
+            if (!anyFocused)
+            {
+                _activeCvTarget = "";
+                _activeSpeedCvBox = null;
+                if (slider != null)
+                {
+                    // Slider zakážeme len keď je DCC sekcia enabled (checkbox zaškrtnutý).
+                    // Keď nie je, parent kontajner riadi disabled stav — slider.IsEnabled nesmie pridávať vlastnú opacity navyše.
+                    slider.IsEnabled = _vm?.IsDccProgrammingEnabled != true;
+                    slider.Minimum = 0;
+                    slider.Maximum = 255;
+                    slider.Value = 0;
+                }
+            }
+        });
+    }
+
+    private void OnSpeedCvBoxValueChanged(NumericUpDown box)
+    {
+        if (_cvSliderUpdating) return;
+        if (box != _activeSpeedCvBox) return;
+
+        var slider = this.FindControl<Slider>("CvTestSlider");
+        if (slider == null) return;
+
+        var val = Math.Clamp(box.Value.HasValue ? (double)box.Value.Value : slider.Minimum, slider.Minimum, slider.Maximum);
+        _cvSliderUpdating = true;
+        slider.Value = val;
+        _cvSliderUpdating = false;
     }
 
     private void OnCvTestSliderKeyDown(object? sender, KeyEventArgs e)
@@ -272,11 +366,15 @@ public partial class LocomotivesWindow : Window
         if (sender is not Slider slider) return;
         if (!slider.IsEffectivelyEnabled) return;
         if (_activeCvTarget == "") return;
+        if (_cvSliderUpdating) return;
 
         int rawValue = (int)Math.Round(e.NewValue);
         int dccSpeed = Math.Abs(rawValue);
         bool forward = rawValue >= 0;
 
+        _cvSliderUpdating = true;
+        if (_activeSpeedCvBox != null)
+            _activeSpeedCvBox.Value = (decimal)dccSpeed;
         var loco = _vm?.SelectedLocomotive;
         if (loco != null)
         {
@@ -287,6 +385,7 @@ public partial class LocomotivesWindow : Window
                 case "CV5": loco.MaxSpeedCv = Math.Clamp(dccSpeed, 1, 255);  break;
             }
         }
+        _cvSliderUpdating = false;
 
         _ = SendCvTestSpeedAsync(dccSpeed, forward);
     }
@@ -556,6 +655,20 @@ public partial class LocomotivesWindow : Window
             case nameof(LocomotivesWindowViewModel.FunctionSoundPosition):
                 if (!_updatingFromPlayer && !_userSeeking)
                     Dispatcher.UIThread.Post(() => SeekToSeconds(vm.FunctionSoundPosition));
+                break;
+
+            case nameof(LocomotivesWindowViewModel.IsDccProgrammingEnabled):
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var slider = this.FindControl<Slider>("CvTestSlider");
+                    if (slider == null) return;
+                    if (vm.IsDccProgrammingEnabled)
+                        // DCC sekcia sa zapla — slider zakáž, kým niektorý NUD nezíska fokus
+                        slider.IsEnabled = _activeSpeedCvBox?.IsKeyboardFocusWithin == true;
+                    else
+                        // DCC sekcia sa vypla — parent riadi disabled stav, slider nesmie mať vlastný IsEnabled=false
+                        slider.IsEnabled = true;
+                });
                 break;
         }
 
