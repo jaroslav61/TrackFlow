@@ -323,6 +323,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(IsDccProgrammingEnabled));
             OnPropertyChanged(nameof(IsDisableDynamicsForMeasurement));
             OnPropertyChanged(nameof(IsGlobalDccProgrammingAvailable));
+            OnPropertyChanged(nameof(AccelerationCv));
+            OnPropertyChanged(nameof(BrakingCv));
         }
     }
 
@@ -360,6 +362,28 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     public bool IsGlobalDccProgrammingAvailable
         => SelectedLocomotive?.IsDccProgrammingEnabled == true
            && _dccConnectionService?.IsConnected == true;
+
+    public int AccelerationCv
+    {
+        get => SelectedLocomotive?.AccelerationCv ?? 0;
+        set
+        {
+            if (SelectedLocomotive == null || SelectedLocomotive.AccelerationCv == value) return;
+            SelectedLocomotive.AccelerationCv = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int BrakingCv
+    {
+        get => SelectedLocomotive?.BrakingCv ?? 0;
+        set
+        {
+            if (SelectedLocomotive == null || SelectedLocomotive.BrakingCv == value) return;
+            SelectedLocomotive.BrakingCv = value;
+            OnPropertyChanged();
+        }
+    }
 
     private string _number = "";
     public string Number
@@ -1116,6 +1140,10 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             case nameof(LocoRecord.IsInvertDirectionEnabled):
                 if (e.PropertyName == nameof(LocoRecord.IsDisableDynamicsForMeasurement))
                     OnPropertyChanged(nameof(IsDisableDynamicsForMeasurement));
+                if (e.PropertyName == nameof(LocoRecord.AccelerationCv))
+                    OnPropertyChanged(nameof(AccelerationCv));
+                if (e.PropertyName == nameof(LocoRecord.BrakingCv))
+                    OnPropertyChanged(nameof(BrakingCv));
                 MarkDirtyAndRevalidate();
                 break;
         }
@@ -2071,4 +2099,3 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         return epochWithYears;
     }
 }
-

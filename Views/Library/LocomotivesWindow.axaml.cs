@@ -282,9 +282,9 @@ public partial class LocomotivesWindow : Window
         {
             switch (_activeCvTarget)
             {
-                case "CV2": loco.MinSpeedCv = dccSpeed; break;
-                case "CV6": loco.MidSpeedCv = dccSpeed; break;
-                case "CV5": loco.MaxSpeedCv = dccSpeed; break;
+                case "CV2": loco.MinSpeedCv = Math.Clamp(dccSpeed, 1, 10);   break;
+                case "CV6": loco.MidSpeedCv = Math.Clamp(dccSpeed, 32, 128); break;
+                case "CV5": loco.MaxSpeedCv = Math.Clamp(dccSpeed, 1, 255);  break;
             }
         }
 

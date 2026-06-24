@@ -51,10 +51,13 @@
                                        HorizontalAlignment="Right" />
                         </Grid>
 
+                        
+                        <!-- TICK BAR  Testovacia jazda -->
                         <Grid Grid.Row="1"
                               Width="{TemplateBinding Width}"
                               Margin="8,0"
                               Height="10"
+                              HorizontalAlignment="Center"
                               ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*">
                             <Border Grid.Column="0" Width="1" Height="5" Background="#6B7280" VerticalAlignment="Top"
                                     HorizontalAlignment="Center" />
@@ -142,7 +145,7 @@
                 <ControlTemplate x:DataType="Slider">
                     <Grid RowDefinitions="16,10">
 
-                        <Grid Grid.Row="0" Margin="6,0" Height="16" VerticalAlignment="Center">
+                        <Grid Grid.Row="0" Margin="4,0" Height="16" VerticalAlignment="Center">
                             <Border Height="2" Background="#7C8796" CornerRadius="1" VerticalAlignment="Center" />
                             <primitives:Track x:Name="PART_Track"
                                               Orientation="Horizontal"
@@ -166,8 +169,9 @@
                             </primitives:Track>
                         </Grid>
 
+                        <!-- TICK BAR  Testovacia jazda -->
                         <Grid Grid.Row="1"
-                              Margin="6,0,6,0"
+                              Margin="4,0,4,0"
                               Height="10"
                               VerticalAlignment="Top"
                               ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*">
@@ -1481,6 +1485,7 @@
                                                 <Grid Grid.Column="0"
                                                       RowDefinitions="Auto,Auto,Auto" RowSpacing="4"
                                                       ColumnDefinitions="156,58,70" ColumnSpacing="4">
+
                                                     <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
                                                                 Spacing="0" Margin="5,2,0,2">
                                                         <TextBlock Text="Minimálna rýchlosť" FontSize="12"
@@ -1489,62 +1494,105 @@
                                                             <TextBlock Classes="dccCvBadgeText" Text="CV2" />
                                                         </Border>
                                                     </StackPanel>
-                                                    <NumericUpDown x:Name="MinSpeedCvBox" Grid.Row="0" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
-                                                                   Maximum="255"
+
+                                                    <NumericUpDown x:Name="MinSpeedCvBox"
+                                                                   Grid.Row="0"
+                                                                   Grid.Column="1"
+                                                                   Height="22"
+                                                                   Margin="0,2,0,2"
+                                                                   Minimum="1"
+                                                                   Maximum="10"
                                                                    Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
-                                                    <TextBlock x:Name="MinSpeedKmhText" Grid.Row="0" Grid.Column="2"
-                                                               Text="-- km/h" FontSize="11" Foreground="#888"
-                                                               VerticalAlignment="Center" Margin="4,0,0,0" />
 
-                                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
+                                                    <TextBlock x:Name="MinSpeedKmhText"
+                                                               Grid.Row="0"
+                                                               Grid.Column="2"
+                                                               Text="-- km/h"
+                                                               FontSize="11"
+                                                               Foreground="#888"
+                                                               VerticalAlignment="Center"
+                                                               Margin="4,0,0,0" />
+
+                                                    <StackPanel Grid.Row="1"
+                                                                Grid.Column="0"
+                                                                Orientation="Horizontal"
                                                                 Spacing="0" Margin="5,2,0,2">
-                                                        <TextBlock Text="Stredná rýchlosť" FontSize="12"
+
+                                                        <TextBlock Text="Stredná rýchlosť"
+                                                                   FontSize="12"
                                                                    Padding="0,0,12,0"
                                                                    VerticalAlignment="Center" />
+
                                                         <Border Classes="dccCvBadge">
                                                             <TextBlock Classes="dccCvBadgeText" Text="CV6" />
                                                         </Border>
+
                                                     </StackPanel>
+
                                                     <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
-                                                                   Maximum="255"
+                                                                   Height="22"
+                                                                   Margin="0,2,0,2"
+                                                                   Minimum="32"
+                                                                   Maximum="128"
                                                                    Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
-                                                    <TextBlock x:Name="MidSpeedKmhText" Grid.Row="1" Grid.Column="2"
-                                                               Text="-- km/h" FontSize="11" Foreground="#888"
+
+                                                    <TextBlock x:Name="MidSpeedKmhText"
+                                                               Grid.Row="1"
+                                                               Grid.Column="2"
+                                                               Text="-- km/h"
+                                                               FontSize="11" Foreground="#888"
                                                                VerticalAlignment="Center" Margin="4,0,0,0" />
 
-                                                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal"
-                                                                Spacing="0" Margin="5,2,0,2">
-                                                        <TextBlock Text="Maximálna rýchlosť" FontSize="11"
-                                                                   Padding="0,0,5,0" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Row="2"
+                                                                Grid.Column="0"
+                                                                Orientation="Horizontal"
+                                                                Spacing="0"
+                                                                Margin="5,2,0,2">
+
+                                                        <TextBlock Text="Maximálna rýchlosť"
+                                                                   FontSize="11"
+                                                                   Padding="0,0,5,0"
+                                                                   VerticalAlignment="Center" />
+
                                                         <Border Classes="dccCvBadge">
-                                                            <TextBlock Classes="dccCvBadgeText" Text="CV5" />
+                                                            <TextBlock Classes="dccCvBadgeText"
+                                                                       Text="CV5" />
                                                         </Border>
+                                                        
                                                     </StackPanel>
-                                                    <NumericUpDown x:Name="MaxSpeedCvBox" Grid.Row="2" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
+                                                    
+                                                    <NumericUpDown x:Name="MaxSpeedCvBox"
+                                                                   Grid.Row="2"
+                                                                   Grid.Column="1"
+                                                                   Height="22"
+                                                                   Margin="0,2,0,2"
+                                                                   Minimum="1"
                                                                    Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
-                                                    <TextBlock x:Name="MaxSpeedKmhText" Grid.Row="2" Grid.Column="2"
-                                                               Text="-- km/h" FontSize="11" Foreground="#888"
-                                                               VerticalAlignment="Center" Margin="4,0,0,0" />
+                                                    
+                                                    <TextBlock x:Name="MaxSpeedKmhText"
+                                                               Grid.Row="2"
+                                                               Grid.Column="2"
+                                                               Text="-- km/h"
+                                                               FontSize="11"
+                                                               Foreground="#888"
+                                                               VerticalAlignment="Center"
+                                                               Margin="4,0,0,0" />
                                                 </Grid>
 
                                                 <!-- Pravá strana: testovací slider -->
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center"
                                                             HorizontalAlignment="Right" Spacing="2" Margin="8,0,4,0">
                                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                                        <TextBlock Grid.Column="0" Text="VZAD" FontSize="10"
-                                                                   Foreground="#666" VerticalAlignment="Center" />
+                                                      
                                                         <TextBlock Grid.Column="2" Text="VPRED" FontSize="10"
                                                                    Foreground="#666" VerticalAlignment="Center" />
                                                     </Grid>
                                                     <Slider x:Name="CvTestSlider" Classes="dccCompactSlider"
-                                                            Minimum="-127" Maximum="127" Value="0"
+                                                            Minimum="0" Maximum="255" Value="0"
                                                             Width="160" VerticalAlignment="Center" />
                                                     <TextBlock Text="Ovládanie testovacej jazdy" FontSize="10"
                                                                Foreground="#888" HorizontalAlignment="Center" />
@@ -1569,57 +1617,105 @@
                                                 </StackPanel>
                                             </Border>
                                             <StackPanel Classes="dccDisabledTextContent" Margin="4" Spacing="4">
-                                                <Grid RowDefinitions="Auto,Auto" RowSpacing="4"
-                                                      ColumnDefinitions="156,58,*" ColumnSpacing="4">
-                                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                                             
+                                                <Grid RowDefinitions="Auto,Auto" 
+                                                      RowSpacing="4"
+                                                      ColumnDefinitions="156,58,*" 
+                                                      ColumnSpacing="4">
+                                                    
+                                                    <StackPanel Grid.Row="0" 
+                                                                Grid.Column="0" 
+                                                                Orientation="Horizontal"
                                                                 Spacing="0" Margin="5,2,0,2">
-                                                        <TextBlock Text="Zrýchlenie" FontSize="12"
+                                                        
+                                                        <TextBlock Text="Zrýchlenie" 
+                                                                   FontSize="12"
                                                                    VerticalAlignment="Center" />
+                                                        
                                                         <Border Classes="dccCvBadge">
-                                                            <TextBlock Classes="dccCvBadgeText" Text="CV3" />
+                                                            <TextBlock Classes="dccCvBadgeText" 
+                                                                       Text="CV3" />
                                                         </Border>
+                                                        
                                                     </StackPanel>
-                                                    <NumericUpDown x:Name="AccelerationCvBox" Grid.Row="0"
-                                                                   Grid.Column="1" Height="22" Margin="0,2,0,2"
-                                                                   Minimum="0" Maximum="255"
-                                                                   Value="{Binding SelectedLocomotive.AccelerationCv, Mode=TwoWay, TargetNullValue=0}"
+                                                    
+                                                    <NumericUpDown x:Name="AccelerationCvBox" 
+                                                                   Grid.Row="0"
+                                                                   Grid.Column="1" 
+                                                                   Height="22" 
+                                                                   Margin="0,2,0,2"
+                                                                   Minimum="0" 
+                                                                   Maximum="255"
+                                                                   Value="{Binding AccelerationCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
-                                                    <Slider Grid.Row="0" Grid.Column="2" Classes="dccCompactSlider"
-                                                            Minimum="0" Maximum="255" Width="220"
-                                                            Value="{Binding SelectedLocomotive.AccelerationCv, Mode=TwoWay, TargetNullValue=0}"
+                                                    
+                                                    <Slider Grid.Row="0" 
+                                                            Grid.Column="2" 
+                                                            Classes="dccCompactSlider"
+                                                            Minimum="0" 
+                                                            Maximum="255" 
+                                                            Width="220"
+                                                            Value="{Binding AccelerationCv, Mode=TwoWay, TargetNullValue=0}"
                                                             VerticalAlignment="Center" />
 
-                                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
-                                                                Spacing="0" Margin="5,2,0,2">
-                                                        <TextBlock Text="Brzdenie" FontSize="12" Padding="0,0,10,0"
+                                                    <StackPanel Grid.Row="1" 
+                                                                Grid.Column="0" 
+                                                                Orientation="Horizontal"
+                                                                Spacing="0" 
+                                                                Margin="5,2,0,2">
+                                                        
+                                                        <TextBlock Text="Brzdenie" 
+                                                                   FontSize="12" 
+                                                                   Padding="0,0,10,0"
                                                                    VerticalAlignment="Center" />
+                                                        
                                                         <Border Classes="dccCvBadge">
-                                                            <TextBlock Classes="dccCvBadgeText" Text="CV4" />
+                                                            <TextBlock Classes="dccCvBadgeText" 
+                                                                       Text="CV4" />
                                                         </Border>
+                                                        
                                                     </StackPanel>
-                                                    <NumericUpDown x:Name="BrakingCvBox" Grid.Row="1" Grid.Column="1"
-                                                                   Height="22" Margin="0,2,0,2" Minimum="0"
+                                                    
+                                                    <NumericUpDown x:Name="BrakingCvBox" 
+                                                                   Grid.Row="1" 
+                                                                   Grid.Column="1"
+                                                                   Height="22" 
+                                                                   Margin="0,2,0,2" 
+                                                                   Minimum="0"
                                                                    Maximum="255"
-                                                                   Value="{Binding SelectedLocomotive.BrakingCv, Mode=TwoWay, TargetNullValue=0}"
+                                                                   Value="{Binding BrakingCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
-                                                    <Slider Grid.Row="1" Grid.Column="2" Classes="dccCompactSlider"
-                                                            Minimum="0" Maximum="255" Width="220"
-                                                            Value="{Binding SelectedLocomotive.BrakingCv, Mode=TwoWay, TargetNullValue=0}"
+                                                    
+                                                    <Slider Grid.Row="1" 
+                                                            Grid.Column="2" 
+                                                            Classes="dccCompactSlider"
+                                                            Minimum="0" 
+                                                            Maximum="255" 
+                                                            Width="220"
+                                                            Value="{Binding BrakingCv, Mode=TwoWay, TargetNullValue=0}"
                                                             VerticalAlignment="Center" />
                                                 </Grid>
 
-                                                <Border BorderBrush="#D7DEE8" BorderThickness="0,1,0,0"
+                                                <Border BorderBrush="#D7DEE8" 
+                                                        BorderThickness="0,1,0,0"
                                                         Margin="0,2,0,0" />
 
-                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
-                                                    <TextBlock Grid.Column="0" Text="Vypnúť pre meranie:" FontSize="12"
-                                                               Margin="5,2,0,2" VerticalAlignment="Center" />
+                                                <Grid ColumnDefinitions="Auto,Auto,*" 
+                                                      ColumnSpacing="6">
+                                                    
+                                                    <TextBlock Grid.Column="0" 
+                                                               Text="Vypnúť pre meranie:" 
+                                                               FontSize="12"
+                                                               Margin="5,2,0,2" 
+                                                               VerticalAlignment="Center" />
+                                                    
                                                     <ToggleSwitch x:Name="DisableDynamicsToggle"
                                                                   Grid.Column="1"
                                                                   OnContent="ON"
                                                                   OffContent="OFF"
                                                                   IsChecked="{Binding SelectedLocomotive.IsDisableDynamicsForMeasurement, Mode=TwoWay, TargetNullValue=False}" />
                                                 </Grid>
+                                                
                                                 <TextBlock
                                                     Text="Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow."
                                                     FontSize="11"
@@ -1722,7 +1818,7 @@
                                                                    FontSize="12"
                                                                    FontWeight="SemiBold"
                                                                    Foreground="#475569"
-                                                                   Margin="0,5,0,0"/>
+                                                                   Margin="0,5,0,0" />
 
                                                         <Slider Width="400"
                                                                 Classes="dccBrakeSlider"
@@ -1735,10 +1831,12 @@
                                                                 LargeChange="5"
                                                                 Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
 
+                                                        
+                                                        <!-- TICK BAR  Korekcia brdz dopredu -->
                                                         <Grid Width="413"
-                                                              HorizontalAlignment="Center" 
+                                                              HorizontalAlignment="Center"
                                                               ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*">
-                                                            
+
                                                             <TextBlock Grid.Column="0" Text="0"
                                                                        HorizontalAlignment="Center" />
                                                             <TextBlock Grid.Column="1" Text="10"
@@ -1766,16 +1864,16 @@
                                                     </StackPanel>
 
                                                     <NumericUpDown Grid.Column="1"
-                                                                         Classes="speedNumericUpDown"
-                                                                         Width="65"
-                                                                         MinWidth="65"
-                                                                         Height="24"
-                                                                         FontSize="11"
-                                                                         FormatString="0"
-                                                                         HorizontalContentAlignment="Right"
-                                                                         VerticalContentAlignment="Center"
-                                                                         Margin="0,5,0,0"
-                                                                         Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
+                                                                   Classes="speedNumericUpDown"
+                                                                   Width="65"
+                                                                   MinWidth="65"
+                                                                   Height="24"
+                                                                   FontSize="11"
+                                                                   FormatString="0"
+                                                                   HorizontalContentAlignment="Right"
+                                                                   VerticalContentAlignment="Center"
+                                                                   Margin="0,5,0,0"
+                                                                   Value="{Binding SelectedLocomotive.BrakeCompensationForward, Mode=TwoWay, TargetNullValue=0}" />
 
                                                 </Grid>
 
@@ -1790,7 +1888,7 @@
                                                                    FontSize="12"
                                                                    FontWeight="SemiBold"
                                                                    Foreground="#475569"
-                                                                   Margin="0,20,0,0"/>
+                                                                   Margin="0,20,0,0" />
 
                                                         <Slider Width="400"
                                                                 Classes="dccBrakeSlider"
@@ -1803,10 +1901,12 @@
                                                                 LargeChange="5"
                                                                 Value="{Binding SelectedLocomotive.BrakeCompensationBackward, Mode=TwoWay, TargetNullValue=0}" />
 
+                                                        
+                                                        <!-- TICK BAR  Korekcia bŕzd dozadu -->
                                                         <Grid Width="413"
-                                                              HorizontalAlignment="Center" 
+                                                              HorizontalAlignment="Center"
                                                               ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*">
-                                                            
+
                                                             <TextBlock Grid.Column="0" Text="0"
                                                                        HorizontalAlignment="Center" />
                                                             <TextBlock Grid.Column="1" Text="10"
