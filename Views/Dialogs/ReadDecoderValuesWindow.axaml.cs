@@ -225,6 +225,93 @@ public partial class ReadDecoderValuesWindow : Window
         }
     }
 
+    public async Task StartWritingAsync(
+        IReadOnlyList<(int CvAddress, int Value)> cvs,
+        Func<int, int, CancellationToken, Task> writeCvFunc)
+    {
+        if (writeCvFunc == null)
+            throw new ArgumentNullException(nameof(writeCvFunc));
+
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        WasCancelled = false;
+        Error = null;
+
+        int total = cvs.Count;
+
+        try
+        {
+            for (int i = 0; i < total; i++)
+            {
+                var (cvAddress, value) = cvs[i];
+                int currentStep = i;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var statusText = this.FindControl<TextBlock>("StatusText");
+                    var statusProgress = this.FindControl<ProgressBar>("StatusProgress");
+                    if (statusText != null)
+                        statusText.Text = $"Zapisujem register {currentStep + 1} z {total}: CV{cvAddress} = {value} ({GetCvDescription(cvAddress)})...";
+                    if (statusProgress != null)
+                        statusProgress.Value = ((double)currentStep / total) * 100;
+                });
+
+                await writeCvFunc(cvAddress, value, _cts.Token);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var statusText = this.FindControl<TextBlock>("StatusText");
+                    var statusProgress = this.FindControl<ProgressBar>("StatusProgress");
+                    if (statusText != null)
+                        statusText.Text = $"Zapísaný register {currentStep + 1} z {total}: CV{cvAddress} = {value}";
+                    if (statusProgress != null)
+                        statusProgress.Value = ((double)(currentStep + 1) / total) * 100;
+                });
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                var statusText = this.FindControl<TextBlock>("StatusText");
+                if (statusText != null)
+                    statusText.Text = "Všetky registre úspešne zapísané.";
+            });
+
+            await Task.Delay(800);
+        }
+        catch (OperationCanceledException)
+        {
+            WasCancelled = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var statusText = this.FindControl<TextBlock>("StatusText");
+                var statusProgress = this.FindControl<ProgressBar>("StatusProgress");
+                if (statusText != null)
+                    statusText.Text = "Zápis bol zrušený používateľom.";
+                if (statusProgress != null)
+                    statusProgress.Value = 100;
+            });
+            await Task.Delay(500);
+        }
+        catch (Exception ex)
+        {
+            Error = ex;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var statusText = this.FindControl<TextBlock>("StatusText");
+                if (statusText != null)
+                    statusText.Text = $"Chyba: {ex.Message}";
+            });
+            await Task.Delay(2000);
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                this.Close();
+            });
+        }
+    }
+
     private async void OnOpenedStartCompatReading(object? sender, EventArgs e)
     {
         try

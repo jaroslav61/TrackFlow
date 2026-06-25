@@ -1435,7 +1435,7 @@ public class LocomotiveSpeedEditorMarkupTests
 
         Assert.DoesNotContain("dialog.Opened += async (_, _) =>", code, StringComparison.Ordinal);
         Assert.Contains("void OnDialogOpened(object? sender, EventArgs args)", code, StringComparison.Ordinal);
-        Assert.Contains("_ = StartReadDecoderValuesDialogAsync(dialog, readCv);", code, StringComparison.Ordinal);
+        Assert.Contains("_ = StartReadDecoderValuesDialogAsync(dialog, programmingClient, timeoutMsPerCv, interCvDelayMs);", code, StringComparison.Ordinal);
         Assert.Contains("Program.ReportUnhandledException(\"LocomotivesWindow.StartReadDecoderValuesDialogAsync\"", code, StringComparison.Ordinal);
         Assert.Contains("Štart čítania CV v progres-dialógu zlyhal", code, StringComparison.Ordinal);
     }
@@ -1453,8 +1453,6 @@ public class LocomotiveSpeedEditorMarkupTests
         Assert.DoesNotContain("int locoAddress = 3", z21, StringComparison.Ordinal);
         Assert.DoesNotContain("int locoAddress = 3", serial, StringComparison.Ordinal);
 
-        Assert.Contains("const int serviceTrackAddressPlaceholder = 0;", window, StringComparison.Ordinal);
-        Assert.Contains("programmingClient.ReadCvAsync(cv, mode, timeoutMs, serviceTrackAddressPlaceholder, ct);", window, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSelectedLocomotiveAddressForPom() ?? 3", window, StringComparison.Ordinal);
 
         Assert.Equal(2, CountOccurrences(viewModel, "const int serviceTrackAddressPlaceholder = 0;"));
@@ -2098,5 +2096,3 @@ public class LocomotiveSpeedEditorMarkupTests
             $"Text diagnostiky neobsahuje žiadny z očakávaných fragmentov ({string.Join(", ", expectedFragments)}). Aktuálny text: {combinedText}");
     }
 }
-
-

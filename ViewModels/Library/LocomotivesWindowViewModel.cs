@@ -1265,10 +1265,11 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             ct: ct);
     }
 
-    private async Task WriteProgrammingCvAsync(int cvAddress, int value, CancellationToken ct = default)
+    internal async Task WriteProgrammingCvAsync(int cvAddress, int value, CancellationToken ct = default)
     {
         var programmingClient = GetServiceTrackProgrammingClientOrThrow();
         const int serviceTrackAddressPlaceholder = 0;
+        TrackFlowDoctorService.Instance.Diagnose("DCC", $"📤 WriteProgrammingCvAsync: CV{cvAddress} = {value}");
         await programmingClient.WriteCvAsync(
             cvAddress,
             value,
@@ -1276,6 +1277,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             timeoutMs: 5000,
             locoAddress: serviceTrackAddressPlaceholder,
             ct: ct);
+        TrackFlowDoctorService.Instance.Diagnose("DCC", $"✅ CV{cvAddress} zapísané.", DiagnosticLevel.Success);
     }
 
     public async Task WriteAllSpeedCvsAsync(LocoRecord loco, CancellationToken ct = default)

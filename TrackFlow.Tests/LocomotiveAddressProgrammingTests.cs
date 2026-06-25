@@ -107,10 +107,12 @@ public sealed class LocomotiveAddressProgrammingTests
     {
         var disconnectedConnection = new FakeDccConnectionService(isConnected: false, client: new FakeProgrammingClient());
         var disconnectedVm = CreateViewModel(disconnectedConnection).ViewModel;
+        disconnectedVm.IsDccProgrammingEnabled = true;
         Assert.False(disconnectedVm.IsGlobalDccProgrammingAvailable);
 
         var connectedConnection = new FakeDccConnectionService(isConnected: true, client: new FakeProgrammingClient());
         var connectedVm = CreateViewModel(connectedConnection).ViewModel;
+        connectedVm.IsDccProgrammingEnabled = true;
         Assert.True(connectedVm.IsGlobalDccProgrammingAvailable);
 
         connectedVm.IsDccProgrammingEnabled = false;
@@ -209,6 +211,13 @@ public sealed class LocomotiveAddressProgrammingTests
             CvValues[cvAddress] = value;
             return Task.CompletedTask;
         }
+
+        public Task ReadMultipleCvsAsync(IReadOnlyList<int> cvAddresses, int timeoutMsPerCv, int interCvDelayMs, Action<int, int> onCvRead, Action<int, int, int>? onCvReading = null, CancellationToken ct = default)
+        {
+            foreach (var cv in cvAddresses)
+                onCvRead(cv, CvValues.TryGetValue(cv, out var value) ? value : 0);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeNonProgrammingClient : IDccCentralClient
@@ -224,5 +233,3 @@ public sealed class LocomotiveAddressProgrammingTests
         public Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default) => Task.CompletedTask;
     }
 }
-
-

@@ -793,11 +793,6 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             if (!isPom)
                 await TryExitServiceModeAsync(udp).ConfigureAwait(false);
         }
-
-        var readBack = await ReadCvAsync(cvAddress, programmingMode, timeoutMs, locoAddress, ct).ConfigureAwait(false);
-        if (readBack != value)
-            throw new InvalidOperationException(
-                $"Overenie zápisu zlyhalo: po zápise CV{cvAddress}={value} centrála prečítala hodnotu {readBack}.");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

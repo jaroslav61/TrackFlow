@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TrackFlow.Models;
@@ -317,6 +318,8 @@ public sealed class DccCommunicationTestHandlerTests
             => Task.FromResult(4);
         public Task WriteCvAsync(int cvAddress, int value, DccProgrammingTestMode programmingMode, int timeoutMs, int locoAddress, CancellationToken ct = default)
             => Task.CompletedTask;
+        public Task ReadMultipleCvsAsync(IReadOnlyList<int> cvAddresses, int timeoutMsPerCv, int interCvDelayMs, Action<int, int> onCvRead, Action<int, int, int>? onCvReading = null, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeNonProgrammingDccCentralClient : IDccCentralClient
@@ -332,4 +335,3 @@ public sealed class DccCommunicationTestHandlerTests
         public Task SetTurnoutAsync(int address, bool branch, bool activate, CancellationToken ct = default) => Task.CompletedTask;
     }
 }
-

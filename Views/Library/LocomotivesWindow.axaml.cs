@@ -412,11 +412,40 @@ public partial class LocomotivesWindow : Window
         {
             if (_vm?.SelectedLocomotive == null) return;
             var loco = _vm.SelectedLocomotive;
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await _vm.WriteAllSpeedCvsAsync(loco, cts.Token);
+
+            if (Owner?.DataContext is not MainWindowViewModel mainVm
+                || !mainVm.Dcc.IsConnected
+                || mainVm.Dcc.Client is not IDccProgrammingClient)
+            {
+                await ShowReadErrorAsync("DCC centrála nie je pripojená alebo nepodporuje programovanie CV registrov.");
+                return;
+            }
+
+            var cvs = new List<(int, int)>
+            {
+                (2,  loco.MinSpeedCv),
+                (6,  loco.MidSpeedCv),
+                (5,  loco.MaxSpeedCv),
+                (3,  loco.AccelerationCv),
+                (4,  loco.BrakingCv),
+                (57, loco.Cv57),
+            };
+
+            var dialog = new ReadDecoderValuesWindow();
+            TooltipPreferenceService.Attach(dialog);
+
+            void OnDialogOpened(object? sender, EventArgs args)
+            {
+                dialog.Opened -= OnDialogOpened;
+                _ = dialog.StartWritingAsync(cvs, (cv, value, ct) => _vm.WriteProgrammingCvAsync(cv, value, ct));
+            }
+
+            dialog.Opened += OnDialogOpened;
+            await dialog.ShowDialog(this);
         }
         catch (Exception ex)
         {
+            TrackFlowDoctorService.Instance.Diagnose("DCC", $"❌ Zápis CV zlyhalo: {ex.Message}", DiagnosticLevel.Warning);
             Program.ReportUnhandledException("LocomotivesWindow.WriteCvButton_Click", ex, isTerminating: false);
         }
     }
