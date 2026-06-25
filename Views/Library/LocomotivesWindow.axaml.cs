@@ -189,6 +189,14 @@ public partial class LocomotivesWindow : Window
             maxSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
             maxSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(maxSpeedCvBox);
         }
+
+        var cv57Box = this.FindControl<NumericUpDown>("Cv57Box");
+        if (cv57Box != null)
+        {
+            cv57Box.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(cv57Box, 50, 255);
+            cv57Box.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
+            cv57Box.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(cv57Box);
+        }
         
         AttachVm(DataContext as LocomotivesWindowViewModel);
         HookSpeedChartInteractions();
@@ -268,6 +276,7 @@ public partial class LocomotivesWindow : Window
             "MinSpeedCvBox" => "CV2",
             "MidSpeedCvBox" => "CV6",
             "MaxSpeedCvBox" => "CV5",
+            "Cv57Box"       => "CV57",
             _ => ""
         };
 
@@ -307,11 +316,13 @@ public partial class LocomotivesWindow : Window
             var minBox = this.FindControl<NumericUpDown>("MinSpeedCvBox");
             var midBox = this.FindControl<NumericUpDown>("MidSpeedCvBox");
             var maxBox = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
+            var cv57Box = this.FindControl<NumericUpDown>("Cv57Box");
             var slider = this.FindControl<Slider>("CvTestSlider");
 
             bool anyFocused = minBox?.IsKeyboardFocusWithin == true ||
                               midBox?.IsKeyboardFocusWithin == true ||
                               maxBox?.IsKeyboardFocusWithin == true ||
+                              cv57Box?.IsKeyboardFocusWithin == true ||
                               slider?.IsKeyboardFocusWithin == true ||
                               slider?.IsFocused == true;
 
@@ -374,9 +385,10 @@ public partial class LocomotivesWindow : Window
         {
             switch (_activeCvTarget)
             {
-                case "CV2": loco.MinSpeedCv = Math.Clamp(dccSpeed, 1, 10);   break;
-                case "CV6": loco.MidSpeedCv = Math.Clamp(dccSpeed, 32, 128); break;
-                case "CV5": loco.MaxSpeedCv = Math.Clamp(dccSpeed, 1, 255);  break;
+                case "CV2":  loco.MinSpeedCv = Math.Clamp(dccSpeed, 1, 10);    break;
+                case "CV6":  loco.MidSpeedCv = Math.Clamp(dccSpeed, 32, 128);  break;
+                case "CV5":  loco.MaxSpeedCv = Math.Clamp(dccSpeed, 1, 255);   break;
+                case "CV57": loco.Cv57       = Math.Clamp(dccSpeed, 50, 255);  break;
             }
         }
         _cvSliderUpdating = false;

@@ -1654,7 +1654,7 @@
                                                                Grid.Column="2"
                                                                Height="22"
                                                                Width="58"
-                                                               Minimum="0"
+                                                               Minimum="50"
                                                                Maximum="255"
                                                                Value="{Binding Cv57, Mode=TwoWay, TargetNullValue=0}"
                                                                FormatString="0" />
