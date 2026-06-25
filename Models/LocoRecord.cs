@@ -97,6 +97,7 @@ public sealed class LocoRecord : ObservableObject
     private int _maxSpeedCv;
     private int _accelerationCv;
     private int _brakingCv;
+    private int _cv57;
     private bool _isDisableDynamicsForMeasurement;
     private int _brakeCorrection;
     private double _brakeCompensationForward;
@@ -290,6 +291,12 @@ public sealed class LocoRecord : ObservableObject
     {
         get => _brakingCv;
         set => SetProperty(ref _brakingCv, value);
+    }
+
+    public int Cv57
+    {
+        get => _cv57;
+        set => SetProperty(ref _cv57, Math.Clamp(value, 0, 255));
     }
 
     public bool IsDisableDynamicsForMeasurement

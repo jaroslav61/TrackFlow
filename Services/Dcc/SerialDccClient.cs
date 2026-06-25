@@ -1,4 +1,6 @@
 ﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.IO.Ports;
@@ -543,6 +545,26 @@ public sealed class SerialDccClient : IDccCentralClient, IDccProgrammingClient, 
         {
             throw new InvalidOperationException(
                 $"Overenie zápisu zlyhalo: po zápise CV{cvAddress}={value} NanoX-S88 prečítala hodnotu {readBack}.");
+        }
+    }
+
+    public async Task ReadMultipleCvsAsync(
+        IReadOnlyList<int> cvAddresses,
+        int timeoutMsPerCv,
+        int interCvDelayMs,
+        Action<int, int> onCvRead,
+        Action<int, int, int>? onCvReading = null,
+        CancellationToken ct = default)
+    {
+        for (int i = 0; i < cvAddresses.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (i > 0)
+                await Task.Delay(interCvDelayMs, ct).ConfigureAwait(false);
+            int cv = cvAddresses[i];
+            onCvReading?.Invoke(cv, i, cvAddresses.Count);
+            int value = await ReadCvAsync(cv, DccProgrammingTestMode.ServiceTrack, timeoutMsPerCv, 0, ct).ConfigureAwait(false);
+            onCvRead(cv, value);
         }
     }
 

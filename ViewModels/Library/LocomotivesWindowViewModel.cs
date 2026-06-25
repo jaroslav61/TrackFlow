@@ -325,6 +325,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(IsGlobalDccProgrammingAvailable));
             OnPropertyChanged(nameof(AccelerationCv));
             OnPropertyChanged(nameof(BrakingCv));
+            OnPropertyChanged(nameof(Cv57));
         }
     }
 
@@ -381,6 +382,17 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         {
             if (SelectedLocomotive == null || SelectedLocomotive.BrakingCv == value) return;
             SelectedLocomotive.BrakingCv = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int Cv57
+    {
+        get => SelectedLocomotive?.Cv57 ?? 0;
+        set
+        {
+            if (SelectedLocomotive == null || SelectedLocomotive.Cv57 == value) return;
+            SelectedLocomotive.Cv57 = value;
             OnPropertyChanged();
         }
     }
@@ -1130,6 +1142,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             case nameof(LocoRecord.MaxSpeedCv):
             case nameof(LocoRecord.AccelerationCv):
             case nameof(LocoRecord.BrakingCv):
+            case nameof(LocoRecord.Cv57):
             case nameof(LocoRecord.IsDisableDynamicsForMeasurement):
             case nameof(LocoRecord.BrakeCorrection):
             case nameof(LocoRecord.BrakeCompensationForward):
@@ -1144,6 +1157,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     OnPropertyChanged(nameof(AccelerationCv));
                 if (e.PropertyName == nameof(LocoRecord.BrakingCv))
                     OnPropertyChanged(nameof(BrakingCv));
+                if (e.PropertyName == nameof(LocoRecord.Cv57))
+                    OnPropertyChanged(nameof(Cv57));
                 MarkDirtyAndRevalidate();
                 break;
         }
@@ -1270,6 +1285,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         await WriteProgrammingCvAsync(5, loco.MaxSpeedCv, ct);
         await WriteProgrammingCvAsync(3, loco.AccelerationCv, ct);
         await WriteProgrammingCvAsync(4, loco.BrakingCv, ct);
+        await WriteProgrammingCvAsync(57, loco.Cv57, ct);
     }
     
     public async Task WriteProgrammingCvsAsync(params (int CvAddress, int Value)[] cvs)
@@ -1452,6 +1468,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 SelectedLocomotive.MaxSpeedCv = 0;
                 SelectedLocomotive.AccelerationCv = 0;
                 SelectedLocomotive.BrakingCv = 0;
+                SelectedLocomotive.Cv57 = 0;
             }
         }
 

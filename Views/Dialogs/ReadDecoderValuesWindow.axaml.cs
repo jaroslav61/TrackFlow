@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using TrackFlow.Services;
+using TrackFlow.Services.Dcc;
 
 namespace TrackFlow.Views.Dialogs;
 
@@ -23,7 +24,8 @@ public partial class ReadDecoderValuesWindow : Window
         [5] = "Maximálna rýchlosť",
         [3] = "Zrýchlenie",
         [4] = "Brzdenie",
-        [29] = "Konfigurácia dekodéra"
+        [29] = "Konfigurácia dekodéra",
+        [57] = "Referenčné napätie motora"
     };
 
     private CancellationTokenSource? _cts;
@@ -66,7 +68,7 @@ public partial class ReadDecoderValuesWindow : Window
         Error = null;
         _readValues.Clear();
 
-        var cvList = new List<int> { 2, 6, 5, 3, 4, 29 };
+        var cvList = new List<int> { 2, 6, 5, 3, 4, 29, 57 };
         int total = cvList.Count;
 
         try
@@ -105,6 +107,89 @@ public partial class ReadDecoderValuesWindow : Window
                         statusProgress.Value = ((double)(currentStep + 1) / total) * 100;
                 });
             }
+        }
+        catch (OperationCanceledException)
+        {
+            WasCancelled = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var statusText = this.FindControl<TextBlock>("StatusText");
+                var statusProgress = this.FindControl<ProgressBar>("StatusProgress");
+                if (statusText != null)
+                    statusText.Text = "Čítanie bolo zrušené používateľom.";
+                if (statusProgress != null)
+                    statusProgress.Value = 100;
+            });
+            await Task.Delay(500);
+        }
+        catch (Exception ex)
+        {
+            Error = ex;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var statusText = this.FindControl<TextBlock>("StatusText");
+                if (statusText != null)
+                    statusText.Text = $"Chyba: {ex.Message}";
+            });
+            await Task.Delay(2000);
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                this.Close();
+            });
+        }
+    }
+
+    // Nová metóda — používa ReadMultipleCvsAsync (jeden socket, jedna session, spoľahlivejšie)
+    public async Task StartReadingAsync(
+        IDccProgrammingClient programmingClient,
+        int timeoutMsPerCv,
+        int interCvDelayMs,
+        Action<int, int> onCvReadSuccess)
+    {
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        WasCancelled = false;
+        Error = null;
+        _readValues.Clear();
+
+        var cvList = new List<int> { 2, 6, 5, 3, 4, 29, 57 };
+        int total = cvList.Count;
+        int currentStep = 0;
+
+        try
+        {
+            await programmingClient.ReadMultipleCvsAsync(
+                cvList,
+                timeoutMsPerCv,
+                interCvDelayMs,
+                (Action<int, int>)((cv, value) =>
+                {
+                    _readValues[cv] = value;
+                    int step = currentStep++;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        onCvReadSuccess(cv, value);
+                        var statusText = this.FindControl<TextBlock>("StatusText");
+                        var statusProgress = this.FindControl<ProgressBar>("StatusProgress");
+                        if (statusText != null)
+                            statusText.Text = $"Načítaný register {step + 1} z {total}: CV{cv} = {value}";
+                        if (statusProgress != null)
+                            statusProgress.Value = ((double)(step + 1) / total) * 100;
+                    });
+                }),
+                (Action<int, int, int>)((cv, step, tot) =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        var statusText = this.FindControl<TextBlock>("StatusText");
+                        if (statusText != null)
+                            statusText.Text = $"Čítam register {step + 1} z {tot}: CV{cv} ({GetCvDescription(cv)})...";
+                    });
+                }),
+                _cts.Token);
         }
         catch (OperationCanceledException)
         {

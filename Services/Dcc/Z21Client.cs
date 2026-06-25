@@ -419,15 +419,26 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         try
         {
             // 1) REGISTRÁCIA – LAN_GET_SERIALNUMBER (overí spojenie + subscribe).
+            //    Z21 start občas neodpovie na prvý pokus po ExitServiceMode — retry 3x.
             var getSerial = new byte[] { 0x04, 0x00, 0x10, 0x00 };
-            await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER");
-
-            var serialOk = await WaitForFrameAsync(udp, ct, deadline,
-                r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
-                "LAN_GET_SERIALNUMBER_REPLY");
+            FrameWaitResult serialOk = default;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER");
+                var retryDeadline = DateTime.UtcNow.AddMilliseconds(2000);
+                serialOk = await WaitForFrameAsync(udp, ct, retryDeadline,
+                    r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
+                    "LAN_GET_SERIALNUMBER_REPLY");
+                if (serialOk.Matched) break;
+                if (attempt < 2)
+                {
+                    TrackFlowDoctorService.Instance.Diagnose("DCC", $"⚠️ LAN_GET_SERIALNUMBER pokus {attempt + 1} zlyhal, opakujem...", DiagnosticLevel.Warning);
+                    await Task.Delay(500, ct).ConfigureAwait(false);
+                }
+            }
             if (!serialOk.Matched)
                 throw new TimeoutException(
-                    $"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms). " +
+                    $"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (3 pokusy). " +
                     "Skontrolujte sieťové pripojenie / firewall na porte 21105 UDP.");
 
             // 2) Povoliť programming-mode broadcasty.
@@ -547,6 +558,175 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         finally
         {
             if (!isPom) await TryExitServiceModeAsync(udp).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Číta viacero CV v jednej service-mode session.
+    /// Implementácia podľa správania TrainProgrammer (Wireshark analýza):
+    /// — jeden perzistentný UDP socket pre celú session
+    /// — LAN_GET_SERIALNUMBER + LAN_SET_BROADCASTFLAGS len raz na začiatku
+    /// — po každom LAN_X_CV_RESULT hneď odošle ďalší LAN_X_CV_READ (bez ExitServiceMode)
+    /// — LAN_X_SET_TRACK_POWER_OFF (07 00 40 00 21 24 05) posiela ako keepalive každé 2s
+    /// — LAN_X_SET_TRACK_POWER_ON (ExitServiceMode) len raz na úplnom konci
+    /// </summary>
+    public async Task ReadMultipleCvsAsync(
+        IReadOnlyList<int> cvAddresses,
+        int timeoutMsPerCv,
+        int interCvDelayMs,         // parameter zachovaný kvôli interface-kompatibilite, ignorovaný
+        Action<int, int> onCvRead,
+        Action<int, int, int>? onCvReading = null,
+        CancellationToken ct = default)
+    {
+        if (!IsConnected || _remoteEp == null)
+            throw new InvalidOperationException("DCC centrála nie je pripojená.");
+
+        if (!HardwareType.SupportsServiceModeProgramming() && HardwareType != Z21HardwareType.Unknown)
+            throw new NotSupportedException(
+                $"Centrála {HardwareType.ToDisplayName()} nepodporuje service-mode CV-read.");
+
+        using var udp = CreateReusableUdpClient();
+        udp.Connect(_remoteEp);
+        var localPort = (udp.Client.LocalEndPoint as IPEndPoint)?.Port ?? 0;
+
+        TrackFlowDoctorService.Instance.Diagnose(
+            "DCC",
+            $"🔧 ReadMultipleCvsAsync: localPort={localPort} → {_remoteEp}, CV count={cvAddresses.Count}");
+
+        // Keepalive: LAN_X_SET_TRACK_POWER_OFF každé 2s (presne ako TrainProgrammer)
+        const int keepaliveIntervalMs = 2000;
+        var keepalivePacket = new byte[] { 0x07, 0x00, 0x40, 0x00, 0x21, 0x24, 0x05 };
+        var lastKeepalive = DateTime.UtcNow;
+
+        try
+        {
+            // 1) Registrácia — raz pre celú session
+            var getSerial = new byte[] { 0x04, 0x00, 0x10, 0x00 };
+            await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER").ConfigureAwait(false);
+            var regDeadline = DateTime.UtcNow.AddMilliseconds(timeoutMsPerCv);
+            var regOk = await WaitForFrameAsync(udp, ct, regDeadline,
+                r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
+                "LAN_GET_SERIALNUMBER_REPLY").ConfigureAwait(false);
+            if (!regOk.Matched)
+                throw new TimeoutException("Z21 neodpovedala na LAN_GET_SERIALNUMBER. Skontrolujte sieťové pripojenie.");
+
+            // 2) Broadcast flags — raz pre celú session
+            await SendAndLogAsync(udp, CreateSetBroadcastFlagsPacket(Z21BroadcastFlags.XBus),
+                "LAN_SET_BROADCASTFLAGS(0x00000001)").ConfigureAwait(false);
+
+            // 3) Čítanie CV za sebou — jeden socket, žiadny ExitServiceMode medzi CV
+            for (int i = 0; i < cvAddresses.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var cvAddress = cvAddresses[i];
+                onCvReading?.Invoke(cvAddress, i, cvAddresses.Count);
+
+                await SendAndLogAsync(udp, CreateServiceModeCvReadPacket(cvAddress),
+                    $"LAN_X_CV_READ (CV{cvAddress})").ConfigureAwait(false);
+
+                lastKeepalive = DateTime.UtcNow; // reset keepalive timer po každom CV_READ
+
+                var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMsPerCv);
+                const int silenceAfterProgrammingModeMs = 5000;
+                var totalFramesSeen = 0;
+                var sawProgrammingMode = false;
+                DateTime? silenceDeadline = null;
+                var gotResult = false;
+
+                while (!gotResult)
+                {
+                    // Keepalive: pošli LAN_X_SET_TRACK_POWER_OFF ak uplynul interval
+                    var now = DateTime.UtcNow;
+                    if ((now - lastKeepalive).TotalMilliseconds >= keepaliveIntervalMs)
+                    {
+                        await SendAndLogAsync(udp, keepalivePacket, "LAN_X_SET_TRACK_POWER_OFF (keepalive)").ConfigureAwait(false);
+                        lastKeepalive = now;
+                    }
+
+                    var effectiveDeadline = deadline;
+                    if (silenceDeadline.HasValue && silenceDeadline.Value < effectiveDeadline)
+                        effectiveDeadline = silenceDeadline.Value;
+
+                    // Nastav receive timeout na minimum z: čas do deadline a čas do ďalšieho keepalive
+                    var msToDeadline = (effectiveDeadline - DateTime.UtcNow).TotalMilliseconds;
+                    var msToKeepalive = keepaliveIntervalMs - (DateTime.UtcNow - lastKeepalive).TotalMilliseconds;
+                    var receiveTimeoutMs = Math.Max(50, Math.Min(msToDeadline, msToKeepalive));
+
+                    if (msToDeadline <= 0)
+                    {
+                        if (sawProgrammingMode)
+                            throw new InvalidOperationException(
+                                $"CV{cvAddress}: Centrála prešla do programovacieho módu ale dekodér neodpovedal do {silenceAfterProgrammingModeMs} ms.");
+                        throw new TimeoutException(
+                            $"CV{cvAddress}: Dekodér neodpovedal v limite {timeoutMsPerCv} ms " +
+                            $"(prišlo {totalFramesSeen} rámcov, žiadny LAN_X_CV_RESULT). " +
+                            "Skontrolujte: 1) lokomotíva je na programovacej koľaji, 2) programovacia koľaj je aktivovaná.");
+                    }
+
+                    byte[] response;
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    cts.CancelAfter(TimeSpan.FromMilliseconds(receiveTimeoutMs));
+                    try
+                    {
+                        response = (await ReceiveWithCancellationAsync(udp, cts.Token).ConfigureAwait(false)).Buffer;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        continue; // timeout receive — skontroluj keepalive a deadline znova
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        throw new InvalidOperationException("DCC spojenie bolo ukončené počas čítania CV.");
+                    }
+
+                    totalFramesSeen++;
+                    LogIncomingFrame(response, totalFramesSeen);
+
+                    // LAN_X_CV_RESULT
+                    if (response.Length >= 10
+                        && response[0] == 0x0A && response[1] == 0x00
+                        && response[2] == 0x40 && response[3] == 0x00
+                        && response[4] == 0x64 && response[5] == 0x14)
+                    {
+                        var value = response[8];
+                        TrackFlowDoctorService.Instance.Diagnose(
+                            "DCC",
+                            $"✅ LAN_X_CV_RESULT: CV{cvAddress} = {value} (0x{value:X2})",
+                            DiagnosticLevel.Success);
+                        onCvRead(cvAddress, value);
+                        gotResult = true;
+                        break;
+                    }
+
+                    // NACK / programming mode
+                    if (response.Length >= 7
+                        && response[0] == 0x07 && response[1] == 0x00
+                        && response[2] == 0x40 && response[3] == 0x00
+                        && response[4] == 0x61)
+                        switch (response[5])
+                        {
+                            case 0x02:
+                                if (!sawProgrammingMode)
+                                {
+                                    sawProgrammingMode = true;
+                                    silenceDeadline = DateTime.UtcNow.AddMilliseconds(silenceAfterProgrammingModeMs);
+                                    TrackFlowDoctorService.Instance.Diagnose(
+                                        "DCC", $"ℹ️ CV{cvAddress}: Centrála prešla do programming módu.");
+                                }
+                                break;
+                            case 0x12:
+                                throw new InvalidOperationException($"CV{cvAddress}: Dekodér neodpovedal (NACK).");
+                            case 0x13:
+                                throw new InvalidOperationException($"CV{cvAddress}: Skrat na programovacej koľaji (NACK SC).");
+                        }
+                }
+            }
+        }
+        finally
+        {
+            // ExitServiceMode len raz — po všetkých CV (presne ako TrainProgrammer)
+            await TryExitServiceModeAsync(udp).ConfigureAwait(false);
         }
     }
 
@@ -939,7 +1119,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             await Task.Delay(100).ConfigureAwait(false);
             await SendAndLogAsync(udp, CreateExitServiceModePacket(), "LAN_X_SET_TRACK_POWER_ON (exit service mode)")
                 .ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false);
+            await Task.Delay(400).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {

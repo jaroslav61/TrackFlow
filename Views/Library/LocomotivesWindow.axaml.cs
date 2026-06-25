@@ -22,6 +22,7 @@ using TrackFlow.Services.Dcc;
 using TrackFlow.Services;
 using System.Threading;
 using System.Threading.Tasks;
+using TrackFlow.Models.Layout;
 
 
 namespace TrackFlow.Views.Library;
@@ -216,39 +217,32 @@ public partial class LocomotivesWindow : Window
 
             IDccConnectionService connection = mainVm.Dcc;
 
-            // 2) Pripravíme delegate – ak nie sme pripojení, hodíme čitateľnú chybu
-            //    rovno cez progres okno (zachová sa svetlý vzhľad, žiadny brown dialog).
-            Func<int, CancellationToken, Task<int>> readCv;
             if (!connection.IsConnected || connection.Client is not IDccProgrammingClient programmingClient)
             {
-                readCv = (_, _) => throw new InvalidOperationException(
-                    "DCC centrála nie je pripojená alebo nepodporuje čítanie CV registrov.");
-            }
-            else
-            {
-                const int timeoutMs = 5000;
-                const DccProgrammingTestMode mode = DccProgrammingTestMode.ServiceTrack;
-                const int serviceTrackAddressPlaceholder = 0;
-                readCv = (cv, ct) => programmingClient.ReadCvAsync(cv, mode, timeoutMs, serviceTrackAddressPlaceholder, ct);
+                await ShowReadErrorAsync("DCC centrála nie je pripojená alebo nepodporuje čítanie CV registrov.");
+                return;
             }
 
-            // 3) Otvor progres-dialóg a priebežne aplikuj každú úspešne načítanú CV hodnotu.
+            // 2) Otvor progres-dialóg.
             var dialog = new ReadDecoderValuesWindow();
             TooltipPreferenceService.Attach(dialog);
+
+            const int timeoutMsPerCv = 5000;
+            const int interCvDelayMs = 1500;
+
             void OnDialogOpened(object? sender, EventArgs args)
             {
                 dialog.Opened -= OnDialogOpened;
-                _ = StartReadDecoderValuesDialogAsync(dialog, readCv);
+                _ = StartReadDecoderValuesDialogAsync(dialog, programmingClient, timeoutMsPerCv, interCvDelayMs);
             }
 
             dialog.Opened += OnDialogOpened;
-
             await dialog.ShowDialog(this);
 
             if (dialog.WasCancelled || dialog.Error != null)
                 return;
 
-            // 4) Defenzívne doreaplikuj finálny stav po zatvorení dialógu.
+            // 3) Defenzívne doreaplikuj finálny stav po zatvorení dialógu.
             ApplyReadCvValues(dialog.ReadValues);
         }
         catch (Exception ex)
@@ -428,13 +422,70 @@ public partial class LocomotivesWindow : Window
     }
 
     
-    private async Task StartReadDecoderValuesDialogAsync(
-        ReadDecoderValuesWindow dialog,
-        Func<int, CancellationToken, Task<int>> readCvFunc)
+    // ── CV57 kalibrácia ───────────────────────────────────────────────────────
+
+    private void Cv57TestButton_Click(object? _, RoutedEventArgs __)
+        => _ = Cv57TestButton_ClickAsync();
+
+    private async Task Cv57TestButton_ClickAsync()
     {
         try
         {
-            await dialog.StartReadingAsync(readCvFunc, (cv, resultValue) =>
+            if (Owner?.DataContext is not MainWindowViewModel mainVm) return;
+            var loco = _vm?.SelectedLocomotive;
+            if (loco == null) return;
+
+            var layout = mainVm.SettingsManager.CurrentProject?.Layout;
+            var indicators = BuildCv57Indicators(layout);
+
+            var dialog = new Cv57CalibrationWindow();
+            dialog.Initialize(mainVm.Dcc, loco, indicators);
+            TooltipPreferenceService.Attach(dialog);
+            await dialog.ShowDialog(this);
+
+            if (dialog.FinalCv57Value.HasValue)
+                loco.Cv57 = dialog.FinalCv57Value.Value;
+        }
+        catch (Exception ex)
+        {
+            Program.ReportUnhandledException("LocomotivesWindow.Cv57TestButton_Click", ex, isTerminating: false);
+            TrackFlowDoctorService.Instance.Diagnose(
+                "Lokomotívy",
+                $"⚠️ Otvorenie CV57 kalibračného okna zlyhalo: {ex.GetType().Name}: {ex.Message}",
+                DiagnosticLevel.Warning);
+        }
+    }
+
+    private static List<Cv57IndicatorItem> BuildCv57Indicators(TrackLayout? layout)
+    {
+        var list = new List<Cv57IndicatorItem>();
+        if (layout == null) return list;
+
+        foreach (var block in layout.Elements.OfType<BlockElement>())
+        {
+            foreach (var ind in block.Indicators.Where(i => i.Type == BlockIndicatorType.Contact))
+            {
+                var blockLabel = string.IsNullOrWhiteSpace(block.Label)
+                    ? $"Blok {block.Id[..Math.Min(6, block.Id.Length)]}"
+                    : block.Label.Trim();
+                var indLabel = string.IsNullOrWhiteSpace(ind.Name)
+                    ? $"{blockLabel} [{ind.ModuleAddress}:{ind.PortNumber}]"
+                    : $"{ind.Name.Trim()} ({blockLabel})";
+                list.Add(new Cv57IndicatorItem(indLabel, ind.ModuleAddress, ind.PortNumber, ind.DccCentralProfileId));
+            }
+        }
+        return list;
+    }
+
+    private async Task StartReadDecoderValuesDialogAsync(
+        ReadDecoderValuesWindow dialog,
+        IDccProgrammingClient programmingClient,
+        int timeoutMsPerCv,
+        int interCvDelayMs)
+    {
+        try
+        {
+            await dialog.StartReadingAsync(programmingClient, timeoutMsPerCv, interCvDelayMs, (cv, resultValue) =>
             {
                 Dispatcher.UIThread.Post(() => HandleCvReadSuccess(cv, resultValue));
             });
@@ -480,6 +531,9 @@ public partial class LocomotivesWindow : Window
                 break;
             case 4:
                 locomotive.BrakingCv = value;
+                break;
+            case 57:
+                if (_vm != null) _vm.Cv57 = value;
                 break;
             case 29:
                 locomotive.Cv29Value = value;

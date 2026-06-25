@@ -28,6 +28,31 @@
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
 
+## 2026-06-25 02:12
+===================
+**Oblasť:** `Services/Dcc/Z21Client.cs`
+**Zmena:** Oprava spoľahlivosti čítania CV registrov dekodéra — kompletné prepísanie `ReadMultipleCvsAsync` podľa správania referenčného klienta (Wireshark pcap analýza TrainProgrammer vs. TrackFlow).
+**Dôvod:** Čítanie CV náhodne zlyhávalo timeoutom na rôznych CV v sérii. Príčina bola zistená Wireshark analýzou: TrackFlow otváralo nový UDP socket a vykonávalo `ExitServiceMode` po každom CV, zatiaľčo správne správanie (podľa TrainProgrammer pcap) je udržiavať jeden perzistentný socket počas celej session.
+**Riešenie:**
+• `ReadMultipleCvsAsync` prepísaná od základu — jeden UDP socket + jedna `LAN_GET_SERIALNUMBER` registrácia pre celú session (nie pre každé CV).
+• Po každom `LAN_X_CV_RESULT` sa hneď odosiela ďalší `LAN_X_CV_READ` bez akéhokoľvek delay-u a bez `LAN_X_SET_TRACK_POWER_ON` medzi CV.
+• Keepalive `LAN_X_SET_TRACK_POWER_OFF` (`07 00 40 00 21 24 05`) sa posiela každé 2s počas čakania na odpoveď (presne ako TrainProgrammer) — timer sa resetuje po každom odoslanom `CV_READ` aby keepalive nikdy neprišiel skoro po začatí programovacieho cyklu.
+• `LAN_X_SET_TRACK_POWER_ON` (ExitServiceMode) sa odosiela len raz na konci v `finally` bloku po všetkých CV.
+**Výsledok:** Čítanie všetkých 7 CV prebehlo spoľahlivo bez výpadku, celá session trvá ~10 sekúnd.
+
+## 2026-06-25 00:30
+===================
+**Oblasť:** `Views/Library/LocomotivesWindow.axaml`, `Views/Library/LocomotivesWindow.axaml.cs`, `ViewModels/Library/LocomotivesWindowViewModel.cs`, `Views/Dialogs/ReadDecoderValuesWindow.axaml.cs`, `Services/Dcc/IDccProgrammingClient.cs`, `Services/Dcc/Z21Client.cs`, `Services/Dcc/SerialDccClient.cs`
+**Zmena:** Pridaná podpora CV57 (referenčné napätie motora ZIMO) do okna nastavení dekodéra a do sekcie čítania CV registrov.
+**Dôvod:** CV57 je kľúčový register pre ZIMO dekodéry (nastavuje referenčné napätie pre kalibráciu rýchlosti), ale v TrackFlow chýbal — nebolo ho možné ani čítať ani nastavovať cez UI.
+**Riešenie:**
+• `LocomotivesWindowViewModel` — pridaná wrapper property `Cv57` s notifikáciou pri zmene `SelectedLocomotive`.
+• `LocomotivesWindow.axaml` — binding slider-u a NumericUpDown pre CV57 zmenený z `SelectedLocomotive.Cv57` na `Cv57` (rovnaký vzor ako ostatné CV).
+• `LocomotivesWindow.axaml.cs` — pridaný `case 57` do `HandleCvReadSuccess`, CV57 zahrnuté do `WriteAllSpeedCvsAsync` a do reset bloku.
+• `ReadDecoderValuesWindow.axaml.cs` — CV57 pridané do `CvDescriptions` (popis „Referenčné napätie motora") a do `cvList` (`{ 2, 6, 5, 3, 4, 29, 57 }`).
+• `IDccProgrammingClient`, `Z21Client`, `SerialDccClient` — pridaný parameter `onCvReading` do `ReadMultipleCvsAsync` pre zobrazenie „Čítam register..." textu počas čítania.
+**Výsledok:** CV57 je plnohodnotne integrovaný — číta sa spolu s ostatnými CV, zobrazuje sa v progress dialógu a zapisuje sa pri uložení nastavení dekodéra.
+
 ## 2026-06-21 18:00
 ===================
 **Oblasť:** `TrackFlow.Tests/OperationViewModelRouteActivationTests.cs`, `TrackFlow.Tests/OperationViewModelDoctorDiagnosticsTests.cs`, `TrackFlow.Tests/ProjectMigrationServiceTests.cs`, `TrackFlow.Tests/LocomotiveSpeedEditorMarkupTests.cs`, `Services/Runtime/ReservationEngine.cs`

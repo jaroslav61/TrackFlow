@@ -1500,6 +1500,7 @@
                                                         
                                                         <TextBlock Text="Minimálna rýchlosť" FontSize="12"
                                                                    VerticalAlignment="Center" />
+                                                        
                                                         <Border Classes="dccCvBadge">
                                                             <TextBlock Classes="dccCvBadgeText" Text="CV2" />
                                                         </Border>
@@ -1594,39 +1595,118 @@
                                                 </Grid>
 
                                                 <!-- Pravá strana: testovací slider -->
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center"
-                                                            HorizontalAlignment="Right" Spacing="2" Margin="8,0,4,0">
+                                                <StackPanel Grid.Column="1" 
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Right" 
+                                                            Spacing="2" 
+                                                            Margin="8,0,4,0">
+                                                    
                                                     <Grid ColumnDefinitions="Auto,*,Auto">
                                                       
-                                                        <TextBlock Grid.Column="2" Text="VPRED" FontSize="10"
-                                                                   Foreground="#666" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="2" 
+                                                                   Text="VPRED" 
+                                                                   FontSize="10"
+                                                                   Foreground="#666" 
+                                                                   VerticalAlignment="Center" />
                                                     </Grid>
-                                                    <Slider x:Name="CvTestSlider" Classes="dccCompactSlider"
-                                                            Minimum="0" Maximum="255" Value="0"
-                                                            Width="160" VerticalAlignment="Center" />
-                                                    <TextBlock Text="Ovládanie testovacej jazdy" FontSize="10"
-                                                               Foreground="#888" HorizontalAlignment="Center" />
+                                                    
+                                                    <Slider x:Name="CvTestSlider" 
+                                                            Classes="dccCompactSlider"
+                                                            Minimum="0" 
+                                                            Maximum="255" 
+                                                            Value="0"
+                                                            Width="160" 
+                                                            VerticalAlignment="Center" />
+                                                    
+                                                    <TextBlock Text="Ovládanie testovacej jazdy" 
+                                                               FontSize="10"
+                                                               Foreground="#888" 
+                                                               HorizontalAlignment="Center" />
+                                                    
                                                 </StackPanel>
 
+                                            </Grid>
+
+                                            <!-- CV57: Kalibrácia motora -->
+                                            <Border BorderBrush="#D7DEE8" 
+                                                    BorderThickness="0,1,0,0" 
+                                                    Margin="0,2,0,0" />
+                                            
+                                            <Grid Classes="dccDisabledTextContent"
+                                                  Margin="4,2,4,4"
+                                                  ColumnDefinitions="Auto,8,Auto,8,Auto,*">
+                                                
+                                                <StackPanel Grid.Column="0" 
+                                                            Orientation="Horizontal" 
+                                                            Spacing="0" 
+                                                            Margin="5,2,0,2">
+                                                    
+                                                    <TextBlock Text="Kalibrácia motora"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center" />
+                                                    
+                                                    <Border Classes="dccCvBadge">
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV57" />
+                                                    </Border>
+                                                </StackPanel>
+                                                
+                                                <NumericUpDown x:Name="Cv57Box"
+                                                               Grid.Column="2"
+                                                               Height="22"
+                                                               Width="58"
+                                                               Minimum="0"
+                                                               Maximum="255"
+                                                               Value="{Binding Cv57, Mode=TwoWay, TargetNullValue=0}"
+                                                               FormatString="0" />
+                                                
+                                                <Button x:Name="Cv57TestButton"
+                                                        Grid.Column="4"
+                                                        Content="TEST"
+                                                        Height="22"
+                                                        Padding="12,0"
+                                                        FontSize="12"
+                                                        FontWeight="SemiBold"
+                                                        Click="Cv57TestButton_Click" />
+                                                
+                                                <TextBlock Grid.Column="5"
+                                                           Text="Otvorí sprievodcu kalibrácie."
+                                                           FontSize="11"
+                                                           Foreground="#5B6575"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap"
+                                                           Margin="16,0,0,0" />
                                             </Grid>
                                         </StackPanel>
                                     </Border>
 
                                     <!-- Dynamika jazdy (CV3, CV4) -->
-                                    <Border Grid.Column="2" BorderBrush="#C8C8C8" BorderThickness="1"
+                                    <Border Grid.Column="2" 
+                                            BorderBrush="#C8C8C8" 
+                                            BorderThickness="1"
                                             Background="#F2F6FA"
                                             IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
+                                       
                                         <StackPanel>
-                                            <Border Background="#E8E8E8" Padding="6,3">
-                                                <StackPanel Orientation="Horizontal" Spacing="0">
-                                                    <TextBlock Text="Dynamika jazdy" FontWeight="Bold" FontSize="13"
+                                            <Border Background="#E8E8E8" 
+                                                    Padding="6,3">
+                                                <StackPanel Orientation="Horizontal" 
+                                                            Spacing="0">
+                                                    
+                                                    <TextBlock Text="Dynamika jazdy" 
+                                                               FontWeight="Bold" 
+                                                               FontSize="13"
                                                                VerticalAlignment="Center" />
+                                                    
                                                     <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText" Text="CV3, CV4" />
+                                                        <TextBlock Classes="dccCvBadgeText" 
+                                                                   Text="CV3, CV4" />
                                                     </Border>
                                                 </StackPanel>
                                             </Border>
-                                            <StackPanel Classes="dccDisabledTextContent" Margin="4" Spacing="4">
+                                            
+                                            <StackPanel Classes="dccDisabledTextContent" 
+                                                        Margin="4" 
+                                                        Spacing="4">
                                              
                                                 <Grid RowDefinitions="Auto,Auto" 
                                                       RowSpacing="4"
