@@ -29,6 +29,11 @@ namespace TrackFlow.Views.Library;
 
 public partial class LocomotivesWindow : Window
 {
+    private const string DynamicsStillOffTitle   = "Dynamika jazdy je vypnutá";
+    private const string DynamicsStillOffMessage =
+        "CV3 a CV4 sú nastavené na 0.\nZabudli ste obnoviť dynamiku jazdy?\n\n" +
+        "• Áno — nechám CV3 a CV4 na 0 (úmyselné)\n" +
+        "• Nie — vrátim sa a prepnem prepínač späť";
     private LocomotivesWindowViewModel? _vm;
     private bool _addressSanitizeGuard;
     private bool _weightSanitizeGuard;
@@ -169,33 +174,45 @@ public partial class LocomotivesWindow : Window
         var minSpeedCvBox = this.FindControl<NumericUpDown>("MinSpeedCvBox");
         if (minSpeedCvBox != null)
         {
-            minSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(minSpeedCvBox, 1, 10);
+            minSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(minSpeedCvBox, 0, 255);
             minSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
             minSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(minSpeedCvBox);
+            minSpeedCvBox.ValueChanged += (_, _) => OnCvBoxDirty(2);
         }
 
         var midSpeedCvBox = this.FindControl<NumericUpDown>("MidSpeedCvBox");
         if (midSpeedCvBox != null)
         {
-            midSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(midSpeedCvBox, 32, 128);
+            midSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(midSpeedCvBox, 0, 255);
             midSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
             midSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(midSpeedCvBox);
+            midSpeedCvBox.ValueChanged += (_, _) => OnCvBoxDirty(6);
         }
 
         var maxSpeedCvBox = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
         if (maxSpeedCvBox != null)
         {
-            maxSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(maxSpeedCvBox, 1, 255);
+            maxSpeedCvBox.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(maxSpeedCvBox, 0, 255);
             maxSpeedCvBox.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
             maxSpeedCvBox.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(maxSpeedCvBox);
+            maxSpeedCvBox.ValueChanged += (_, _) => OnCvBoxDirty(5);
         }
+
+        var accelerationCvBox = this.FindControl<NumericUpDown>("AccelerationCvBox");
+        if (accelerationCvBox != null)
+            accelerationCvBox.ValueChanged += (_, _) => OnCvBoxDirty(3);
+
+        var brakingCvBox = this.FindControl<NumericUpDown>("BrakingCvBox");
+        if (brakingCvBox != null)
+            brakingCvBox.ValueChanged += (_, _) => OnCvBoxDirty(4);
 
         var cv57Box = this.FindControl<NumericUpDown>("Cv57Box");
         if (cv57Box != null)
         {
-            cv57Box.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(cv57Box, 50, 255);
+            cv57Box.GotFocus     += (_, _) => OnSpeedCvBoxGotFocus(cv57Box, 0, 255);
             cv57Box.LostFocus    += (_, _) => OnSpeedCvBoxLostFocus();
             cv57Box.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(cv57Box);
+            cv57Box.ValueChanged += (_, _) => OnCvBoxDirty(57);
         }
         
         AttachVm(DataContext as LocomotivesWindowViewModel);
@@ -260,15 +277,59 @@ public partial class LocomotivesWindow : Window
         }
     }
 
+    private void OnCvBoxDirty(int cvNumber)
+    {
+        if (_suppressCvDirty || _cvSliderUpdating) return;
+        _dirtyCvs.Add(cvNumber);
+        UpdateWriteCvButtonState();
+    }
+
+    private void UpdateWriteCvButtonState()
+    {
+        var btn = this.FindControl<Button>("WriteCvButton");
+        if (btn != null)
+            btn.IsEnabled = _dirtyCvs.Count > 0;
+    }
+
+    private void ClearDirtyState()
+    {
+        _dirtyCvs.Clear();
+        UpdateWriteCvButtonState();
+    }
+
+    private void UpdateCvDependentControls()
+    {
+        var testBtn = this.FindControl<Button>("Cv57TestButton");
+        var toggle  = this.FindControl<ToggleSwitch>("DisableDynamicsToggle");
+        if (testBtn != null) testBtn.IsEnabled = _cvValuesLoaded;
+        if (toggle  != null) toggle.IsEnabled  = _cvValuesLoaded;
+    }
+
+    private void ResetCvLoadedState()
+    {
+        _cvValuesLoaded = false;
+        UpdateCvDependentControls();
+        ClearDirtyState();
+    }
+
     // ── CV testovací slider ───────────────────────────────────────────────────
 
     private string _activeCvTarget = "";
     private NumericUpDown? _activeSpeedCvBox;
     private bool _cvSliderUpdating;
 
+    // ── CV dirty tracking ────────────────────────────────────────────────────
+    // Zaznamenáva čísla CV ktoré boli zmenené od posledného načítania/zápisu.
+    private readonly HashSet<int> _dirtyCvs = new();
+    private bool _suppressCvDirty;
+
+    // True po úspešnom načítaní CV z dekodéra; reset pri zmene loko alebo odškrtnutí DCC.
+    private bool _cvValuesLoaded;
+
     private void OnSpeedCvBoxGotFocus(NumericUpDown box, double min, double max)
     {
-        bool alreadyActive = _activeSpeedCvBox == box;
+        if (_activeSpeedCvBox != null && _activeSpeedCvBox != box)
+            _ = SendCvTestSpeedAsync(0, true);
 
         _activeSpeedCvBox = box;
         _activeCvTarget = box.Name switch
@@ -282,31 +343,14 @@ public partial class LocomotivesWindow : Window
 
         var slider = this.FindControl<Slider>("CvTestSlider");
         if (slider != null)
+        {
             slider.IsEnabled = true;
-
-        _cvSliderUpdating = true;
-
-        if (!alreadyActive)
-        {
-            box.Value = (decimal)min;
-            if (slider != null)
-            {
-                slider.Minimum = min;
-                slider.Maximum = max;
-                slider.Value = min;
-            }
+            slider.Minimum = min;
+            slider.Maximum = max;
+            _cvSliderUpdating = true;
+            slider.Value = Math.Clamp(box.Value.HasValue ? (double)box.Value.Value : min, min, max);
+            _cvSliderUpdating = false;
         }
-        else
-        {
-            if (slider != null)
-            {
-                slider.Minimum = min;
-                slider.Maximum = max;
-                slider.Value = Math.Clamp(box.Value.HasValue ? (double)box.Value.Value : min, min, max);
-            }
-        }
-
-        _cvSliderUpdating = false;
     }
 
     private void OnSpeedCvBoxLostFocus()
@@ -385,10 +429,10 @@ public partial class LocomotivesWindow : Window
         {
             switch (_activeCvTarget)
             {
-                case "CV2":  loco.MinSpeedCv = Math.Clamp(dccSpeed, 1, 10);    break;
-                case "CV6":  loco.MidSpeedCv = Math.Clamp(dccSpeed, 32, 128);  break;
-                case "CV5":  loco.MaxSpeedCv = Math.Clamp(dccSpeed, 1, 255);   break;
-                case "CV57": loco.Cv57       = Math.Clamp(dccSpeed, 50, 255);  break;
+                case "CV2":  loco.MinSpeedCv = dccSpeed;  break;
+                case "CV6":  loco.MidSpeedCv = dccSpeed;  break;
+                case "CV5":  loco.MaxSpeedCv = dccSpeed;  break;
+                case "CV57": loco.Cv57       = dccSpeed;  break;
             }
         }
         _cvSliderUpdating = false;
@@ -433,15 +477,26 @@ public partial class LocomotivesWindow : Window
                 return;
             }
 
-            var cvs = new List<(int, int)>
+            if (_dirtyCvs.Count == 0) return;
+
+            var minSpeedCvBox     = this.FindControl<NumericUpDown>("MinSpeedCvBox");
+            var midSpeedCvBox     = this.FindControl<NumericUpDown>("MidSpeedCvBox");
+            var maxSpeedCvBox     = this.FindControl<NumericUpDown>("MaxSpeedCvBox");
+            var accelerationCvBox = this.FindControl<NumericUpDown>("AccelerationCvBox");
+            var brakingCvBox      = this.FindControl<NumericUpDown>("BrakingCvBox");
+            var cv57Box           = this.FindControl<NumericUpDown>("Cv57Box");
+
+            // Zostaviť len zmenené CV v pevnom poradí
+            var allCvs = new (int Cv, int Value)[]
             {
-                (2,  loco.MinSpeedCv),
-                (6,  loco.MidSpeedCv),
-                (5,  loco.MaxSpeedCv),
-                (3,  loco.AccelerationCv),
-                (4,  loco.BrakingCv),
-                (57, loco.Cv57),
+                (2,  (int)(minSpeedCvBox?.Value      ?? loco.MinSpeedCv)),
+                (6,  (int)(midSpeedCvBox?.Value      ?? loco.MidSpeedCv)),
+                (5,  (int)(maxSpeedCvBox?.Value      ?? loco.MaxSpeedCv)),
+                (3,  (int)(accelerationCvBox?.Value  ?? loco.AccelerationCv)),
+                (4,  (int)(brakingCvBox?.Value       ?? loco.BrakingCv)),
+                (57, (int)(cv57Box?.Value            ?? loco.Cv57)),
             };
+            var cvs = allCvs.Where(x => _dirtyCvs.Contains(x.Cv)).ToList();
 
             var dialog = new ReadDecoderValuesWindow();
             TooltipPreferenceService.Attach(dialog);
@@ -454,6 +509,9 @@ public partial class LocomotivesWindow : Window
 
             dialog.Opened += OnDialogOpened;
             await dialog.ShowDialog(this);
+
+            if (!dialog.WasCancelled && dialog.Error == null)
+                ClearDirtyState();
         }
         catch (Exception ex)
         {
@@ -476,16 +534,21 @@ public partial class LocomotivesWindow : Window
             var loco = _vm?.SelectedLocomotive;
             if (loco == null) return;
 
+            if (!mainVm.Dcc.IsConnected || mainVm.Dcc.Client is not IDccProgrammingClient)
+            {
+                await ShowReadErrorAsync("DCC centrála nie je pripojená alebo nepodporuje programovanie CV registrov.");
+                return;
+            }
+
             var layout = mainVm.SettingsManager.CurrentProject?.Layout;
             var indicators = BuildCv57Indicators(layout);
 
             var dialog = new Cv57CalibrationWindow();
-            dialog.Initialize(mainVm.Dcc, loco, indicators);
+            dialog.Initialize(mainVm.Dcc, loco, indicators,
+                (cv, value, ct) => _vm!.WriteProgrammingCvAsync(cv, value, ct),
+                this);
             TooltipPreferenceService.Attach(dialog);
             await dialog.ShowDialog(this);
-
-            if (dialog.FinalCv57Value.HasValue)
-                loco.Cv57 = dialog.FinalCv57Value.Value;
         }
         catch (Exception ex)
         {
@@ -546,8 +609,19 @@ public partial class LocomotivesWindow : Window
 
     private void ApplyReadCvValues(IReadOnlyDictionary<int, int> values)
     {
-        foreach (var pair in values)
-            HandleCvReadSuccess(pair.Key, pair.Value);
+        _suppressCvDirty = true;
+        try
+        {
+            foreach (var pair in values)
+                HandleCvReadSuccess(pair.Key, pair.Value);
+        }
+        finally
+        {
+            _suppressCvDirty = false;
+            _cvValuesLoaded = true;
+            UpdateCvDependentControls();
+            ClearDirtyState();
+        }
     }
 
     private void HandleCvReadSuccess(int cv, int value)
@@ -556,25 +630,17 @@ public partial class LocomotivesWindow : Window
         if (locomotive == null)
             return;
 
+        string boxName = "";
         switch (cv)
         {
-            case 2:
-                locomotive.MinSpeedCv = value;
-                break;
-            case 6:
-                locomotive.MidSpeedCv = value;
-                break;
-            case 5:
-                locomotive.MaxSpeedCv = value;
-                break;
-            case 3:
-                locomotive.AccelerationCv = value;
-                break;
-            case 4:
-                locomotive.BrakingCv = value;
-                break;
+            case 2:  locomotive.MinSpeedCv = value; boxName = "MinSpeedCvBox"; break;
+            case 6:  locomotive.MidSpeedCv = value; boxName = "MidSpeedCvBox"; break;
+            case 5:  locomotive.MaxSpeedCv = value; boxName = "MaxSpeedCvBox"; break;
+            case 3:  locomotive.AccelerationCv = value; break;
+            case 4:  locomotive.BrakingCv = value; break;
             case 57:
                 if (_vm != null) _vm.Cv57 = value;
+                boxName = "Cv57Box";
                 break;
             case 29:
                 locomotive.Cv29Value = value;
@@ -583,6 +649,8 @@ public partial class LocomotivesWindow : Window
                 locomotive.IsBemfEnabled = (value & 0x10) != 0;
                 break;
         }
+
+
     }
 
 
@@ -596,6 +664,197 @@ public partial class LocomotivesWindow : Window
         var win = new Window
         {
             Title = "Čítanie CV registrov",
+            Width = 460,
+            Height = 170,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ShowInTaskbar = false
+        };
+        var ok = new Button { Content = "OK", MinWidth = 90, Height = 28, IsDefault = true, IsCancel = true, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
+        ok.Click += (_, _) => win.Close();
+        win.Content = new Border
+        {
+            Padding = new Thickness(20),
+            Background = new SolidColorBrush(Color.FromRgb(0xF5, 0xF7, 0xFA)),
+            Child = new DockPanel
+            {
+                LastChildFill = true,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "Chyba: " + message,
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = new SolidColorBrush(Color.FromRgb(0xB9, 0x1C, 0x1C)),
+                        FontSize = 13,
+                        Margin = new Thickness(0, 0, 0, 16),
+                        [DockPanel.DockProperty] = Dock.Top
+                    },
+                    ok
+                }
+            }
+        };
+        return win.ShowDialog(this);
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (DataContext is LocomotivesWindowViewModel vm && vm.IsDisableDynamicsForMeasurement)
+        {
+            e.Cancel = true;
+            _ = ConfirmDynamicsStillOffAndThenAsync(() => Close());
+        }
+    }
+
+    /// <summary>
+    /// Ak je dynamika vypnutá, zobrazí potvrdenie. Ak užívateľ potvrdí (áno = vedome nechá 0),
+    /// nastaví správny stavový text a zavolá <paramref name="afterConfirm"/>.
+    /// Ak odmietne (nie = chce obnoviť), nevykoná nič — užívateľ musí prepnúť prepínač ručne.
+    /// </summary>
+    private async Task ConfirmDynamicsStillOffAndThenAsync(Action? afterConfirm = null)
+    {
+        if (DataContext is not LocomotivesWindowViewModel vm) return;
+        if (!vm.IsDisableDynamicsForMeasurement) { afterConfirm?.Invoke(); return; }
+
+        var dlg = new ConfirmDialog(DynamicsStillOffTitle, DynamicsStillOffMessage);
+        TooltipPreferenceService.Attach(dlg);
+        await dlg.ShowDialog(this);
+
+        if (dlg.Result == ConfirmDialog.DialogResult.Yes)
+        {
+            // Užívateľ si je vedomý — zrušíme "vypnutý" stav, CV3/CV4 zostanú 0 v dekodéri
+            _suppressCvDirty = true;
+            vm.AcknowledgeDynamicsLeftOff();
+            _suppressCvDirty = false;
+            afterConfirm?.Invoke();
+        }
+        // Nie/Cancel — nič, užívateľ sa vráti a prepne prepínač ručne
+    }
+
+    private void DccProgrammingCheckBox_IsCheckedChanged(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not LocomotivesWindowViewModel vm) return;
+        var checkBox = this.FindControl<CheckBox>("DccProgrammingCheckBox");
+        if (checkBox == null) return;
+
+        // Zaujíma nás len odškrtnutie (false) pri zapnutej dynamike
+        if (checkBox.IsChecked != false) return;
+        if (!vm.IsDisableDynamicsForMeasurement) return;
+
+        // Okamžite vrátime checkbox späť (ešte synchrónne, pred disabled-nutím sekcie)
+        // aby sekcia zostala enabled a ShowDialog mohol fungovať
+        checkBox.IsCheckedChanged -= DccProgrammingCheckBox_IsCheckedChanged;
+        checkBox.IsChecked = true;  // vráti aj model cez TwoWay binding
+        checkBox.IsCheckedChanged += DccProgrammingCheckBox_IsCheckedChanged;
+
+        // Teraz async dialóg — sekcia je enabled, ShowDialog bude fungovať
+        _ = DccCheckBoxUncheckedWithDynamicsOnAsync(checkBox);
+    }
+
+    private async Task DccCheckBoxUncheckedWithDynamicsOnAsync(CheckBox checkBox)
+    {
+        if (DataContext is not LocomotivesWindowViewModel vm) return;
+
+        var dlg = new ConfirmDialog(DynamicsStillOffTitle, DynamicsStillOffMessage);
+        TooltipPreferenceService.Attach(dlg);
+        await dlg.ShowDialog(this);
+
+        if (dlg.Result == ConfirmDialog.DialogResult.Yes)
+        {
+            // Vedome — odškrtni checkbox, zruš "vypnutý" stav, CV zostanú 0
+            checkBox.IsCheckedChanged -= DccProgrammingCheckBox_IsCheckedChanged;
+            checkBox.IsChecked = false;
+            checkBox.IsCheckedChanged += DccProgrammingCheckBox_IsCheckedChanged;
+            _suppressCvDirty = true;
+            vm.AcknowledgeDynamicsLeftOff();
+            _suppressCvDirty = false;
+        }
+        // Nie/Cancel — checkbox zostáva zaškrtnutý (vrátili sme ho v synchrónnej časti)
+    }
+
+    private void DisableDynamicsToggle_IsCheckedChanged(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        _ = DisableDynamicsToggle_IsCheckedChangedAsync();
+    }
+
+    private async Task DisableDynamicsToggle_IsCheckedChangedAsync()
+    {
+        if (DataContext is not LocomotivesWindowViewModel vm) return;
+        if (vm.SelectedLocomotive == null) return;
+
+        var toggle = this.FindControl<ToggleSwitch>("DisableDynamicsToggle");
+        if (toggle == null) return;
+
+        var turnOn = toggle.IsChecked == true;
+
+        if (Owner?.DataContext is not MainWindowViewModel mainVm
+            || !mainVm.Dcc.IsConnected
+            || mainVm.Dcc.Client is not IDccProgrammingClient)
+        {
+            // Bez DCC — vráť prepínač späť a zobraz chybu
+            toggle.IsCheckedChanged -= DisableDynamicsToggle_IsCheckedChanged;
+            toggle.IsChecked = !turnOn;
+            toggle.IsCheckedChanged += DisableDynamicsToggle_IsCheckedChanged;
+            await ShowDynamicsErrorAsync("DCC centrála nie je pripojená alebo nepodporuje programovanie CV registrov.");
+            return;
+        }
+
+        // Fáza 1: záloha/obnova hodnôt v pamäti, aktualizácia UI
+        // _suppressCvDirty: zmena CV3/CV4 pochádza z prepínača, nie od užívateľa — tlačidlo Zapísať sa nesmie enableovať
+        _suppressCvDirty = true;
+        var (cv3, cv4) = vm.PrepareDisableDynamicsToggle(turnOn);
+        _suppressCvDirty = false;
+
+        // Fáza 2: DCC zápis s progress dialógom; ReadCvButton disabled počas zápisu
+        var readBtn = this.FindControl<Button>("ReadCvButton");
+        if (readBtn != null) readBtn.IsEnabled = false;
+
+        bool writeOk = false;
+        try
+        {
+            var cvs = new (int, int)[] { (3, cv3), (4, cv4) };
+
+            var progressDialog = new ReadDecoderValuesWindow();
+            TooltipPreferenceService.Attach(progressDialog);
+
+            void OnOpened(object? sender, EventArgs args)
+            {
+                progressDialog.Opened -= OnOpened;
+                _ = progressDialog.StartWritingAsync(cvs, (cv, value, ct) => vm.WriteProgrammingCvAsync(cv, value, ct));
+            }
+
+            progressDialog.Opened += OnOpened;
+            await progressDialog.ShowDialog(this);
+
+            writeOk = !progressDialog.WasCancelled && progressDialog.Error == null;
+        }
+        catch (Exception ex)
+        {
+            Program.ReportUnhandledException("LocomotivesWindow.DisableDynamicsToggle", ex, isTerminating: false);
+        }
+        finally
+        {
+            if (readBtn != null) readBtn.IsEnabled = true;
+        }
+
+        // Fáza 3: pri zlyhaní — rollback modelu + vráť prepínač
+        if (!writeOk)
+        {
+            _suppressCvDirty = true;
+            vm.RollbackDisableDynamicsToggle(turnOn);
+            _suppressCvDirty = false;
+            toggle.IsCheckedChanged -= DisableDynamicsToggle_IsCheckedChanged;
+            toggle.IsChecked = !turnOn;
+            toggle.IsCheckedChanged += DisableDynamicsToggle_IsCheckedChanged;
+        }
+    }
+
+    private Task ShowDynamicsErrorAsync(string message)
+    {
+        var win = new Window
+        {
+            Title = "Dynamika jazdy (CV3/CV4)",
             Width = 460,
             Height = 170,
             CanResize = false,
@@ -719,6 +978,10 @@ public partial class LocomotivesWindow : Window
 
         switch (e.PropertyName)
         {
+            case nameof(LocomotivesWindowViewModel.SelectedLocomotive):
+                Dispatcher.UIThread.Post(ResetCvLoadedState);
+                break;
+
             case nameof(LocomotivesWindowViewModel.FunctionSoundDurationSeconds):
                 Dispatcher.UIThread.Post(RequestTickRebuild);
                 break;
@@ -752,17 +1015,44 @@ public partial class LocomotivesWindow : Window
                     Dispatcher.UIThread.Post(() => SeekToSeconds(vm.FunctionSoundPosition));
                 break;
 
+            case nameof(LocomotivesWindowViewModel.IsDisableDynamicsForMeasurement):
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var toggle = this.FindControl<ToggleSwitch>("DisableDynamicsToggle");
+                    if (toggle == null) return;
+                    toggle.IsCheckedChanged -= DisableDynamicsToggle_IsCheckedChanged;
+                    toggle.IsChecked = vm.IsDisableDynamicsForMeasurement;
+                    toggle.IsCheckedChanged += DisableDynamicsToggle_IsCheckedChanged;
+                });
+                break;
+
             case nameof(LocomotivesWindowViewModel.IsDccProgrammingEnabled):
                 Dispatcher.UIThread.Post(() =>
                 {
                     var slider = this.FindControl<Slider>("CvTestSlider");
                     if (slider == null) return;
                     if (vm.IsDccProgrammingEnabled)
-                        // DCC sekcia sa zapla — slider zakáž, kým niektorý NUD nezíska fokus
+                    {
+                        // DCC sekcia sa zapla — slider zakáž, kým niektorý NUD nezíska fokus.
+                        // Reaktivácia bindingov spustí ValueChanged na všetkých NUD boxoch —
+                        // potlač dirty tracking aby sa tlačidlo Zapísať zbytočne neenable-ovalo.
+                        _suppressCvDirty = true;
                         slider.IsEnabled = _activeSpeedCvBox?.IsKeyboardFocusWithin == true;
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            _suppressCvDirty = false;
+                            ResetCvLoadedState();
+                        });
+                    }
                     else
-                        // DCC sekcia sa vypla — parent riadi disabled stav, slider nesmie mať vlastný IsEnabled=false
+                    {
+                        // NUD boxy nevynulujeme — TwoWay binding by prepísal model.
+                        // Parent Border IsEnabled=False ich vizuálne zakáže.
+                        // Dynamika (ak bola ON) sa rieši v DccProgrammingCheckBox_IsCheckedChanged.
+                        ResetCvLoadedState();
+                        slider.Value = 0;
                         slider.IsEnabled = true;
+                    }
                 });
                 break;
         }

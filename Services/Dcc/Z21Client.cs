@@ -84,6 +84,9 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     private Task _shutdownTask = Task.CompletedTask;
     private int _shutdownVersion;
 
+    // TCS pre čakanie na CV_RESULT po zápise — naplní DispatchSingleIncomingFrame
+    private volatile TaskCompletionSource<int>? _pendingCvWriteTcs;
+
     // Pozadie pre telemetriu – BEŽÍ NA EXISTUJÚCOM _sendUdp sokete (žiadny druhý socket).
     // _telemetryCts riadi zároveň polling systémového stavu aj R-BUS feedbacku cez
     // jednu zdieľanú receive-slučku, ktorá parsuje LAN_SYSTEMSTATE_DATACHANGED.
@@ -725,15 +728,16 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         }
         finally
         {
-            // ExitServiceMode len raz — po všetkých CV (presne ako TrainProgrammer)
-            await TryExitServiceModeAsync(udp).ConfigureAwait(false);
+            // ExitServiceMode cez hlavný _sendUdp socket
+            if (_sendUdp != null)
+                await TryExitServiceModeAsync(_sendUdp).ConfigureAwait(false);
         }
     }
 
     public async Task WriteCvAsync(int cvAddress, int value, DccProgrammingTestMode programmingMode, int timeoutMs,
         int locoAddress, CancellationToken ct = default)
     {
-        if (!IsConnected || _remoteEp == null)
+        if (!IsConnected || _remoteEp == null || _sendUdp == null)
             throw new InvalidOperationException("DCC centrála nie je pripojená.");
 
         if (cvAddress <= 0 || cvAddress > 1024)
@@ -757,20 +761,36 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
+        // TCS pre CV_RESULT z hlavného socketu — naplní DispatchSingleIncomingFrame
+        var tcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingCvWriteTcs = tcs;
+
         try
         {
-            var getSerial = new byte[] { 0x04, 0x00, 0x10, 0x00 };
-            await SendAndLogAsync(udp, getSerial, "LAN_GET_SERIALNUMBER").ConfigureAwait(false);
-
+            // Registrácia dočasného socketu
+            await SendAndLogAsync(udp, new byte[] { 0x04, 0x00, 0x10, 0x00 }, "LAN_GET_SERIALNUMBER").ConfigureAwait(false);
             var serialOk = await WaitForFrameAsync(udp, ct, deadline,
                 r => r.Length >= 8 && r[0] == 0x08 && r[1] == 0x00 && r[2] == 0x10 && r[3] == 0x00,
                 "LAN_GET_SERIALNUMBER_REPLY").ConfigureAwait(false);
             if (!serialOk.Matched)
-                throw new TimeoutException(
-                    $"Z21 neodpovedala na úvodný LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms).");
+                throw new TimeoutException($"Z21 neodpovedala na LAN_GET_SERIALNUMBER (timeout {timeoutMs} ms).");
 
-            var setBroadcast = CreateSetBroadcastFlagsPacket(Z21BroadcastFlags.XBus);
-            await SendAndLogAsync(udp, setBroadcast, "LAN_SET_BROADCASTFLAGS(0x00000001)").ConfigureAwait(false);
+            await SendAndLogAsync(udp, CreateSetBroadcastFlagsPacket(Z21BroadcastFlags.XBus),
+                "LAN_SET_BROADCASTFLAGS(0x00000001)").ConfigureAwait(false);
+
+            if (!isPom)
+            {
+                // Vstup do service mode: pošli LAN_X_SET_TRACK_POWER_ON a počkaj na 61 01 60
+                // (presne ako TrainProgrammer pred zápisom CV)
+                await SendAndLogAsync(udp, CreateExitServiceModePacket(), "LAN_X_SET_TRACK_POWER_ON (enter service mode)").ConfigureAwait(false);
+                var smDeadline = DateTime.UtcNow.AddMilliseconds(2000);
+                var smOk = await WaitForFrameAsync(udp, ct, smDeadline,
+                    r => r.Length >= 7 && r[4] == 0x61 && r[5] == 0x01,
+                    "LAN_X_BC_TRACK_POWER_OFF (service mode)").ConfigureAwait(false);
+                if (!smOk.Matched)
+                    TrackFlowDoctorService.Instance.Diagnose("DCC",
+                        "⚠️ LAN_X_BC_TRACK_POWER_OFF neprišiel po vstupe do service mode.", DiagnosticLevel.Warning);
+            }
 
             byte[] packet;
             string packetDescription;
@@ -786,12 +806,59 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             }
 
             await SendAndLogAsync(udp, packet, packetDescription).ConfigureAwait(false);
-            await ObserveWriteResponseAsync(udp, ct, deadline, cvAddress, value, isPom).ConfigureAwait(false);
+            // CV_WRITE aj cez hlavný _sendUdp — Z21 pošle CV_RESULT na ten socket
+            // od ktorého dostala CV_WRITE; MainReceiveLoopAsync ho zachytí a naplní TCS
+            if (!isPom)
+                await SendAndLogAsync(_sendUdp, packet, $"{packetDescription} (via main)").ConfigureAwait(false);
+
+            if (isPom)
+            {
+                await ObserveWriteResponseAsync(udp, ct, deadline, cvAddress, value, isPom: true).ConfigureAwait(false);
+                return;
+            }
+
+            // Service track: čakaj na CV_RESULT z dočasného socketu ALEBO z hlavného (cez TCS)
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+                throw new TimeoutException($"CV{cvAddress}: Vypršal čas.");
+            timeoutCts.CancelAfter(remaining);
+
+            var localTask = ObserveWriteResponseAsync(udp, timeoutCts.Token, deadline, cvAddress, value, isPom: false);
+
+            var winner = await Task.WhenAny(localTask, tcs.Task).ConfigureAwait(false);
+            timeoutCts.Cancel();
+
+            if (tcs.Task.IsCompletedSuccessfully)
+            {
+                var readBack = tcs.Task.Result;
+                TrackFlowDoctorService.Instance.Diagnose(
+                    "DCC",
+                    $"✅ CV{cvAddress} potvrdený (hlavný socket): readback={readBack}",
+                    DiagnosticLevel.Success);
+                if (readBack != value)
+                    throw new InvalidOperationException(
+                        $"CV{cvAddress}: Overenie zlyhalo — zapísané {value}, readback {readBack}.");
+                return;
+            }
+
+            if (localTask.IsFaulted)
+                throw localTask.Exception!.InnerException!;
+
+            if (localTask.IsCompletedSuccessfully)
+                return;
+
+            throw new TimeoutException($"CV{cvAddress}: Zápis nebol potvrdený v limite {timeoutMs} ms.");
         }
         finally
         {
+            _pendingCvWriteTcs = null;
             if (!isPom)
+            {
                 await TryExitServiceModeAsync(udp).ConfigureAwait(false);
+                if (_sendUdp != null)
+                    await TryExitServiceModeAsync(_sendUdp).ConfigureAwait(false);
+            }
         }
     }
 
@@ -1040,6 +1107,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
     private static async Task SendAndLogAsync(UdpClient udp, byte[] packet, string description)
     {
         await udp.SendAsync(packet, packet.Length);
+        Debug.WriteLine($"TX: {description}");
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
             $"📤 {description}: {BytesToHex(packet)}");
@@ -1053,7 +1121,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         int value,
         bool isPom)
     {
-        var idleAfterProgrammingModeMs = isPom ? 400 : 600;
+        var idleAfterProgrammingModeMs = isPom ? 400 : 3000;  // v prípade zlýhania zápisu do registrov CV zvýšiť hodnotu
         var hardObservationDeadline = DateTime.UtcNow.AddMilliseconds(isPom ? 1_000 : 2_000);
         var effectiveDeadline = hardObservationDeadline < deadlineUtc ? hardObservationDeadline : deadlineUtc;
         DateTime? silenceDeadlineUtc = null;
@@ -1083,6 +1151,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
             }
 
             LogIncomingFrame(response, 0);
+            Debug.WriteLine($"WRITE RX: {BytesToHex(response)}");
 
             if (response.Length >= 7
                 && response[0] == 0x07 && response[1] == 0x00
@@ -1139,6 +1208,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
 
     private static void LogIncomingFrame(byte[] frame, int seq)
     {
+        Debug.WriteLine($"RX: {BytesToHex(frame)}");
         TrackFlowDoctorService.Instance.Diagnose(
             "DCC",
             $"📥 #{seq} ({frame.Length} B): {BytesToHex(frame)}");
@@ -1837,6 +1907,16 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         {
             _lastIgnoredLanX43FrameHex = BytesToHex(frame);
             Interlocked.Increment(ref _rBusIgnoredLanX43Count);
+        }
+
+        // LAN_X_CV_RESULT — potvrdenie zápisu CV; naplní TCS pre WriteCvAsync
+        if (frame.Length >= 10
+            && frame[0] == 0x0A && frame[1] == 0x00
+            && frame[2] == 0x40 && frame[3] == 0x00
+            && frame[4] == 0x64 && frame[5] == 0x14)
+        {
+            _pendingCvWriteTcs?.TrySetResult(frame[8]);
+            return;
         }
 
         // Sem v budúcnosti pribudnú ďalšie ramce (loco, turnout, broadcasts).

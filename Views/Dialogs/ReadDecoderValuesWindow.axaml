@@ -3,7 +3,7 @@
         x:Class="TrackFlow.Views.Dialogs.ReadDecoderValuesWindow"
         Title="Čítanie hodnôt dekodéra"
         Width="470"
-        Height="170"
+        Height="130"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">

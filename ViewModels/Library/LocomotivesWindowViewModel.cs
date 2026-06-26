@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Collections.Generic;
@@ -34,6 +35,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     private bool _functionsDirty;
     private bool _profileProjectDirty;
     private bool _isAddressProgrammingBusy;
+    private int _backupAccelerationCv;
+    private int _backupBrakingCv;
     private LocoRecord? _selectionBeforeAdd;
     private LocoRecord? _selectedLocomotive;
 
@@ -280,6 +283,9 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     [ObservableProperty] private string addressText = "3";
     [ObservableProperty] private string validationMessage = "";
     [ObservableProperty] private bool isSoundDecoder;
+    [ObservableProperty] private string dynamicsStatusText = "Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow.";
+    [ObservableProperty] private string dynamicsStatusColor = "#5B6575";
+    [ObservableProperty] private string dynamicsStatusFontWeight = "Normal";
 
     private int _addressValue = 3;
 
@@ -315,6 +321,15 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
             _selectedLocomotive = value;
 
+            // IsDisableDynamicsForMeasurement je runtime stav merania — backup CV3/CV4 sa po reštarte
+            // aplikácie stratí, preto pri každom výbere lokomotívy resetujeme na false.
+            if (_selectedLocomotive != null)
+            {
+                _selectedLocomotive.IsDisableDynamicsForMeasurement = false;
+                _backupAccelerationCv = 0;
+                _backupBrakingCv      = 0;
+            }
+
             if (_selectedLocomotive != null)
                 _selectedLocomotive.PropertyChanged += OnSelectedLocomotivePropertyChanged;
 
@@ -326,6 +341,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(AccelerationCv));
             OnPropertyChanged(nameof(BrakingCv));
             OnPropertyChanged(nameof(Cv57));
+            RefreshDynamicsStatus();
         }
     }
 
@@ -1267,6 +1283,9 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     internal async Task WriteProgrammingCvAsync(int cvAddress, int value, CancellationToken ct = default)
     {
+        TrackFlowDoctorService.Instance.Diagnose(
+            "DCC",
+            $"CALL WriteProgrammingCvAsync(CV{cvAddress}={value})");
         var programmingClient = GetServiceTrackProgrammingClientOrThrow();
         const int serviceTrackAddressPlaceholder = 0;
         TrackFlowDoctorService.Instance.Diagnose("DCC", $"📤 WriteProgrammingCvAsync: CV{cvAddress} = {value}");
@@ -1294,6 +1313,122 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     {
         foreach (var (cvAddress, value) in cvs)
             await WriteProgrammingCvAsync(cvAddress, value);
+    }
+
+    private async Task WritePomCvAsync(int cvAddress, int value, CancellationToken ct = default)
+    {
+        if (_dccConnectionService?.Client is not IDccProgrammingClient client)
+            throw new InvalidOperationException("DCC centrála nie je pripojená.");
+
+        var locoAddress = AddressValue;
+        TrackFlowDoctorService.Instance.Diagnose("DCC", $"📤 WritePomCvAsync: CV{cvAddress} = {value} (POM, loco={locoAddress})");
+        await client.WriteCvAsync(
+            cvAddress,
+            value,
+            DccProgrammingTestMode.ProgramOnMain,
+            timeoutMs: 5000,
+            locoAddress: locoAddress,
+            ct: ct);
+        TrackFlowDoctorService.Instance.Diagnose("DCC", $"✅ CV{cvAddress} zapísané cez POM.", DiagnosticLevel.Success);
+    }
+
+    /// <summary>
+    /// Vykoná zapnutie/vypnutie dynamiky jazdy (CV3/CV4) cez POM zápis.
+    /// Vracia null pri úspechu, chybovú správu pri zlyhaní.
+    /// </summary>
+    /// <summary>
+    /// Fáza 1: Záloha/obnova hodnôt v pamäti a aktualizácia UI.
+    /// Vracia dvojicu (cv3, cv4) hodnôt na zápis do dekodéra.
+    /// View následne vykoná DCC zápis cez progress dialóg a pri zlyhaní zavolá RollbackDisableDynamicsToggle.
+    /// </summary>
+    public (int Cv3, int Cv4) PrepareDisableDynamicsToggle(bool turnOn)
+    {
+        if (turnOn)
+        {
+            _backupAccelerationCv = AccelerationCv;
+            _backupBrakingCv      = BrakingCv;
+
+            AccelerationCv = 0;
+            BrakingCv      = 0;
+            SelectedLocomotive!.IsDisableDynamicsForMeasurement = true;
+            DynamicsStatusText       = $"⚠ Dynamika jazdy je vypnutá (CV3=0, CV4=0). " +
+                                       $"Pôvodné hodnoty ({_backupAccelerationCv} a {_backupBrakingCv}) sú zálohované.";
+            DynamicsStatusColor      = "#B91C1C";
+            DynamicsStatusFontWeight = "SemiBold";
+            return (0, 0);
+        }
+        else
+        {
+            var restoreAcc = _backupAccelerationCv;
+            var restoreBrk = _backupBrakingCv;
+
+            AccelerationCv = restoreAcc;
+            BrakingCv      = restoreBrk;
+            SelectedLocomotive!.IsDisableDynamicsForMeasurement = false;
+            DynamicsStatusText       = $"Dynamika jazdy obnovená. Do dekodéra zapísané pôvodné hodnoty (CV3={restoreAcc}, CV4={restoreBrk}).";
+            DynamicsStatusColor      = "#5B6575";
+            DynamicsStatusFontWeight = "Normal";
+            return (restoreAcc, restoreBrk);
+        }
+    }
+
+    /// <summary>
+    /// Fáza 3 (len pri zlyhaní zápisu): Vráti model do stavu pred PrepareDisableDynamicsToggle.
+    /// </summary>
+    public void RollbackDisableDynamicsToggle(bool turnOn)
+    {
+        if (turnOn)
+        {
+            AccelerationCv = _backupAccelerationCv;
+            BrakingCv      = _backupBrakingCv;
+            if (SelectedLocomotive != null)
+                SelectedLocomotive.IsDisableDynamicsForMeasurement = false;
+            RefreshDynamicsStatus();
+        }
+        else
+        {
+            AccelerationCv = 0;
+            BrakingCv      = 0;
+            if (SelectedLocomotive != null)
+            {
+                SelectedLocomotive.IsDisableDynamicsForMeasurement = true;
+                _backupAccelerationCv = _backupAccelerationCv;
+                _backupBrakingCv      = _backupBrakingCv;
+            }
+            RefreshDynamicsStatus();
+        }
+    }
+
+    /// <summary>
+    /// Užívateľ vedome potvrdil, že CV3 a CV4 zostanú na 0.
+    /// Zruší "vypnutý" stav bez DCC zápisu a nastaví neutrálny stavový text.
+    /// </summary>
+    public void AcknowledgeDynamicsLeftOff()
+    {
+        if (SelectedLocomotive == null) return;
+        SelectedLocomotive.IsDisableDynamicsForMeasurement = false;
+        _backupAccelerationCv = 0;
+        _backupBrakingCv      = 0;
+        DynamicsStatusText       = "Dynamika jazdy zostáva vypnutá (CV3=0, CV4=0). Obnoviť ju môžete ručne.";
+        DynamicsStatusColor      = "#5B6575";
+        DynamicsStatusFontWeight = "Normal";
+    }
+
+    public void RefreshDynamicsStatus()
+    {
+        if (SelectedLocomotive?.IsDisableDynamicsForMeasurement == true)
+        {
+            DynamicsStatusText       = $"⚠ Dynamika jazdy je vypnutá (CV3=0, CV4=0). " +
+                                       $"Pôvodné hodnoty sú zálohované ({_backupAccelerationCv} a {_backupBrakingCv}).";
+            DynamicsStatusColor      = "#B91C1C";
+            DynamicsStatusFontWeight = "Bold";
+        }
+        else
+        {
+            DynamicsStatusText       = "Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow.";
+            DynamicsStatusColor      = "#5B6575";
+            DynamicsStatusFontWeight = "Normal";
+        }
     }
     
     private int ApplyCv29State(int cv29Value)

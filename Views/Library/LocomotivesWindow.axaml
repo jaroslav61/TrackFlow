@@ -1450,9 +1450,11 @@
                                         </Border>
                                         <Grid Margin="4" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                                             <CheckBox Grid.Column="0"
+                                                      x:Name="DccProgrammingCheckBox"
                                                       Content="Tento dekodér podporuje DCC programovanie"
                                                       FontSize="12"
                                                       IsChecked="{Binding SelectedLocomotive.IsDccProgrammingEnabled, Mode=TwoWay, TargetNullValue=False}"
+                                                      IsCheckedChanged="DccProgrammingCheckBox_IsCheckedChanged"
                                                       Margin="0,2,0,2"
                                                       VerticalAlignment="Center" />
                                             <Button Grid.Column="1"
@@ -1511,8 +1513,8 @@
                                                                    Grid.Column="1"
                                                                    Height="22"
                                                                    Margin="0,2,0,2"
-                                                                   Minimum="1"
-                                                                   Maximum="10"
+                                                                   Minimum="0"
+                                                                   Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MinSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
 
@@ -1544,8 +1546,8 @@
                                                     <NumericUpDown x:Name="MidSpeedCvBox" Grid.Row="1" Grid.Column="1"
                                                                    Height="22"
                                                                    Margin="0,2,0,2"
-                                                                   Minimum="32"
-                                                                   Maximum="128"
+                                                                   Minimum="0"
+                                                                   Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MidSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
 
@@ -1579,7 +1581,7 @@
                                                                    Grid.Column="1"
                                                                    Height="22"
                                                                    Margin="0,2,0,2"
-                                                                   Minimum="1"
+                                                                   Minimum="0"
                                                                    Maximum="255"
                                                                    Value="{Binding SelectedLocomotive.MaxSpeedCv, Mode=TwoWay, TargetNullValue=0}"
                                                                    FormatString="0" />
@@ -1654,7 +1656,7 @@
                                                                Grid.Column="2"
                                                                Height="22"
                                                                Width="58"
-                                                               Minimum="50"
+                                                               Minimum="0"
                                                                Maximum="255"
                                                                Value="{Binding Cv57, Mode=TwoWay, TargetNullValue=0}"
                                                                FormatString="0" />
@@ -1803,14 +1805,15 @@
                                                                   Grid.Column="1"
                                                                   OnContent="ON"
                                                                   OffContent="OFF"
-                                                                  IsChecked="{Binding SelectedLocomotive.IsDisableDynamicsForMeasurement, Mode=TwoWay, TargetNullValue=False}" />
+                                                                  IsCheckedChanged="DisableDynamicsToggle_IsCheckedChanged" />
                                                 </Grid>
                                                 
                                                 <TextBlock
-                                                    Text="Dočasne vynúti CV3 a CV4 na nulu pre presnú kalibráciu na testovacom úseku TrackFlow."
+                                                    Text="{Binding DynamicsStatusText}"
                                                     FontSize="11"
+                                                    FontWeight="{Binding DynamicsStatusFontWeight}"
                                                     Margin="0,1,0,0"
-                                                    Foreground="#5B6575"
+                                                    Foreground="{Binding DynamicsStatusColor}"
                                                     TextWrapping="Wrap" />
                                             </StackPanel>
                                         </StackPanel>
