@@ -1365,7 +1365,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             AccelerationCv = restoreAcc;
             BrakingCv      = restoreBrk;
             SelectedLocomotive!.IsDisableDynamicsForMeasurement = false;
-            DynamicsStatusText       = $"Dynamika jazdy obnovená. Do dekodéra zapísané pôvodné hodnoty (CV3={restoreAcc}, CV4={restoreBrk}).";
+            DynamicsStatusText       = $"Dynamika jazdy obnovená. Do dekodéra boli zapísané pôvodné hodnoty (CV3={restoreAcc}, CV4={restoreBrk}).";
             DynamicsStatusColor      = "#5B6575";
             DynamicsStatusFontWeight = "Normal";
             return (restoreAcc, restoreBrk);

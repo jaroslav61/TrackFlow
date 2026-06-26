@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,7 +32,7 @@ public partial class LocomotivesWindow : Window
 {
     private const string DynamicsStillOffTitle   = "Dynamika jazdy je vypnutá";
     private const string DynamicsStillOffMessage =
-        "CV3 a CV4 sú nastavené na 0.\nZabudli ste obnoviť dynamiku jazdy?\n\n" +
+        "CV3 a CV4 sú nastavené na 0. Zabudli ste obnoviť dynamiku jazdy?\n\n" +
         "• Áno — nechám CV3 a CV4 na 0 (úmyselné)\n" +
         "• Nie — vrátim sa a prepnem prepínač späť";
     private LocomotivesWindowViewModel? _vm;
@@ -200,11 +201,17 @@ public partial class LocomotivesWindow : Window
 
         var accelerationCvBox = this.FindControl<NumericUpDown>("AccelerationCvBox");
         if (accelerationCvBox != null)
+        {
+            accelerationCvBox.GotFocus     += (_, _) => Dispatcher.UIThread.Post(() => accelerationCvBox.FindDescendantOfType<TextBox>()?.ClearSelection());
             accelerationCvBox.ValueChanged += (_, _) => OnCvBoxDirty(3);
+        }
 
         var brakingCvBox = this.FindControl<NumericUpDown>("BrakingCvBox");
         if (brakingCvBox != null)
+        {
+            brakingCvBox.GotFocus     += (_, _) => Dispatcher.UIThread.Post(() => brakingCvBox.FindDescendantOfType<TextBox>()?.ClearSelection());
             brakingCvBox.ValueChanged += (_, _) => OnCvBoxDirty(4);
+        }
 
         var cv57Box = this.FindControl<NumericUpDown>("Cv57Box");
         if (cv57Box != null)
@@ -279,9 +286,11 @@ public partial class LocomotivesWindow : Window
 
     private void OnCvBoxDirty(int cvNumber)
     {
-        if (_suppressCvDirty || _cvSliderUpdating) return;
+        if (_suppressCvDirty) return;
         _dirtyCvs.Add(cvNumber);
+        TrackFlowDoctorService.Instance.Diagnose("CV", $"🖊 Dirty CV{cvNumber}, celkom dirty: {_dirtyCvs.Count}, loaded={_cvValuesLoaded}");
         UpdateWriteCvButtonState();
+        TrackFlowDoctorService.Instance.Diagnose("CV", $"   WriteCvButton.IsEnabled = {this.FindControl<Button>("WriteCvButton")?.IsEnabled}");
     }
 
     private void UpdateWriteCvButtonState()
@@ -351,6 +360,21 @@ public partial class LocomotivesWindow : Window
             slider.Value = Math.Clamp(box.Value.HasValue ? (double)box.Value.Value : min, min, max);
             _cvSliderUpdating = false;
         }
+
+        // Zruš automatický SelectAll ktorý Avalonia robí pri GotFocus na NUD.
+        // Pre CV2/5/6 navyše vynuluj hodnotu — užívateľ zadá novú priamo.
+        Dispatcher.UIThread.Post(() =>
+        {
+            var tb = box.FindDescendantOfType<TextBox>();
+            tb?.ClearSelection();
+
+            if (box.Name is "MinSpeedCvBox" or "MidSpeedCvBox" or "MaxSpeedCvBox")
+            {
+                _suppressCvDirty = true;
+                box.Value = 0;
+                _suppressCvDirty = false;
+            }
+        });
     }
 
     private void OnSpeedCvBoxLostFocus()
@@ -549,6 +573,9 @@ public partial class LocomotivesWindow : Window
                 this);
             TooltipPreferenceService.Attach(dialog);
             await dialog.ShowDialog(this);
+            
+            if (_dirtyCvs.Remove(57))
+                UpdateWriteCvButtonState();
         }
         catch (Exception ex)
         {
@@ -980,6 +1007,10 @@ public partial class LocomotivesWindow : Window
         {
             case nameof(LocomotivesWindowViewModel.SelectedLocomotive):
                 Dispatcher.UIThread.Post(ResetCvLoadedState);
+                break;
+
+            case nameof(LocomotivesWindowViewModel.IsGlobalDccProgrammingAvailable):
+                Dispatcher.UIThread.Post(UpdateWriteCvButtonState);
                 break;
 
             case nameof(LocomotivesWindowViewModel.FunctionSoundDurationSeconds):

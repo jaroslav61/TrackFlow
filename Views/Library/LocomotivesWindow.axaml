@@ -426,7 +426,8 @@
                          NumericUpDown#MidSpeedCvBox /template/ TextBox,
                          NumericUpDown#MaxSpeedCvBox /template/ TextBox,
                          NumericUpDown#AccelerationCvBox /template/ TextBox,
-                         NumericUpDown#BrakingCvBox /template/ TextBox">
+                         NumericUpDown#BrakingCvBox /template/ TextBox,
+                         NumericUpDown#Cv57Box /template/ TextBox">
             <Setter Property="SelectionBrush" Value="Transparent" />
         </Style>
 
@@ -2069,8 +2070,7 @@
                                             FontWeight="SemiBold"
                                             FontSize="12"
                                             HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            IsEnabled="{Binding IsGlobalDccProgrammingAvailable}" />
+                                            HorizontalContentAlignment="Center" />
 
                                 </Grid>
 
