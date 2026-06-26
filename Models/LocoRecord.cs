@@ -366,10 +366,25 @@ public sealed class LocoRecord : ObservableObject
         set => SetProperty(ref _cv29Value, value);
     }
 
+    private bool _isRailComEnabled;
+    private bool _isSpeedTableEnabled;
+
     public bool IsBemfEnabled
     {
         get => _isBemfEnabled;
         set => SetProperty(ref _isBemfEnabled, value);
+    }
+
+    public bool IsRailComEnabled
+    {
+        get => _isRailComEnabled;
+        set => SetProperty(ref _isRailComEnabled, value);
+    }
+
+    public bool IsSpeedTableEnabled
+    {
+        get => _isSpeedTableEnabled;
+        set => SetProperty(ref _isSpeedTableEnabled, value);
     }
 
     public bool IsAnalogOperationEnabled
@@ -394,6 +409,8 @@ public sealed class LocoRecord : ObservableObject
         Cv29Value = 0;
         IsInvertDirectionEnabled = false;
         IsAnalogOperationEnabled = false;
+        IsRailComEnabled = false;
+        IsSpeedTableEnabled = false;
         IsBemfEnabled = false;
         IsDisableDynamicsForMeasurement = false;
         BrakeCorrection = 0;

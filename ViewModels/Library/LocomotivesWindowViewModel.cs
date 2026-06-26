@@ -341,6 +341,9 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(AccelerationCv));
             OnPropertyChanged(nameof(BrakingCv));
             OnPropertyChanged(nameof(Cv57));
+            OnPropertyChanged(nameof(Cv29Computed));
+            OnPropertyChanged(nameof(Cv29ComputedHex));
+            OnPropertyChanged(nameof(Cv29Bit5));
             RefreshDynamicsStatus();
         }
     }
@@ -1165,6 +1168,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             case nameof(LocoRecord.BrakeCompensationBackward):
             case nameof(LocoRecord.Cv29Value):
             case nameof(LocoRecord.IsBemfEnabled):
+            case nameof(LocoRecord.IsRailComEnabled):
+            case nameof(LocoRecord.IsSpeedTableEnabled):
             case nameof(LocoRecord.IsAnalogOperationEnabled):
             case nameof(LocoRecord.IsInvertDirectionEnabled):
                 if (e.PropertyName == nameof(LocoRecord.IsDisableDynamicsForMeasurement))
@@ -1175,6 +1180,17 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                     OnPropertyChanged(nameof(BrakingCv));
                 if (e.PropertyName == nameof(LocoRecord.Cv57))
                     OnPropertyChanged(nameof(Cv57));
+                if (e.PropertyName is nameof(LocoRecord.IsBemfEnabled)
+                                    or nameof(LocoRecord.IsRailComEnabled)
+                                    or nameof(LocoRecord.IsSpeedTableEnabled)
+                                    or nameof(LocoRecord.IsAnalogOperationEnabled)
+                                    or nameof(LocoRecord.IsInvertDirectionEnabled)
+                                    or nameof(LocoRecord.Cv29Value))
+                {
+                    OnPropertyChanged(nameof(Cv29Computed));
+                    OnPropertyChanged(nameof(Cv29ComputedHex));
+                    OnPropertyChanged(nameof(Cv29Bit5));
+                }
                 MarkDirtyAndRevalidate();
                 break;
         }
@@ -1354,7 +1370,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             DynamicsStatusText       = $"⚠ Dynamika jazdy je vypnutá (CV3=0, CV4=0). " +
                                        $"Pôvodné hodnoty ({_backupAccelerationCv} a {_backupBrakingCv}) sú zálohované.";
             DynamicsStatusColor      = "#B91C1C";
-            DynamicsStatusFontWeight = "SemiBold";
+            DynamicsStatusFontWeight = "Bold";
             return (0, 0);
         }
         else
@@ -1365,7 +1381,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             AccelerationCv = restoreAcc;
             BrakingCv      = restoreBrk;
             SelectedLocomotive!.IsDisableDynamicsForMeasurement = false;
-            DynamicsStatusText       = $"Dynamika jazdy obnovená. Do dekodéra boli zapísané pôvodné hodnoty (CV3={restoreAcc}, CV4={restoreBrk}).";
+            DynamicsStatusText       = $"Dynamika jazdy obnovená do dekodéra (CV3={restoreAcc}, CV4={restoreBrk}).";
             DynamicsStatusColor      = "#5B6575";
             DynamicsStatusFontWeight = "Normal";
             return (restoreAcc, restoreBrk);
@@ -1435,14 +1451,43 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     {
         if (SelectedLocomotive != null)
         {
-            SelectedLocomotive.Cv29Value = cv29Value;
-            SelectedLocomotive.IsInvertDirectionEnabled = (cv29Value & 0x01) != 0;
-            SelectedLocomotive.IsAnalogOperationEnabled = (cv29Value & 0x04) != 0;
-            SelectedLocomotive.IsBemfEnabled = (cv29Value & 0x10) != 0;
+            SelectedLocomotive.Cv29Value              = cv29Value;
+            SelectedLocomotive.IsInvertDirectionEnabled = (cv29Value & 0x01) != 0; // bit 0
+            // bit 1 (0x02): 28/128 krokov — read-only, vždy 1 pri TrackFlow
+            SelectedLocomotive.IsAnalogOperationEnabled = (cv29Value & 0x04) != 0; // bit 2
+            SelectedLocomotive.IsRailComEnabled          = (cv29Value & 0x08) != 0; // bit 3
+            SelectedLocomotive.IsSpeedTableEnabled       = (cv29Value & 0x10) != 0; // bit 4
+            // bit 5 (0x20): dlhá adresa — riadi adresný editor
         }
-
         return cv29Value;
     }
+
+    /// <summary>
+    /// Vypočítaná hodnota CV29 z aktuálnych bitových príznakov.
+    /// Bit 1 (0x02) — 28/128 krokov — vždy 1 (TrackFlow používa 128 krokov).
+    /// Bit 5 (0x20) — dlhá adresa — zachováva sa z načítanej hodnoty CV29.
+    /// </summary>
+    public int Cv29Computed
+    {
+        get
+        {
+            if (SelectedLocomotive == null) return 0;
+            // Vypočítaj z aktuálnych bitových properties (nie z Cv29Value —
+            // ten sa aktualizuje pri načítaní, ale checkboxy môžu byť zmenené užívateľom)
+            int v = SelectedLocomotive.Cv29Value & 0x20; // zachovaj bit 5 (dlhá adresa)
+            v |= 0x02;                                    // bit 1: vždy 1 (128 krokov)
+            if (SelectedLocomotive.IsInvertDirectionEnabled) v |= 0x01;
+            if (SelectedLocomotive.IsAnalogOperationEnabled) v |= 0x04;
+            if (SelectedLocomotive.IsRailComEnabled)          v |= 0x08;
+            if (SelectedLocomotive.IsSpeedTableEnabled)       v |= 0x10;
+            return v;
+        }
+    }
+
+    /// <summary>Bit 5 CV29 — dlhá adresa — read-only, riadi adresný editor.</summary>
+    public bool Cv29Bit5 => (SelectedLocomotive?.Cv29Value & 0x20) != 0;
+
+    public string Cv29ComputedHex => $"(0x{Cv29Computed:X2})";
 
     private void ApplyAddressToEditor(int address)
     {

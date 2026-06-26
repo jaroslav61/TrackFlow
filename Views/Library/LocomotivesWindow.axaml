@@ -430,6 +430,11 @@
                          NumericUpDown#Cv57Box /template/ TextBox">
             <Setter Property="SelectionBrush" Value="Transparent" />
         </Style>
+        
+        <Style Selector="StackPanel.cv29Bits CheckBox">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="6,1,0,1" />
+        </Style>
 
     </Window.Styles>
 
@@ -1825,7 +1830,7 @@
                                 <Grid Grid.Row="4"
                                       ColumnDefinitions="*,4,*">
 
-                                    <!-- Smer a BEMF regulácia (CV29) -->
+                                    <!-- Základná konfigurácia dekodéra (CV29) -->
                                     <Border Grid.Column="2"
                                             BorderBrush="#C8C8C8"
                                             BorderThickness="1"
@@ -1833,46 +1838,72 @@
                                             IsEnabled="{Binding SelectedLocomotive.IsDccProgrammingEnabled, TargetNullValue=False, FallbackValue=False}">
 
                                         <StackPanel>
-                                            <Border Background="#E8E8E8"
-                                                    Padding="6,3">
-
-                                                <StackPanel Orientation="Horizontal"
-                                                            Spacing="0">
-
-                                                    <TextBlock Text="Smer a BEMF regulácia"
+                                            <Border Background="#E8E8E8" Padding="6,3">
+                                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                                    <TextBlock Text="Základná konfigurácia dekodéra"
                                                                FontWeight="Bold"
                                                                FontSize="13"
                                                                VerticalAlignment="Center" />
-
                                                     <Border Classes="dccCvBadge">
-                                                        <TextBlock Classes="dccCvBadgeText"
-                                                                   Text="CV29" />
-
+                                                        <TextBlock Classes="dccCvBadgeText" Text="CV29" />
                                                     </Border>
                                                 </StackPanel>
                                             </Border>
 
-                                            <StackPanel Margin="9,16,4,6"
-                                                        Spacing="6">
-                                                <CheckBox x:Name="BemfEnabledCheckBox"
-                                                          Content="Regulácia záťaže (BEMF)"
-                                                          FontSize="12"
-                                                          HorizontalAlignment="Left"
-                                                          IsChecked="{Binding SelectedLocomotive.IsBemfEnabled, Mode=TwoWay, TargetNullValue=False}" />
-                                                <CheckBox x:Name="AnalogOperationCheckBox"
-                                                          Content="Analógová prevádzka"
-                                                          FontSize="12"
-                                                          HorizontalAlignment="Left"
-                                                          IsChecked="{Binding SelectedLocomotive.IsAnalogOperationEnabled, Mode=TwoWay, TargetNullValue=False}" />
-
-                                                <CheckBox x:Name="InvertDirectionCheckBox"
-                                                          Content="Invertovať smer jazdy"
-                                                          FontSize="12"
-                                                          HorizontalAlignment="Left"
-                                                          IsChecked="{Binding SelectedLocomotive.IsInvertDirectionEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                            <StackPanel Margin="9,5,9,6" Spacing="0">
+                                                <Border Height="22">
+                                                    <CheckBox x:Name="InvertDirectionCheckBox" FontSize="12"
+                                                              Content="Bit 0 (1) Smer jazdy:  0=Normálny,  1=Reverzný"
+                                                              IsChecked="{Binding SelectedLocomotive.IsInvertDirectionEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                </Border>
+                                                <Border Height="22">
+                                                    <CheckBox FontSize="12" IsEnabled="False" IsChecked="True"
+                                                              Content="Bit 1 (2) Rýchlostné stupne:  0=14,  1=28/128" />
+                                                </Border>
+                                                <Border Height="22">
+                                                    <CheckBox x:Name="AnalogOperationCheckBox" FontSize="12"
+                                                              Content="Bit 2 (4)   Analógový režim:  0=DCC,  1=DCC+Analóg"
+                                                              IsChecked="{Binding SelectedLocomotive.IsAnalogOperationEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                </Border>
+                                                <Border Height="22">
+                                                    <CheckBox x:Name="RailComEnabledCheckBox" FontSize="12"
+                                                              Content="Bit 3 (8)  RailCom:  0=Vypnutý,  1=Zapnutý"
+                                                              IsChecked="{Binding SelectedLocomotive.IsRailComEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                </Border>
+                                                <Border Height="22">
+                                                    <CheckBox x:Name="SpeedTableEnabledCheckBox" FontSize="12"
+                                                              Content="Bit 4 (16)  Rýchlostná krivka:  0=3-bodová,  1=28-bodová"
+                                                              IsChecked="{Binding SelectedLocomotive.IsSpeedTableEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                </Border>
+                                                <Border Height="22">
+                                                    <CheckBox FontSize="12" IsEnabled="False"
+                                                              IsChecked="{Binding Cv29Bit5}"
+                                                              Content="Bit 5 (32)  Adresa vozidla:  0=Krátka (CV1),  1=Dlhá (CV17+CV18)" />
+                                                </Border>
                                             </StackPanel>
+
+                                            <!-- Vypočítaná hodnota CV29 -->
+                                            <Border BorderBrush="#D1D5DB"
+                                                    BorderThickness="0,1,0,0"
+                                                    Margin="9,2,9,6"
+                                                    Padding="0,4,0,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                    <TextBlock Text="Vypočítaná hodnota CV29:"
+                                                               FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="#374151" VerticalAlignment="Center" />
+                                                    <Border Background="#1E3A5F" CornerRadius="4" Padding="10,3">
+                                                        <TextBlock Text="{Binding Cv29Computed}"
+                                                                   FontSize="13" FontWeight="Bold"
+                                                                   Foreground="White" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock FontSize="11" Foreground="#6B7280" VerticalAlignment="Center"
+                                                               Text="{Binding Cv29ComputedHex}" />
+                                                </StackPanel>
+                                            </Border>
+
                                         </StackPanel>
                                     </Border>
+
 
                                     <!-- Korekcia bŕzd -->
                                     <Border Grid.Column="0"
