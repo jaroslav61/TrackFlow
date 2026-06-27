@@ -221,7 +221,12 @@ public partial class LocomotivesWindow : Window
             cv57Box.ValueChanged += (_, _) => OnSpeedCvBoxValueChanged(cv57Box);
             cv57Box.ValueChanged += (_, _) => OnCvBoxDirty(57);
         }
-        
+
+        foreach (var name in new[] { "InvertDirectionCheckBox", "AnalogOperationCheckBox",
+                                     "RailComEnabledCheckBox",  "LongAddressCheckBox" })
+            if (this.FindControl<CheckBox>(name) is { } cb)
+                cb.IsCheckedChanged += (_, _) => OnCvBoxDirty(29);
+
         AttachVm(DataContext as LocomotivesWindowViewModel);
         HookSpeedChartInteractions();
     }
@@ -286,12 +291,30 @@ public partial class LocomotivesWindow : Window
 
     private void OnCvBoxDirty(int cvNumber)
     {
-        if (_suppressCvDirty) return;
-        _dirtyCvs.Add(cvNumber);
-        TrackFlowDoctorService.Instance.Diagnose("CV", $"🖊 Dirty CV{cvNumber}, celkom dirty: {_dirtyCvs.Count}, loaded={_cvValuesLoaded}");
-        UpdateWriteCvButtonState();
-        TrackFlowDoctorService.Instance.Diagnose("CV", $"   WriteCvButton.IsEnabled = {this.FindControl<Button>("WriteCvButton")?.IsEnabled}");
+        if (_suppressCvDirty || !_cvValuesLoaded) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_suppressCvDirty) return;
+            var current = GetCurrentCvValue(cvNumber);
+            if (_loadedCvValues.TryGetValue(cvNumber, out var baseline) && current == baseline)
+                _dirtyCvs.Remove(cvNumber);
+            else
+                _dirtyCvs.Add(cvNumber);
+            UpdateWriteCvButtonState();
+        });
     }
+
+    private int GetCurrentCvValue(int cvNumber) => cvNumber switch
+    {
+        2  => (int?)this.FindControl<NumericUpDown>("MinSpeedCvBox")?.Value  ?? 0,
+        6  => (int?)this.FindControl<NumericUpDown>("MidSpeedCvBox")?.Value  ?? 0,
+        5  => (int?)this.FindControl<NumericUpDown>("MaxSpeedCvBox")?.Value  ?? 0,
+        3  => (int?)this.FindControl<NumericUpDown>("AccelerationCvBox")?.Value ?? 0,
+        4  => (int?)this.FindControl<NumericUpDown>("BrakingCvBox")?.Value   ?? 0,
+        57 => (int?)this.FindControl<NumericUpDown>("Cv57Box")?.Value        ?? 0,
+        29 => _vm?.Cv29Computed ?? 0,
+        _  => 0
+    };
 
     private void UpdateWriteCvButtonState()
     {
@@ -317,6 +340,7 @@ public partial class LocomotivesWindow : Window
     private void ResetCvLoadedState()
     {
         _cvValuesLoaded = false;
+        _loadedCvValues.Clear();
         UpdateCvDependentControls();
         ClearDirtyState();
     }
@@ -331,6 +355,9 @@ public partial class LocomotivesWindow : Window
     // Zaznamenáva čísla CV ktoré boli zmenené od posledného načítania/zápisu.
     private readonly HashSet<int> _dirtyCvs = new();
     private bool _suppressCvDirty;
+
+    // Baseline hodnoty CV po poslednom načítaní/zápise.
+    private readonly Dictionary<int, int> _loadedCvValues = new();
 
     // True po úspešnom načítaní CV z dekodéra; reset pri zmene loko alebo odškrtnutí DCC.
     private bool _cvValuesLoaded;
@@ -519,6 +546,7 @@ public partial class LocomotivesWindow : Window
                 (3,  (int)(accelerationCvBox?.Value  ?? loco.AccelerationCv)),
                 (4,  (int)(brakingCvBox?.Value       ?? loco.BrakingCv)),
                 (57, (int)(cv57Box?.Value            ?? loco.Cv57)),
+                (29, _vm?.Cv29Computed               ?? loco.Cv29Value),
             };
             var cvs = allCvs.Where(x => _dirtyCvs.Contains(x.Cv)).ToList();
 
@@ -535,7 +563,11 @@ public partial class LocomotivesWindow : Window
             await dialog.ShowDialog(this);
 
             if (!dialog.WasCancelled && dialog.Error == null)
+            {
+                foreach (var cv in cvs)
+                    _loadedCvValues[cv.Cv] = cv.Value;
                 ClearDirtyState();
+            }
         }
         catch (Exception ex)
         {
@@ -648,6 +680,17 @@ public partial class LocomotivesWindow : Window
             _cvValuesLoaded = true;
             UpdateCvDependentControls();
             ClearDirtyState();
+            // Baseline uložíme cez Post — až po propagácii všetkých PropertyChanged a bindingov
+            Dispatcher.UIThread.Post(() =>
+            {
+                _loadedCvValues[2]  = (int?)this.FindControl<NumericUpDown>("MinSpeedCvBox")?.Value  ?? 0;
+                _loadedCvValues[6]  = (int?)this.FindControl<NumericUpDown>("MidSpeedCvBox")?.Value  ?? 0;
+                _loadedCvValues[5]  = (int?)this.FindControl<NumericUpDown>("MaxSpeedCvBox")?.Value  ?? 0;
+                _loadedCvValues[3]  = (int?)this.FindControl<NumericUpDown>("AccelerationCvBox")?.Value ?? 0;
+                _loadedCvValues[4]  = (int?)this.FindControl<NumericUpDown>("BrakingCvBox")?.Value   ?? 0;
+                _loadedCvValues[57] = (int?)this.FindControl<NumericUpDown>("Cv57Box")?.Value        ?? 0;
+                _loadedCvValues[29] = _vm?.Cv29Computed ?? 0;
+            });
         }
     }
 
@@ -670,10 +713,12 @@ public partial class LocomotivesWindow : Window
                 boxName = "Cv57Box";
                 break;
             case 29:
-                locomotive.Cv29Value = value;
+                locomotive.Cv29Value              = value;
                 locomotive.IsInvertDirectionEnabled = (value & 0x01) != 0;
                 locomotive.IsAnalogOperationEnabled = (value & 0x04) != 0;
-                locomotive.IsBemfEnabled = (value & 0x10) != 0;
+                locomotive.IsRailComEnabled          = (value & 0x08) != 0;
+                locomotive.IsSpeedTableEnabled       = (value & 0x10) != 0;
+                locomotive.IsLongAddressEnabled      = (value & 0x20) != 0;
                 break;
         }
 
@@ -765,17 +810,23 @@ public partial class LocomotivesWindow : Window
         var checkBox = this.FindControl<CheckBox>("DccProgrammingCheckBox");
         if (checkBox == null) return;
 
+        if (checkBox.IsChecked == true)
+        {
+            // Zaškrtnutie — aktivácia DCC sekcie nesmie nastaviť dirty na editore.
+            // Suspend pred propagáciou bindingu, dispose cez Post po nej.
+            var scope = vm.SuspendEditorDirtyTracking();
+            Dispatcher.UIThread.Post(() => scope.Dispose());
+            return;
+        }
+
         // Zaujíma nás len odškrtnutie (false) pri zapnutej dynamike
-        if (checkBox.IsChecked != false) return;
         if (!vm.IsDisableDynamicsForMeasurement) return;
 
         // Okamžite vrátime checkbox späť (ešte synchrónne, pred disabled-nutím sekcie)
-        // aby sekcia zostala enabled a ShowDialog mohol fungovať
         checkBox.IsCheckedChanged -= DccProgrammingCheckBox_IsCheckedChanged;
-        checkBox.IsChecked = true;  // vráti aj model cez TwoWay binding
+        checkBox.IsChecked = true;
         checkBox.IsCheckedChanged += DccProgrammingCheckBox_IsCheckedChanged;
 
-        // Teraz async dialóg — sekcia je enabled, ShowDialog bude fungovať
         _ = DccCheckBoxUncheckedWithDynamicsOnAsync(checkBox);
     }
 
@@ -1064,13 +1115,13 @@ public partial class LocomotivesWindow : Window
                     if (slider == null) return;
                     if (vm.IsDccProgrammingEnabled)
                     {
-                        // DCC sekcia sa zapla — slider zakáž, kým niektorý NUD nezíska fokus.
-                        // Reaktivácia bindingov spustí ValueChanged na všetkých NUD boxoch —
-                        // potlač dirty tracking aby sa tlačidlo Zapísať zbytočne neenable-ovalo.
+                        // DCC sekcia sa zapla — potlač dirty tracking editora aj CV počas reaktivácie bindingov
                         _suppressCvDirty = true;
                         slider.IsEnabled = _activeSpeedCvBox?.IsKeyboardFocusWithin == true;
+                        var scope = vm.SuspendEditorDirtyTracking();
                         Dispatcher.UIThread.Post(() =>
                         {
+                            scope.Dispose();
                             _suppressCvDirty = false;
                             ResetCvLoadedState();
                         });

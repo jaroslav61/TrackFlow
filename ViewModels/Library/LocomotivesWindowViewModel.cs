@@ -343,7 +343,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(Cv57));
             OnPropertyChanged(nameof(Cv29Computed));
             OnPropertyChanged(nameof(Cv29ComputedHex));
-            OnPropertyChanged(nameof(Cv29Bit5));
             RefreshDynamicsStatus();
         }
     }
@@ -513,8 +512,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         set
         {
             var digitsOnly = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (digitsOnly.Length > 4)
-                digitsOnly = digitsOnly.Substring(0, 4);
+            if (digitsOnly.Length > 3)
+                digitsOnly = digitsOnly.Substring(0, 3);
 
             if (SetProperty(ref _powerText, digitsOnly))
             {
@@ -1170,6 +1169,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             case nameof(LocoRecord.IsBemfEnabled):
             case nameof(LocoRecord.IsRailComEnabled):
             case nameof(LocoRecord.IsSpeedTableEnabled):
+            case nameof(LocoRecord.IsLongAddressEnabled):
             case nameof(LocoRecord.IsAnalogOperationEnabled):
             case nameof(LocoRecord.IsInvertDirectionEnabled):
                 if (e.PropertyName == nameof(LocoRecord.IsDisableDynamicsForMeasurement))
@@ -1183,13 +1183,13 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 if (e.PropertyName is nameof(LocoRecord.IsBemfEnabled)
                                     or nameof(LocoRecord.IsRailComEnabled)
                                     or nameof(LocoRecord.IsSpeedTableEnabled)
+                                    or nameof(LocoRecord.IsLongAddressEnabled)
                                     or nameof(LocoRecord.IsAnalogOperationEnabled)
                                     or nameof(LocoRecord.IsInvertDirectionEnabled)
                                     or nameof(LocoRecord.Cv29Value))
                 {
                     OnPropertyChanged(nameof(Cv29Computed));
                     OnPropertyChanged(nameof(Cv29ComputedHex));
-                    OnPropertyChanged(nameof(Cv29Bit5));
                 }
                 MarkDirtyAndRevalidate();
                 break;
@@ -1456,36 +1456,26 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             // bit 1 (0x02): 28/128 krokov — read-only, vždy 1 pri TrackFlow
             SelectedLocomotive.IsAnalogOperationEnabled = (cv29Value & 0x04) != 0; // bit 2
             SelectedLocomotive.IsRailComEnabled          = (cv29Value & 0x08) != 0; // bit 3
-            SelectedLocomotive.IsSpeedTableEnabled       = (cv29Value & 0x10) != 0; // bit 4
-            // bit 5 (0x20): dlhá adresa — riadi adresný editor
+            SelectedLocomotive.IsSpeedTableEnabled       = (cv29Value & 0x10) != 0; // bit 4 — read-only
+            SelectedLocomotive.IsLongAddressEnabled      = (cv29Value & 0x20) != 0; // bit 5
         }
         return cv29Value;
     }
 
-    /// <summary>
-    /// Vypočítaná hodnota CV29 z aktuálnych bitových príznakov.
-    /// Bit 1 (0x02) — 28/128 krokov — vždy 1 (TrackFlow používa 128 krokov).
-    /// Bit 5 (0x20) — dlhá adresa — zachováva sa z načítanej hodnoty CV29.
-    /// </summary>
     public int Cv29Computed
     {
         get
         {
             if (SelectedLocomotive == null) return 0;
-            // Vypočítaj z aktuálnych bitových properties (nie z Cv29Value —
-            // ten sa aktualizuje pri načítaní, ale checkboxy môžu byť zmenené užívateľom)
-            int v = SelectedLocomotive.Cv29Value & 0x20; // zachovaj bit 5 (dlhá adresa)
-            v |= 0x02;                                    // bit 1: vždy 1 (128 krokov)
+            int v = 0x02;                                    // bit 1: vždy 1 (128 krokov)
             if (SelectedLocomotive.IsInvertDirectionEnabled) v |= 0x01;
             if (SelectedLocomotive.IsAnalogOperationEnabled) v |= 0x04;
             if (SelectedLocomotive.IsRailComEnabled)          v |= 0x08;
             if (SelectedLocomotive.IsSpeedTableEnabled)       v |= 0x10;
+            if (SelectedLocomotive.IsLongAddressEnabled)      v |= 0x20;
             return v;
         }
     }
-
-    /// <summary>Bit 5 CV29 — dlhá adresa — read-only, riadi adresný editor.</summary>
-    public bool Cv29Bit5 => (SelectedLocomotive?.Cv29Value & 0x20) != 0;
 
     public string Cv29ComputedHex => $"(0x{Cv29Computed:X2})";
 
@@ -1614,8 +1604,6 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             Name = Selected.Name ?? "";
             Description = Selected.Description ?? "";
             AddressText = Selected.Address.ToString();
-            lengthMm = Selected.lengthMm;
-            WeightT  = Selected.WeightT;
             SelectedIcon = IconComboItems.FirstOrDefault(i => i.Name == Selected.IconName) ??
                            IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = Selected.Type ?? LocomotiveTypes[0];
@@ -1627,6 +1615,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             HomeDepot = Selected.HomeDepot ?? "";
             MaxSpeed = Selected.MaxSpeed;
             Power = Selected.Power;
+            lengthMm = Selected.lengthMm;
+            WeightT = Selected.WeightT;
             MinRadius = Selected.MinRadius;
             ContactPointForward = string.IsNullOrEmpty(Selected.ContactPointForward) ? "0" : Selected.ContactPointForward;
             ContactPointBackward = string.IsNullOrEmpty(Selected.ContactPointBackward) ? "0" : Selected.ContactPointBackward;
@@ -1950,7 +1940,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         NotifyAllCanExecutes();
     }
 
-    private IDisposable SuspendEditorDirtyTracking()
+    internal IDisposable SuspendEditorDirtyTracking()
     {
         _editorLoadScopeDepth++;
         return new DirtyTrackingScope(this);
@@ -2107,6 +2097,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
                 Selected.HomeDepot    = HomeDepot ?? "";
                 Selected.MaxSpeed     = MaxSpeed;
                 Selected.Power        = Power;
+                Selected.lengthMm    = lengthMm;
+                Selected.WeightT     = WeightT;
                 Selected.MinRadius    = MinRadius;
                 Selected.ContactPointForward  = ContactPointForward ?? "";
                 Selected.ContactPointBackward = ContactPointBackward ?? "";

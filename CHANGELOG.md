@@ -19,7 +19,6 @@
       Do hlavičky odteraz vždy doplňte aj čas (napr. "## 2026-05-09 14:35"). -->
 
 <!-- Poznámka 2: Najnovšie zápisy zapisujte hore (hneď pod "## Záznamy"). -->
-
 ---
 
 ## Záznamy
@@ -27,6 +26,19 @@
 > Pokračovanie zápisov po naplnení pôvodného `CHANGELOG.md`.
 
 > Konvencia: **🟩** = položka z auditu / follow-upu je už opravená a zapracovaná v kóde.
+
+## 2026-06-27 15:18
+===================
+**Oblasť:** `Views/Library/LocomotivesWindow.axaml.cs`, `Views/Library/LocomotivesWindowViewModel.cs`
+**Zmena:** Oprava správania číselných polí v editore lokomotív.
+**Dôvod:** Vlastné `TextChanging` handlery zasahovali do editácie textu a spôsobovali nekorektné správanie číselných polí.
+**Riešenie:**
+• odstránené zbytočné `TextChanging` handlery,
+• opravené mazanie pomocou Backspace,
+• opravený výber celého textu (`Ctrl+A`),
+• opravené zadávanie 4-cifernej hodnoty výkonu.
+**Výsledok:** Číselné polia sa správajú prirodzene pri písaní aj editácii, pričom validácia zostala zachovaná cez `TextInput` a ViewModel.
+
 
 ## 2026-06-25 02:12
 ===================

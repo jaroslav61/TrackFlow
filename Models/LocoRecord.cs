@@ -368,6 +368,7 @@ public sealed class LocoRecord : ObservableObject
 
     private bool _isRailComEnabled;
     private bool _isSpeedTableEnabled;
+    private bool _isLongAddressEnabled;
 
     public bool IsBemfEnabled
     {
@@ -385,6 +386,12 @@ public sealed class LocoRecord : ObservableObject
     {
         get => _isSpeedTableEnabled;
         set => SetProperty(ref _isSpeedTableEnabled, value);
+    }
+
+    public bool IsLongAddressEnabled
+    {
+        get => _isLongAddressEnabled;
+        set => SetProperty(ref _isLongAddressEnabled, value);
     }
 
     public bool IsAnalogOperationEnabled

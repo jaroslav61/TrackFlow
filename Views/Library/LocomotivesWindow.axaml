@@ -1871,13 +1871,13 @@
                                                               IsChecked="{Binding SelectedLocomotive.IsRailComEnabled, Mode=TwoWay, TargetNullValue=False}" />
                                                 </Border>
                                                 <Border Height="22">
-                                                    <CheckBox x:Name="SpeedTableEnabledCheckBox" FontSize="12"
-                                                              Content="Bit 4 (16)  Rýchlostná krivka:  0=3-bodová,  1=28-bodová"
-                                                              IsChecked="{Binding SelectedLocomotive.IsSpeedTableEnabled, Mode=TwoWay, TargetNullValue=False}" />
+                                                    <CheckBox FontSize="12" IsEnabled="False"
+                                                              IsChecked="{Binding SelectedLocomotive.IsSpeedTableEnabled, TargetNullValue=False}"
+                                                              Content="Bit 4 (16)  Rýchlostná krivka:  0=3-bodová,  1=28-bodová" />
                                                 </Border>
                                                 <Border Height="22">
-                                                    <CheckBox FontSize="12" IsEnabled="False"
-                                                              IsChecked="{Binding Cv29Bit5}"
+                                                    <CheckBox x:Name="LongAddressCheckBox" FontSize="12"
+                                                              IsChecked="{Binding SelectedLocomotive.IsLongAddressEnabled, Mode=TwoWay, TargetNullValue=False}"
                                                               Content="Bit 5 (32)  Adresa vozidla:  0=Krátka (CV1),  1=Dlhá (CV17+CV18)" />
                                                 </Border>
                                             </StackPanel>
