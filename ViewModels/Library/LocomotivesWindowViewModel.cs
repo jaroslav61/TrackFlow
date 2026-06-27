@@ -513,8 +513,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         set
         {
             var digitsOnly = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (digitsOnly.Length > 3)
-                digitsOnly = digitsOnly.Substring(0, 3);
+            if (digitsOnly.Length > 4)
+                digitsOnly = digitsOnly.Substring(0, 4);
 
             if (SetProperty(ref _powerText, digitsOnly))
             {
@@ -1614,6 +1614,8 @@ public partial class LocomotivesWindowViewModel : ObservableObject
             Name = Selected.Name ?? "";
             Description = Selected.Description ?? "";
             AddressText = Selected.Address.ToString();
+            lengthMm = Selected.lengthMm;
+            WeightT  = Selected.WeightT;
             SelectedIcon = IconComboItems.FirstOrDefault(i => i.Name == Selected.IconName) ??
                            IconComboItems.FirstOrDefault();
             SelectedLocomotiveType = Selected.Type ?? LocomotiveTypes[0];

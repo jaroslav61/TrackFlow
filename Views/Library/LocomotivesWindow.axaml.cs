@@ -106,7 +106,7 @@ public partial class LocomotivesWindow : Window
         {
             weightBox.AddHandler(TextInputEvent, OnWeightTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             // Zachytí aj paste / drag-drop / IME – všetko sa prefiltruje na číslice a skráti na 3 znaky.
-            weightBox.TextChanging += OnWeightTextChanging;
+           // weightBox.TextChanging += OnWeightTextChanging;
         }
 
         // digits-only + max 3 pre výkon
@@ -114,7 +114,7 @@ public partial class LocomotivesWindow : Window
         if (powerBox != null)
         {
             powerBox.AddHandler(TextInputEvent, OnPowerTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            powerBox.TextChanging += OnPowerTextChanging;
+          //  powerBox.TextChanging += OnPowerTextChanging;
         }
 
         // digits-only + max 3 pre min. polomer
@@ -122,7 +122,7 @@ public partial class LocomotivesWindow : Window
         if (minRadiusBox != null)
         {
             minRadiusBox.AddHandler(TextInputEvent, OnMinRadiusTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            minRadiusBox.TextChanging += OnMinRadiusTextChanging;
+          //  minRadiusBox.TextChanging += OnMinRadiusTextChanging;
         }
 
         // Max. rýchlosť a dĺžka sú v novom layoute NumericUpDown;
@@ -131,14 +131,14 @@ public partial class LocomotivesWindow : Window
         if (maxSpeedBoxText != null)
         {
             maxSpeedBoxText.AddHandler(TextInputEvent, OnMaxSpeedTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            maxSpeedBoxText.TextChanging += OnMaxSpeedTextChanging;
+           // maxSpeedBoxText.TextChanging += OnMaxSpeedTextChanging;
         }
 
         var lengthBoxText = this.FindControl<Control>("LengthBox") as TextBox;
         if (lengthBoxText != null)
         {
             lengthBoxText.AddHandler(TextInputEvent, OnLengthTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            lengthBoxText.TextChanging += OnLengthTextChanging;
+         //   lengthBoxText.TextChanging += OnLengthTextChanging;
         }
 
         // digits-only + max 2 pre kontaktný bod vpredu
@@ -146,7 +146,7 @@ public partial class LocomotivesWindow : Window
         if (contactPointForwardBox != null)
         {
             contactPointForwardBox.AddHandler(TextInputEvent, OnContactPointForwardTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            contactPointForwardBox.TextChanging += OnContactPointForwardTextChanging;
+          //  contactPointForwardBox.TextChanging += OnContactPointForwardTextChanging;
         }
 
         // digits-only + max 2 pre kontaktný bod vzadu
@@ -154,7 +154,7 @@ public partial class LocomotivesWindow : Window
         if (contactPointBackwardBox != null)
         {
             contactPointBackwardBox.AddHandler(TextInputEvent, OnContactPointBackwardTextInput, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-            contactPointBackwardBox.TextChanging += OnContactPointBackwardTextChanging;
+          //  contactPointBackwardBox.TextChanging += OnContactPointBackwardTextChanging;
         }
 
         // CV programming buttons (DCC tab)
@@ -1219,7 +1219,7 @@ public partial class LocomotivesWindow : Window
             var selectionLen = tb.SelectionEnd - tb.SelectionStart;
             if (selectionLen < 0) selectionLen = 0;
             var nextLen = (current.Length - selectionLen) + e.Text.Length;
-            if (nextLen > 3)
+            if (nextLen > 4)
                 e.Handled = true;
         }
     }
@@ -1272,7 +1272,7 @@ public partial class LocomotivesWindow : Window
             var selectionLen = tb.SelectionEnd - tb.SelectionStart;
             if (selectionLen < 0) selectionLen = 0;
             var nextLen = (current.Length - selectionLen) + e.Text.Length;
-            if (nextLen > 3)
+            if (nextLen > 4)
                 e.Handled = true;
         }
     }
