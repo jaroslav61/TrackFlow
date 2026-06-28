@@ -455,6 +455,17 @@
                           CanUserResizeColumns="False"
                           CanUserSortColumns="True">
 
+                    <DataGrid.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Exportovať vybranú lokomotívu..."
+                                      Click="ExportSelectedLoco_Click" />
+                            <MenuItem Header="Exportovať všetky lokomotívy..."
+                                      Click="ExportAllLocos_Click" />
+                            <Separator />
+                            <MenuItem Header="Importovať lokomotívy..."
+                                      Click="ImportLocos_Click" />
+                        </MenuFlyout>
+                    </DataGrid.ContextFlyout>
 
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="Ikona" Width="80">

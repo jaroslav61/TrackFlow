@@ -2182,5 +2182,74 @@ public partial class LocomotivesWindow : Window
         }
 
     }
-    
+
+    // ── Import / Export lokomotív ─────────────────────────────────────────────
+
+    private static readonly List<FilePickerFileType> LocoFileType =
+    [
+        new FilePickerFileType("TrackFlow lokomotívy") { Patterns = ["*.tfloco"] },
+        FilePickerFileTypes.All
+    ];
+
+    private void ExportSelectedLoco_Click(object? sender, RoutedEventArgs e)
+        => _ = ExportSelectedLocoAsync();
+
+    private void ExportAllLocos_Click(object? sender, RoutedEventArgs e)
+        => _ = ExportAllLocosAsync();
+
+    private void ImportLocos_Click(object? sender, RoutedEventArgs e)
+        => _ = ImportLocosAsync();
+
+    private async Task ExportSelectedLocoAsync()
+    {
+        if (_vm?.Selected == null) return;
+        var suggestedName = $"{_vm.Selected.Name ?? "lokomotiva"}.tfloco";
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Exportovať vybranú lokomotívu",
+            SuggestedFileName = suggestedName,
+            FileTypeChoices = LocoFileType
+        });
+
+        var path = file?.TryGetLocalPath();
+        if (path == null) return;
+
+        if (!_vm.ExportSelectedLoco(path))
+            await ShowReadErrorAsync("Export lokomotívy sa nepodaril.");
+    }
+
+    private async Task ExportAllLocosAsync()
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Exportovať všetky lokomotívy",
+            SuggestedFileName = "lokomotívy.tfloco",
+            FileTypeChoices = LocoFileType
+        });
+
+        var path = file?.TryGetLocalPath();
+        if (path == null) return;
+
+        if (!_vm!.ExportAllLocos(path))
+            await ShowReadErrorAsync("Export lokomotív sa nepodaril.");
+    }
+
+    private async Task ImportLocosAsync()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Importovať lokomotívy",
+            AllowMultiple = false,
+            FileTypeFilter = LocoFileType
+        });
+
+        if (files.Count == 0) return;
+        var path = files[0].TryGetLocalPath();
+        if (path == null) return;
+
+        var count = _vm!.ImportLocos(path);
+        if (count < 0)
+            await ShowReadErrorAsync("Import lokomotív sa nepodaril. Skontrolujte formát súboru.");
+    }
 }

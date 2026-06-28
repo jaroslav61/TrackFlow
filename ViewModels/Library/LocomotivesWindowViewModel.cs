@@ -13,6 +13,7 @@ using System.IO;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using TrackFlow.Services.Dcc;
 
 namespace TrackFlow.ViewModels.Library;
@@ -2183,6 +2184,80 @@ public partial class LocomotivesWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void Close() => RequestClose?.Invoke();
+
+    // ── Import / Export lokomotív ─────────────────────────────────────────────
+
+    private static readonly JsonSerializerOptions LocoFileOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
+
+    /// <summary>Exportuje vybranú lokomotívu do súboru *.tfloco.</summary>
+    public bool ExportSelectedLoco(string path)
+    {
+        if (Selected == null) return false;
+        try
+        {
+            var json = JsonSerializer.Serialize(new List<LocoRecord> { Selected }, LocoFileOptions);
+            File.WriteAllText(path, json, System.Text.Encoding.UTF8);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            TrackFlowDoctorService.Instance.Diagnose("Export",
+                $"❌ Export lokomotívy zlyhal: {ex.Message}", DiagnosticLevel.Warning);
+            return false;
+        }
+    }
+
+    /// <summary>Exportuje všetky lokomotívy do súboru *.tfloco.</summary>
+    public bool ExportAllLocos(string path)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(Locomotives.ToList(), LocoFileOptions);
+            File.WriteAllText(path, json, System.Text.Encoding.UTF8);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            TrackFlowDoctorService.Instance.Diagnose("Export",
+                $"❌ Export lokomotív zlyhal: {ex.Message}", DiagnosticLevel.Warning);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Importuje lokomotívy zo súboru *.tfloco.
+    /// Vracia počet importovaných lokomotív, alebo -1 pri chybe.
+    /// </summary>
+    public int ImportLocos(string path)
+    {
+        try
+        {
+            var json = File.ReadAllText(path, System.Text.Encoding.UTF8);
+            var list = JsonSerializer.Deserialize<List<LocoRecord>>(json, LocoFileOptions);
+            if (list == null || list.Count == 0) return 0;
+
+            using var _ = SuspendEditorDirtyTracking();
+            foreach (var loco in list)
+            {
+                loco.Id = Guid.NewGuid().ToString();
+                Locomotives.Add(loco);
+            }
+
+            PersistAndSave();
+            SpeedEditor.SyncLocomotives(Locomotives, Selected);
+            return list.Count;
+        }
+        catch (Exception ex)
+        {
+            TrackFlowDoctorService.Instance.Diagnose("Import",
+                $"❌ Import lokomotív zlyhal: {ex.Message}", DiagnosticLevel.Warning);
+            return -1;
+        }
+    }
 
     private bool CanBeginAdd() => Mode == EditorMode.Viewing;
     private bool CanSave()     => Mode != EditorMode.Viewing
