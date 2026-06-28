@@ -650,7 +650,11 @@ public partial class LocomotivesWindow : Window
         {
             await dialog.StartReadingAsync(programmingClient, timeoutMsPerCv, interCvDelayMs, (cv, resultValue) =>
             {
-                Dispatcher.UIThread.Post(() => HandleCvReadSuccess(cv, resultValue));
+                Dispatcher.UIThread.Post(() =>
+                {
+                    using var _ = _vm?.SuspendEditorDirtyTracking();
+                    HandleCvReadSuccess(cv, resultValue);
+                });
             });
         }
         catch (Exception ex)
@@ -669,6 +673,7 @@ public partial class LocomotivesWindow : Window
     private void ApplyReadCvValues(IReadOnlyDictionary<int, int> values)
     {
         _suppressCvDirty = true;
+        using var editorScope = _vm?.SuspendEditorDirtyTracking();
         try
         {
             foreach (var pair in values)
