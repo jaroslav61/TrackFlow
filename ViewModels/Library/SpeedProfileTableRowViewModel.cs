@@ -7,7 +7,7 @@ namespace TrackFlow.ViewModels.Library;
 
 public sealed class SpeedProfileTableRowViewModel : ReactiveObject
 {
-    private const int MaxStep = 126;
+    private const int MaxStep = 127;
 
     private int _step;
     private double _fwdRawSpeedKmh;
@@ -182,5 +182,3 @@ public sealed class SpeedProfileTableRowViewModel : ReactiveObject
     private static double NormalizeSpeed(double value)
         => Math.Round(Math.Max(0, value), 1);
 }
-
-

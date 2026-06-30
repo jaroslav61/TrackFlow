@@ -129,6 +129,8 @@ public sealed class LocoRecord : ObservableObject
     private List<LocoFunctionDef> _functions = new();
     private List<LocoSpeedProfilePoint> _forwardSpeedProfilePoints = new();
     private List<LocoSpeedProfilePoint> _backwardSpeedProfilePoints = new();
+    private List<LocoSpeedProfilePoint> _forwardTranslationTable = new();
+    private List<LocoSpeedProfilePoint> _backwardTranslationTable = new();
     private string _savedDiagnosticsEngineStatusText = string.Empty;
     private string _savedDiagnosticsSeverity = string.Empty;
     private string _savedDiagnosticsProblemType = string.Empty;
@@ -451,6 +453,23 @@ public sealed class LocoRecord : ObservableObject
     {
         get => _backwardSpeedProfilePoints;
         set => SetProperty(ref _backwardSpeedProfilePoints, value ?? new List<LocoSpeedProfilePoint>());
+    }
+
+    /// <summary>
+    /// Prevodná vrstva — interná tabuľka s 28 bodmi (DCC krok 1-28 → modelová rýchlosť km/h),
+    /// odvodená interpoláciou z kalibračnej vrstvy (15 bodov). Zodpovedá štandardnému
+    /// 28-krokovému DCC režimu. Generuje sa automaticky po každej zmene profilu.
+    /// </summary>
+    public List<LocoSpeedProfilePoint> ForwardTranslationTable
+    {
+        get => _forwardTranslationTable;
+        set => SetProperty(ref _forwardTranslationTable, value ?? new List<LocoSpeedProfilePoint>());
+    }
+
+    public List<LocoSpeedProfilePoint> BackwardTranslationTable
+    {
+        get => _backwardTranslationTable;
+        set => SetProperty(ref _backwardTranslationTable, value ?? new List<LocoSpeedProfilePoint>());
     }
 
     public string SavedDiagnosticsEngineStatusText

@@ -91,8 +91,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private string _selectedScale = "1:87 (H0)";
     private string _selectedMaxModelSpeed = "120 km/h";
     private CalibrationMethodItemViewModel? _selectedMethod;
-    private double _pauseSeconds = 5.0;
-    private string _pauseSecondsText = "5";
+    private double _pauseSeconds = 2.0;
+    private string _pauseSecondsText = "2";
     private double _runoutDistanceCm = 30;
     private string _runoutDistanceCmText = "30";
     private int _blockLengthCm = 100;
@@ -615,7 +615,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
-    public string CalibrationProgressText => $"{CalibrationProgress:0}% Complete";
+    public string CalibrationProgressText => $"{CalibrationProgress:0}% hotovo";
 
     public string CalibrationStatusText
     {
@@ -1569,13 +1569,14 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     /// <summary>
     /// Meranie kompletného rýchlostného profilu pomocou troch detektorov obsadenia.
-    /// 15 meracích bodov, oba smery jazdy v každom cykle.
+    /// 15 meracích bodov rozložených priamo na DCC krokoch 11–127, presne podľa
+    /// hodnôt overených zachytením komunikácie TC cez Wireshark (LAN_X_SET_LOCO_DRIVE).
     /// </summary>
     private async Task RunFullProfileCalibrationAsync(int locoAddress, CancellationToken ct)
     {
         const int TotalPoints = 15;
-        const int FirstStep   = 11;   // TC začína od kroku 11 (Internal=83/1000 * 126 ≈ 11)
-        const int LastStep    = 127;  // TC končí na kroku 127 (max)
+        const int FirstStep   = 11;   // overené Wiresharkom z TC: presný prvý krok
+        const int LastStep    = 127;  // overené Wiresharkom z TC: presný posledný krok
         var dccSteps = Enumerable.Range(0, TotalPoints)
             .Select(i => (int)Math.Round(FirstStep + i * (double)(LastStep - FirstStep) / (TotalPoints - 1)))
             .Distinct()
@@ -1597,14 +1598,18 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 var dccStep = dccSteps[i];
 
                 // ── Meranie dopredu ───────────────────────────────────────
-                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (krok {dccStep}) — jazda dopredu...");
+                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (DCC krok {dccStep}) — jazda dopredu");
                 var fwdTime = await MeasurePassthroughAsync(locoAddress, dccStep, forward: true, ct);
 
                 if (fwdTime > 0)
                 {
                     var rawKmh = blockM / fwdTime * 3.6;
                     var modelKmh = Math.Round(rawKmh * scaleRatio, 2);
+                    TrackFlowDoctorService.Instance.Diagnose("Kalibrácia",
+                        $"CreatePoint volané s dccStep={dccStep} (i={i}, posledný bod={i == dccSteps.Length - 1})");
                     var point = CreatePoint(dccStep, "Dopredu", fwdTime, rawKmh, modelKmh, "Automatické meranie");
+                    TrackFlowDoctorService.Instance.Diagnose("Kalibrácia",
+                        $"Vytvorený bod point.Step={point.Step}");
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         UpsertMeasurementPoint(ForwardMeasurementPoints, point);
@@ -1617,7 +1622,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 ct.ThrowIfCancellationRequested();
 
                 // ── Meranie dozadu ────────────────────────────────────────
-                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (krok {dccStep}) — jazda dozadu...");
+                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (DCC krok {dccStep}) — jazda dozadu");
                 var bwdTime = await MeasurePassthroughAsync(locoAddress, dccStep, forward: false, ct);
 
                 if (bwdTime > 0)
@@ -1817,6 +1822,14 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
     
+  /// <summary>
+  /// Prevedie virtuálny rýchlostný krok (0–1000) na fyzický DCC krok dekodéra (0–126).
+  /// Presne podľa TC manuálu: "the virtual speed step is matched to the appropriate
+  /// physical speed step of the decoder" — DccStep = round(VirtualStep × 126 / 1000).
+  /// </summary>
+  private static int VirtualStepToDccStep(int virtualStep)
+      => Math.Clamp((int)Math.Round(virtualStep * 126.0 / 1000.0), 0, 126);
+
   /// <summary>Extrahuje číselný pomer mierky z reťazca napr. "1:87 (H0)" → 87.0</summary>
     private static double ParseScaleRatio(string scale)
     {
@@ -2004,6 +2017,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 .OrderBy(point => point.Step)
                 .Select(ToModel)
                 .ToList();
+            record.ForwardTranslationTable = BuildTranslationTable(ForwardMeasurementPoints, "Dopredu");
         }
 
         if (persistBackward)
@@ -2012,7 +2026,74 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 .OrderBy(point => point.Step)
                 .Select(ToModel)
                 .ToList();
+            record.BackwardTranslationTable = BuildTranslationTable(BackwardMeasurementPoints, "Dozadu");
         }
+    }
+
+    /// <summary>
+    /// Prevodná vrstva podľa manuálu TrackFlow: z kalibračnej vrstvy (15 nameraných bodov)
+    /// vytvorí internú tabuľku s 28 bodmi (DCC kroky 1–28) pomocou lineárnej interpolácie.
+    /// Body mimo nameraného rozsahu sú extrapolované z krajných meraných bodov.
+    /// </summary>
+    private static List<LocoSpeedProfilePoint> BuildTranslationTable(
+        IEnumerable<CalibrationMeasurementPointViewModel> measuredPoints, string direction)
+    {
+        var sorted = measuredPoints
+            .Where(p => p.CalculatedSpeedKmh >= 0)
+            .OrderBy(p => p.Step)
+            .ToList();
+
+        var table = new List<LocoSpeedProfilePoint>(28);
+
+        if (sorted.Count == 0)
+            return table;
+
+        for (var dccStep28 = 1; dccStep28 <= 28; dccStep28++)
+        {
+            // Namerané body sú v 128-krokovom rozsahu (1-126/127); prepočítaj
+            // cieľový 28-krokový bod na zodpovedajúcu pozíciu v 128-krokovom rozsahu.
+            var equivalent128Step = dccStep28 * 126.0 / 28.0;
+
+            double speedKmh;
+
+            if (equivalent128Step <= sorted[0].Step)
+            {
+                speedKmh = sorted[0].CalculatedSpeedKmh;
+            }
+            else if (equivalent128Step >= sorted[^1].Step)
+            {
+                speedKmh = sorted[^1].CalculatedSpeedKmh;
+            }
+            else
+            {
+                // Lineárna interpolácia medzi dvoma najbližšími nameranými bodmi
+                var lower = sorted.Last(p => p.Step <= equivalent128Step);
+                var upper = sorted.First(p => p.Step >= equivalent128Step);
+
+                if (lower.Step == upper.Step)
+                {
+                    speedKmh = lower.CalculatedSpeedKmh;
+                }
+                else
+                {
+                    var ratio = (equivalent128Step - lower.Step) / (upper.Step - lower.Step);
+                    speedKmh = lower.CalculatedSpeedKmh + ratio * (upper.CalculatedSpeedKmh - lower.CalculatedSpeedKmh);
+                }
+            }
+
+            table.Add(new LocoSpeedProfilePoint
+            {
+                Step = dccStep28,
+                Direction = direction,
+                TimeSeconds = 0,
+                RawSpeedKmh = Math.Round(speedKmh, 2),
+                CalculatedSpeedKmh = Math.Round(speedKmh, 2),
+                Status = "Prevodná vrstva (interpolované)",
+                IsManual = false
+            });
+        }
+
+        return table;
     }
 
     private static CalibrationMeasurementPointViewModel ToViewModel(LocoSpeedProfilePoint point)
@@ -3401,6 +3482,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     private void SyncSpeedProfileRowsFromMeasurements()
     {
+        TrackFlowDoctorService.Instance.Diagnose("Kalibrácia",
+            $"SyncRows: ForwardSteps=[{string.Join(",", ForwardMeasurementPoints.Select(p => p.Step))}]");
+
         var selectedRow = SelectedSpeedProfileRow;
         var selectedStep = selectedRow?.Step;
         var selectedWasForwardRow = selectedRow != null && ForwardSpeedProfileRows.Contains(selectedRow);
@@ -4215,7 +4299,7 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
         get => _step;
         set
         {
-            var normalized = Math.Clamp(value, 0, 126);
+            var normalized = Math.Clamp(value, 0, 127);
             if (_step == normalized)
                 return;
 

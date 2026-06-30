@@ -7,9 +7,9 @@
         x:DataType="vm:LocomotiveSpeedEditorViewModel"
         Title="Kalibrácia rýchlosti lokomotívy"
         Width="1200"
-        Height="560"
+        Height="616"
         MinWidth="1200"
-        MinHeight="560"
+        MinHeight="616"
         WindowStartupLocation="CenterOwner"
         CanResize="False">
     <Window.Resources>
