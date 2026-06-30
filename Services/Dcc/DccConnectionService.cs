@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TrackFlow.Models;
+using System.Diagnostics;
 
 namespace TrackFlow.Services.Dcc;
 
@@ -229,12 +230,16 @@ public sealed class DccConnectionService : IDccConnectionService, IDisposable
         {
             var profileId = profileIdProvider();
 
-            FeedbackStateChanged?.Invoke(new DccFeedbackStateChange(
-                profileId,
-                type,
-                feedback.ModuleAddress,
-                feedback.PortNumber,
-                feedback.IsActive));
+         foreach (var d in FeedbackStateChanged?.GetInvocationList() ?? Array.Empty<Delegate>())
+            {
+           ((Action<DccFeedbackStateChange>)d)(
+                    new DccFeedbackStateChange(
+                        profileId,
+                        type,
+                        feedback.ModuleAddress,
+                        feedback.PortNumber,
+                        feedback.IsActive));
+            }
         };
     }
 

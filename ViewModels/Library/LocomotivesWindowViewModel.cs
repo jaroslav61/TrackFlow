@@ -923,7 +923,7 @@ public partial class LocomotivesWindowViewModel : ObservableObject
         };
 
         var label = string.IsNullOrWhiteSpace(indicatorLabel) ? blockLabel : indicatorLabel;
-        return new CalibrationIndicatorOption(label, icon, activeIconPath, inactiveIconPath, indicator.IsActive, indicator.Id);
+        return new CalibrationIndicatorOption(label, icon, activeIconPath, inactiveIconPath, indicator.IsActive, indicator.Id, indicator.ModuleAddress, indicator.PortNumber, indicator.DccCentralProfileId);
     }
 
     private static CalibrationIndicatorOption BuildCalibrationSensorOption(SensorElement sensor)
@@ -1936,50 +1936,10 @@ public partial class LocomotivesWindowViewModel : ObservableObject
     {
         if (_isSaving || _editorLoadScopeDepth > 0) return;
         if (Mode == EditorMode.Viewing && Selected != null) SetMode(EditorMode.Editing);
-        if (Mode != EditorMode.Viewing)
-        {
-            IsDirty = !IsEditorMatchingSelected();
-            if (!IsDirty && !_functionsDirty && Mode == EditorMode.Editing)
-                SetMode(EditorMode.Viewing);
-        }
+        if (Mode != EditorMode.Viewing) IsDirty = true;
         ValidationMessage = Validate(out _);
         NotifyAllCanExecutes();
     }
-
-    /// <summary>
-    /// Vráti true ak všetky editované polia zodpovedajú aktuálne vybratej lokomotíve.
-    /// Ak áno, príznak dirty sa nevystaví (alebo sa zruší).
-    /// </summary>
-    private bool IsEditorMatchingSelected()
-    {
-        if (Selected == null || Mode == EditorMode.Adding) return false;
-
-        return
-            Name                     == (Selected.Name ?? "")                &&
-            Description              == (Selected.Description ?? "")         &&
-            AddressText              == Selected.Address.ToString()           &&
-            IsSoundDecoder           == Selected.IsSoundDecoder               &&
-            SelectedIcon?.Name       == Selected.IconName                     &&
-            SelectedLocomotiveType   == Selected.Type                         &&
-            SelectedEpoch            == GetEpochWithYears(Selected.Epoch)     &&
-            SelectedScale            == Selected.Scale                        &&
-            Number                   == (Selected.Number ?? "")              &&
-            HomeDepot                == (Selected.HomeDepot ?? "")           &&
-            MaxSpeed                 == Selected.MaxSpeed                     &&
-            Power                    == Selected.Power                        &&
-            lengthMm                 == Selected.lengthMm                    &&
-            WeightT                  == Selected.WeightT                      &&
-            MinRadius                == Selected.MinRadius                    &&
-            ContactPointForward      == (string.IsNullOrEmpty(Selected.ContactPointForward) ? "0" : Selected.ContactPointForward) &&
-            ContactPointBackward     == (string.IsNullOrEmpty(Selected.ContactPointBackward) ? "0" : Selected.ContactPointBackward) &&
-            SelectedDecoderManufacturer == (Selected.DecoderManufacturer ?? "-- Výrobca --") &&
-            DecoderModel             == (Selected.DecoderModel ?? "")        &&
-            SelectedDecoderInterface == Selected.DecoderInterface             &&
-            SelectedDigitalSystem?.Id == Selected.AssignedCentralProfileId;
-    }
-
-    private string? ResolveDigitalSystemId()
-        => SelectedDigitalSystem?.Id.ToString();
 
     internal IDisposable SuspendEditorDirtyTracking()
     {

@@ -7,6 +7,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Media;
@@ -19,7 +21,9 @@ using TrackFlow.Models;
 using TrackFlow.Models.Calibration;
 using TrackFlow.Models.Layout;
 using TrackFlow.Services;
+using TrackFlow.Services.Dcc;
 using TrackFlow.ViewModels.Calibration;
+using System.Diagnostics;
 
 namespace TrackFlow.ViewModels.Library;
 
@@ -56,7 +60,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private const double ChartWidth = 824;
     private const double ChartHeight = 522;
     private const int DefaultChartMaxSpeed = 120;
-    private const int DefaultChartMaxStep = 28;
+    private const int DefaultChartMaxStep = 127;
     private const int DccMaxStep = 126;
 
     /// <summary>
@@ -69,6 +73,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         if (chartStep >= 28) return DccMaxStep;
         return (int)Math.Round(4 + (chartStep - 1) * (DccMaxStep - 4) / 27.0);
     }
+
     private const double MarkerHitRadius = 18;
 
     private const double PerformanceChartLeft = 32;
@@ -88,8 +93,59 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private CalibrationMethodItemViewModel? _selectedMethod;
     private double _pauseSeconds = 5.0;
     private string _pauseSecondsText = "5";
-    private double _runoutDistanceMm;
-    private string _runoutDistanceMmText = "0";
+    private double _runoutDistanceCm = 30;
+    private string _runoutDistanceCmText = "30";
+    private int _blockLengthCm = 100;
+    private string _blockLengthCmText = "100";
+    private CancellationTokenSource? _calibrationCts;
+    private bool _isCalibrationRunning;
+
+    private enum MeasurementState
+    {
+        Idle,
+        WaitingForMid,
+        Measuring
+    }
+
+    private MeasurementState _measurementState = MeasurementState.Idle;
+
+    private DateTime _measurementStart;
+
+    private (
+        int ModuleAddress,
+        int PortNumber,
+        Guid? ProfileId
+        ) _measurementMidKey;
+
+    private (
+        int ModuleAddress,
+        int PortNumber,
+        Guid? ProfileId
+        ) _measurementEndKey;
+
+    private TaskCompletionSource<double>? _measurementCompletion;
+
+    private CancellationTokenSource? _measurementTimeout;
+
+    private int _measurementAddress;
+
+    private int _measurementSpeed;
+
+    private bool _measurementForward;
+
+    public bool IsCalibrationRunning
+    {
+        get => _isCalibrationRunning;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isCalibrationRunning, value);
+            this.RaisePropertyChanged(nameof(StartAutomatedSequenceButtonText));
+        }
+    }
+
+    public string StartAutomatedSequenceButtonText
+        => _isCalibrationRunning ? "⏹ Zastaviť meranie" : "▶ Štart automatického merania";
+
     private double _calibrationProgress;
     private string _calibrationStatusText = "Pripravené na kalibráciu.";
     private string _selectedLocomotiveDisplayName = string.Empty;
@@ -169,7 +225,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             "1:43.5 (0)"
         };
         CalibrationMethods = new ObservableCollection<CalibrationMethodItemViewModel>(LoadCalibrationMethods());
-        CalibrationMethodDisplayNames = new ObservableCollection<string>(CalibrationMethods.Select(option => option.Description));
+        CalibrationMethodDisplayNames =
+            new ObservableCollection<string>(CalibrationMethods.Select(option => option.Description));
         _selectedMethod = CalibrationMethods.FirstOrDefault();
         MaxModelSpeedOptions = new ObservableCollection<string>
         {
@@ -188,11 +245,18 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         ForwardCurveMarkers = new ObservableCollection<CurveMarkerViewModel>();
         BackwardCurveMarkers = new ObservableCollection<CurveMarkerViewModel>();
         ReferenceGuides = new ObservableCollection<ReferenceGuideViewModel>();
-        XAxisLabels = new ObservableCollection<AxisLabelViewModel>(BuildHorizontalAxisLabels(_currentChartMaxStep, ChartLeft, ChartWidth, 553));
-        VerticalGridLines = new ObservableCollection<ChartGridLineViewModel>(BuildVerticalGridLines(_currentChartMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
-        XAxisTickMarks = new ObservableCollection<ChartGridLineViewModel>(BuildXAxisTickMarks(_currentChartMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
-        YAxisLabels = new ObservableCollection<AxisLabelViewModel>(BuildVerticalAxisLabels(_currentChartMaxSpeed, ChartTop, ChartHeight));
-        HorizontalGridLines = new ObservableCollection<ChartGridLineViewModel>(BuildHorizontalGridLines(_currentChartMaxSpeed, ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        XAxisLabels =
+            new ObservableCollection<AxisLabelViewModel>(BuildHorizontalAxisLabels(_currentChartMaxStep, ChartLeft,
+                ChartWidth, 553));
+        VerticalGridLines = new ObservableCollection<ChartGridLineViewModel>(
+            BuildVerticalGridLines(_currentChartMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        XAxisTickMarks = new ObservableCollection<ChartGridLineViewModel>(BuildXAxisTickMarks(_currentChartMaxStep,
+            ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        YAxisLabels =
+            new ObservableCollection<AxisLabelViewModel>(BuildVerticalAxisLabels(_currentChartMaxSpeed, ChartTop,
+                ChartHeight));
+        HorizontalGridLines = new ObservableCollection<ChartGridLineViewModel>(
+            BuildHorizontalGridLines(_currentChartMaxSpeed, ChartLeft, ChartTop, ChartWidth, ChartHeight));
 
         StartAutomatedSequenceCommand = new RelayCommand(StartAutomatedSequence);
         _addPointManuallyCommand = new RelayCommand(AddPointManually, () => CanAddPointManually);
@@ -259,6 +323,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     public ICommand SaveProfileCommand { get; }
     public bool CanSaveActiveProfile => SelectedProfileTabIndex is 0 or 1;
     public bool CanAddPointManually => SelectedProfileTabIndex is 0 or 1;
+
     public bool IsForwardProfileSelected
     {
         get => SelectedProfileTabIndex == 0;
@@ -291,6 +356,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     public bool IsForwardProfileVisible => SelectedProfileTabIndex is 0 or 2;
     public bool IsBackwardProfileVisible => SelectedProfileTabIndex is 1 or 2;
+
     public string SelectedProfileDisplayName => SelectedProfileTabIndex switch
     {
         1 => "Profil dozadu",
@@ -321,6 +387,17 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     public Action? MarkProfileDirty { get; set; }
     public Func<bool>? PersistProfileChanges { get; set; }
+
+    /// <summary>
+    /// Injektovaný delegate pre ovládanie lokomotívy počas kalibrácie.
+    /// Parametre: address, speed (0=stop, 1..126), forward, ct.
+    /// </summary>
+    public Func<int, int, bool, CancellationToken, Task>? DriveLocoAsync { get; set; }
+
+    /// <summary>
+    /// Injektovaný DCC connection service pre priamy prístup k FeedbackStateChanged eventu.
+    /// </summary>
+    public DccConnectionService? CalibrationDcc { get; set; }
 
     public CalibrationLocomotiveOption? SelectedLocomotive
     {
@@ -451,43 +528,75 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
-    public double RunoutDistanceMm
+    public double RunoutDistanceCm
     {
-        get => _runoutDistanceMm;
+        get => _runoutDistanceCm;
         set
         {
             var normalized = Math.Round(Math.Clamp(value, 0.0, 999.99), 2, MidpointRounding.AwayFromZero);
-            if (Math.Abs(_runoutDistanceMm - normalized) < 0.001)
+            if (Math.Abs(_runoutDistanceCm - normalized) < 0.001)
                 return;
 
-            this.RaiseAndSetIfChanged(ref _runoutDistanceMm, normalized);
+            this.RaiseAndSetIfChanged(ref _runoutDistanceCm, normalized);
 
             var formatted = FormatRunoutDistance(normalized);
-            if (!string.Equals(_runoutDistanceMmText, formatted, StringComparison.Ordinal))
-                this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, formatted, nameof(RunoutDistanceMmText));
+            if (!string.Equals(_runoutDistanceCmText, formatted, StringComparison.Ordinal))
+                this.RaiseAndSetIfChanged(ref _runoutDistanceCmText, formatted, nameof(RunoutDistanceCmText));
         }
     }
 
-    public string RunoutDistanceMmText
+    public string RunoutDistanceCmText
     {
-        get => _runoutDistanceMmText;
+        get => _runoutDistanceCmText;
         set
         {
             var normalizedText = NormalizeRunoutDistanceText(value);
-            if (string.Equals(_runoutDistanceMmText, normalizedText, StringComparison.Ordinal))
+            if (string.Equals(_runoutDistanceCmText, normalizedText, StringComparison.Ordinal))
                 return;
 
-            this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, normalizedText);
+            this.RaiseAndSetIfChanged(ref _runoutDistanceCmText, normalizedText);
 
             if (TryParseRunoutDistance(normalizedText, out var parsed))
             {
                 var clamped = Math.Round(Math.Clamp(parsed, 0.0, 999.99), 2, MidpointRounding.AwayFromZero);
-                if (Math.Abs(_runoutDistanceMm - clamped) >= 0.001)
-                    this.RaiseAndSetIfChanged(ref _runoutDistanceMm, clamped, nameof(RunoutDistanceMm));
+                if (Math.Abs(_runoutDistanceCm - clamped) >= 0.001)
+                    this.RaiseAndSetIfChanged(ref _runoutDistanceCm, clamped, nameof(RunoutDistanceCm));
 
                 var formatted = FormatRunoutDistance(clamped);
-                if (!string.Equals(_runoutDistanceMmText, formatted, StringComparison.Ordinal))
-                    this.RaiseAndSetIfChanged(ref _runoutDistanceMmText, formatted);
+                if (!string.Equals(_runoutDistanceCmText, formatted, StringComparison.Ordinal))
+                    this.RaiseAndSetIfChanged(ref _runoutDistanceCmText, formatted);
+            }
+        }
+    }
+
+    /// <summary>Dĺžka meracieho (stredného) bloku v cm. Rozsah 5–500 cm. Default 100 cm.</summary>
+    public int BlockLengthCm
+    {
+        get => _blockLengthCm;
+        set
+        {
+            var clamped = Math.Clamp(value, 5, 500);
+            if (_blockLengthCm == clamped) return;
+            this.RaiseAndSetIfChanged(ref _blockLengthCm, clamped);
+            var formatted = clamped.ToString(CultureInfo.InvariantCulture);
+            if (!string.Equals(_blockLengthCmText, formatted, StringComparison.Ordinal))
+                this.RaiseAndSetIfChanged(ref _blockLengthCmText, formatted, nameof(BlockLengthCmText));
+        }
+    }
+
+    public string BlockLengthCmText
+    {
+        get => _blockLengthCmText;
+        set
+        {
+            var digits = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (string.Equals(_blockLengthCmText, digits, StringComparison.Ordinal)) return;
+            this.RaiseAndSetIfChanged(ref _blockLengthCmText, digits);
+            if (int.TryParse(digits, out var parsed))
+            {
+                var clamped = Math.Clamp(parsed, 5, 500);
+                if (_blockLengthCm != clamped)
+                    this.RaiseAndSetIfChanged(ref _blockLengthCm, clamped, nameof(BlockLengthCm));
             }
         }
     }
@@ -535,7 +644,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         set
         {
             if (value)
-                SelectedMethod = CalibrationMethods.FirstOrDefault(option => option.Method == CalibrationMethod.AutomaticSingleStepMomentary);
+                SelectedMethod = CalibrationMethods.FirstOrDefault(option =>
+                    option.Method == CalibrationMethod.AutomaticSingleStepMomentary);
         }
     }
 
@@ -547,7 +657,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         set
         {
             if (value)
-                SelectedMethod = CalibrationMethods.FirstOrDefault(option => option.Method == CalibrationMethod.AutomaticSingleStepOccupancy);
+                SelectedMethod = CalibrationMethods.FirstOrDefault(option =>
+                    option.Method == CalibrationMethod.AutomaticSingleStepOccupancy);
         }
     }
 
@@ -557,7 +668,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         set
         {
             if (value)
-                SelectedMethod = CalibrationMethods.FirstOrDefault(option => option.Method == CalibrationMethod.ManualExternalDevice);
+                SelectedMethod =
+                    CalibrationMethods.FirstOrDefault(option =>
+                        option.Method == CalibrationMethod.ManualExternalDevice);
         }
     }
 
@@ -585,7 +698,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         {
             var selected = string.IsNullOrWhiteSpace(value)
                 ? null
-                : CalibrationMethods.FirstOrDefault(option => string.Equals(option.Description, value, StringComparison.Ordinal));
+                : CalibrationMethods.FirstOrDefault(option =>
+                    string.Equals(option.Description, value, StringComparison.Ordinal));
             SelectedMethod = selected;
         }
     }
@@ -907,11 +1021,13 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     public string MechanicalYAxisTopLabel => FormatMechanicalAxisLabel(MechanicalChartAxisMaximum);
 
-    public double MechanicalGreenBandTop => CalculateMechanicalChartY(Math.Min(5.0, MechanicalChartAxisMaximum), MechanicalChartAxisMaximum);
+    public double MechanicalGreenBandTop =>
+        CalculateMechanicalChartY(Math.Min(5.0, MechanicalChartAxisMaximum), MechanicalChartAxisMaximum);
 
     public double MechanicalGreenBandHeight => CalculateMechanicalChartBottom() - MechanicalGreenBandTop;
 
-    public double MechanicalOrangeBandTop => CalculateMechanicalChartY(Math.Min(12.0, MechanicalChartAxisMaximum), MechanicalChartAxisMaximum);
+    public double MechanicalOrangeBandTop =>
+        CalculateMechanicalChartY(Math.Min(12.0, MechanicalChartAxisMaximum), MechanicalChartAxisMaximum);
 
     public double MechanicalOrangeBandHeight => Math.Max(0, MechanicalGreenBandTop - MechanicalOrangeBandTop);
 
@@ -927,11 +1043,13 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     public bool MechanicalWarningThresholdVisible => MechanicalChartAxisMaximum >= 12.0;
 
-    public string PerformanceQuarterStepLabel => CalculateQuarterStepLabel(CurrentChartMaxStep).ToString(CultureInfo.InvariantCulture);
+    public string PerformanceQuarterStepLabel =>
+        CalculateQuarterStepLabel(CurrentChartMaxStep).ToString(CultureInfo.InvariantCulture);
 
     public string PerformanceMidStepLabel => (CurrentChartMaxStep / 2).ToString(CultureInfo.InvariantCulture);
 
-    public string PerformanceThreeQuarterStepLabel => CalculateThreeQuarterStepLabel(CurrentChartMaxStep).ToString(CultureInfo.InvariantCulture);
+    public string PerformanceThreeQuarterStepLabel =>
+        CalculateThreeQuarterStepLabel(CurrentChartMaxStep).ToString(CultureInfo.InvariantCulture);
 
     public string PerformanceMaxStepLabel => CurrentChartMaxStep.ToString(CultureInfo.InvariantCulture);
 
@@ -1091,7 +1209,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 nearestPoint.Step,
                 nearestPoint.CalculatedSpeedKmh,
                 nearestPoint.IsManual);
-            ApplyChartPointEdit(nearestPoint, step, speed, updateStatus: false, persistChanges: false, markProjectDirty: false, sortCollection: false);
+            ApplyChartPointEdit(nearestPoint, step, speed, updateStatus: false, persistChanges: false,
+                markProjectDirty: false, sortCollection: false);
             SelectMeasurementPoint(nearestPoint);
             return true;
         }
@@ -1114,7 +1233,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             point.Step,
             point.CalculatedSpeedKmh,
             targetCollection.Count);
-        UpdateCalibrationStatus($"Manuálny bod {point.Step} / {point.CalculatedSpeedKmh:0.0} km/h bol pridaný do profilu {GetActiveDirectionDisplayName().ToLowerInvariant()}.");
+        UpdateCalibrationStatus(
+            $"Manuálny bod {point.Step} / {point.CalculatedSpeedKmh:0.0} km/h bol pridaný do profilu {GetActiveDirectionDisplayName().ToLowerInvariant()}.");
         return true;
     }
 
@@ -1126,7 +1246,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         if (!TryMapCanvasToChart(position, out var step, out var speed))
             return false;
 
-        ApplyChartPointEdit(_draggedMeasurementPoint, step, speed, updateStatus: false, persistChanges: false, markProjectDirty: false, sortCollection: false);
+        ApplyChartPointEdit(_draggedMeasurementPoint, step, speed, updateStatus: false, persistChanges: false,
+            markProjectDirty: false, sortCollection: false);
         SelectMeasurementPoint(_draggedMeasurementPoint);
         return true;
     }
@@ -1136,7 +1257,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         if (_draggedMeasurementPoint == null || _draggedMeasurementCollection == null)
             return;
 
-        FinalizeMeasurementEdit(_draggedMeasurementPoint, _draggedMeasurementCollection, $"Bod kroku {_draggedMeasurementPoint.Step} bol upravený priamo v grafe.");
+        FinalizeMeasurementEdit(_draggedMeasurementPoint, _draggedMeasurementCollection,
+            $"Bod kroku {_draggedMeasurementPoint.Step} bol upravený priamo v grafe.");
         ClearDraggedMeasurementState();
     }
 
@@ -1146,7 +1268,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         var safeName = string.IsNullOrWhiteSpace(interactionName) ? "Úprava grafu" : interactionName.Trim();
         var safeException = exception ?? new Exception("Neznáma chyba pri úprave grafu.");
-        Log.Error(safeException, "Speed chart interaction failure. Interaction={Interaction}, Loco={Locomotive}, Tab={TabIndex}", safeName, GetSelectedLocomotiveName(), SelectedProfileTabIndex);
+        Log.Error(safeException,
+            "Speed chart interaction failure. Interaction={Interaction}, Loco={Locomotive}, Tab={TabIndex}", safeName,
+            GetSelectedLocomotiveName(), SelectedProfileTabIndex);
         UpdateCalibrationStatus($"{safeName}: {safeException.GetType().Name}: {safeException.Message}");
     }
 
@@ -1163,8 +1287,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             AvailableLocomotives.Add(item);
 
         var preferred = selected?.Id ?? currentId;
-        SelectedLocomotive = AvailableLocomotives.FirstOrDefault(item => string.Equals(item.Source?.Id, preferred, StringComparison.OrdinalIgnoreCase))
-            ?? AvailableLocomotives.FirstOrDefault();
+        SelectedLocomotive = AvailableLocomotives.FirstOrDefault(item =>
+                                 string.Equals(item.Source?.Id, preferred, StringComparison.OrdinalIgnoreCase))
+                             ?? AvailableLocomotives.FirstOrDefault();
     }
 
     public void SyncProjectIndicators(IEnumerable<string> indicators)
@@ -1236,7 +1361,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             bool? resolved = null;
             if (option.IndicatorId.HasValue && byId.TryGetValue(option.IndicatorId.Value, out var activeById))
                 resolved = activeById;
-            else if (!string.IsNullOrWhiteSpace(option.DisplayName) && byName.TryGetValue(option.DisplayName, out var activeByName))
+            else if (!string.IsNullOrWhiteSpace(option.DisplayName) &&
+                     byName.TryGetValue(option.DisplayName, out var activeByName))
                 resolved = activeByName;
 
             if (resolved.HasValue)
@@ -1244,17 +1370,22 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
-    private static CalibrationMeasurementPointViewModel CreatePoint(int step, string direction, double timeSeconds, double rawSpeedKmh, double calculatedSpeedKmh, string status, bool isManual = false)
+    private static CalibrationMeasurementPointViewModel CreatePoint(int step, string direction, double timeSeconds,
+        double rawSpeedKmh, double calculatedSpeedKmh, string status, bool isManual = false)
         => new(step, direction, timeSeconds, rawSpeedKmh, calculatedSpeedKmh, status, isManual);
 
     private static IReadOnlyList<CalibrationMethodItemViewModel> LoadCalibrationMethods()
     {
         var methods = new[]
         {
-            (CalibrationMethod.AutomaticFullProfileOccupancy, "Automatické meranie kompletného rýchlostného profilu (detektory obsadenia)"),
-            (CalibrationMethod.AutomaticFullProfileMomentary, "Automatické meranie kompletného rýchlostného profilu (momentové kontakty)"),
-            (CalibrationMethod.AutomaticSingleStepOccupancy, "Automatické meranie jedného rýchlostného stupňa (detektory obsadenia)"),
-            (CalibrationMethod.AutomaticSingleStepMomentary, "Automatické meranie jedného rýchlostného stupňa (momentové kontakty)"),
+            (CalibrationMethod.AutomaticFullProfileOccupancy,
+                "Automatické meranie kompletného rýchlostného profilu (detektory obsadenia)"),
+            (CalibrationMethod.AutomaticFullProfileMomentary,
+                "Automatické meranie kompletného rýchlostného profilu (momentové kontakty)"),
+            (CalibrationMethod.AutomaticSingleStepOccupancy,
+                "Automatické meranie jedného rýchlostného stupňa (detektory obsadenia)"),
+            (CalibrationMethod.AutomaticSingleStepMomentary,
+                "Automatické meranie jedného rýchlostného stupňa (momentové kontakty)"),
             (CalibrationMethod.BrakingCompensationTestOccupancy, "Test kompenzácie brzdenia (detektory obsadenia)"),
             (CalibrationMethod.BrakingCompensationTestMomentary, "Test kompenzácie brzdenia (momentové kontakty)"),
             (CalibrationMethod.ManualExternalDevice, "Manuálne meranie pomocou externého zariadenia")
@@ -1275,7 +1406,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
 
         return methods
-            .Select((item, index) => new CalibrationMethodItemViewModel(item.Item1, item.Item2, CreateCalibrationMethodIcon(sprite, index)))
+            .Select((item, index) =>
+                new CalibrationMethodItemViewModel(item.Item1, item.Item2, CreateCalibrationMethodIcon(sprite, index)))
             .ToList();
     }
 
@@ -1295,12 +1427,18 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static string GetCalibrationMethodStatus(CalibrationMethodItemViewModel? method)
         => method?.Method switch
         {
-            CalibrationMethod.AutomaticFullProfileOccupancy => "Zvolené automatické meranie kompletného profilu pomocou detektorov obsadenia.",
-            CalibrationMethod.AutomaticFullProfileMomentary => "Zvolené automatické meranie kompletného profilu pomocou momentových kontaktov.",
-            CalibrationMethod.AutomaticSingleStepOccupancy => "Zvolené automatické meranie jedného rýchlostného stupňa pomocou detektorov obsadenia.",
-            CalibrationMethod.AutomaticSingleStepMomentary => "Zvolené automatické meranie jedného rýchlostného stupňa pomocou momentových kontaktov.",
-            CalibrationMethod.BrakingCompensationTestOccupancy => "Zvolený test kompenzácie brzdenia pomocou detektorov obsadenia.",
-            CalibrationMethod.BrakingCompensationTestMomentary => "Zvolený test kompenzácie brzdenia pomocou momentových kontaktov.",
+            CalibrationMethod.AutomaticFullProfileOccupancy =>
+                "Zvolené automatické meranie kompletného profilu pomocou detektorov obsadenia.",
+            CalibrationMethod.AutomaticFullProfileMomentary =>
+                "Zvolené automatické meranie kompletného profilu pomocou momentových kontaktov.",
+            CalibrationMethod.AutomaticSingleStepOccupancy =>
+                "Zvolené automatické meranie jedného rýchlostného stupňa pomocou detektorov obsadenia.",
+            CalibrationMethod.AutomaticSingleStepMomentary =>
+                "Zvolené automatické meranie jedného rýchlostného stupňa pomocou momentových kontaktov.",
+            CalibrationMethod.BrakingCompensationTestOccupancy =>
+                "Zvolený test kompenzácie brzdenia pomocou detektorov obsadenia.",
+            CalibrationMethod.BrakingCompensationTestMomentary =>
+                "Zvolený test kompenzácie brzdenia pomocou momentových kontaktov.",
             CalibrationMethod.ManualExternalDevice => "Zvolené manuálne meranie pomocou externého zariadenia.",
             _ => "Pripravené na kalibráciu."
         };
@@ -1357,7 +1495,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     {
         const int resolvedMaxStep = DefaultChartMaxStep;
         if (resolvedMaxStep == CurrentChartMaxStep
-            && string.Equals(DecoderStepAxisTitle, $"Rýchlostný stupeň dekodéra (0-{resolvedMaxStep})", StringComparison.Ordinal))
+            && string.Equals(DecoderStepAxisTitle, $"Rýchlostný stupeň dekodéra (0-{resolvedMaxStep})",
+                StringComparison.Ordinal))
             return;
 
         CurrentChartMaxStep = resolvedMaxStep;
@@ -1367,8 +1506,10 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(PerformanceThreeQuarterStepLabel));
         this.RaisePropertyChanged(nameof(PerformanceMaxStepLabel));
         ReplaceCollection(XAxisLabels, BuildHorizontalAxisLabels(resolvedMaxStep, ChartLeft, ChartWidth, 553));
-        ReplaceCollection(VerticalGridLines, BuildVerticalGridLines(resolvedMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
-        ReplaceCollection(XAxisTickMarks, BuildXAxisTickMarks(resolvedMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        ReplaceCollection(VerticalGridLines,
+            BuildVerticalGridLines(resolvedMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        ReplaceCollection(XAxisTickMarks,
+            BuildXAxisTickMarks(resolvedMaxStep, ChartLeft, ChartTop, ChartWidth, ChartHeight));
         UpdateDerivedState();
     }
 
@@ -1380,19 +1521,307 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         CurrentChartMaxSpeed = resolvedMaxSpeed;
         ReplaceCollection(YAxisLabels, BuildVerticalAxisLabels(resolvedMaxSpeed, ChartTop, ChartHeight));
-        ReplaceCollection(HorizontalGridLines, BuildHorizontalGridLines(resolvedMaxSpeed, ChartLeft, ChartTop, ChartWidth, ChartHeight));
+        ReplaceCollection(HorizontalGridLines,
+            BuildHorizontalGridLines(resolvedMaxSpeed, ChartLeft, ChartTop, ChartWidth, ChartHeight));
         this.RaisePropertyChanged(nameof(GaugeNeedleAngle));
         UpdateDerivedState();
     }
 
     private void StartAutomatedSequence()
     {
+        // Ak prebieha meranie, zruš ho
+        if (_calibrationCts != null)
+        {
+            _calibrationCts.Cancel();
+            _calibrationCts.Dispose();
+            _calibrationCts = null;
+            UpdateCalibrationStatus("Meranie prerušené.");
+            CalibrationProgress = 0;
+            return;
+        }
+
         if (!EnsureDirectionalProfileSelected("Automatické meranie"))
             return;
 
-        CalibrationProgress = Math.Min(95, CalibrationProgress + 12);
-        PersistMeasurementsToLocomotive(SelectedLocomotive?.Source);
-        UpdateCalibrationStatus($"Automatické meranie pripravené pre smer {GetActiveDirectionDisplayName().ToLowerInvariant()} na lokomotíve {GetSelectedLocomotiveName()}. Pauza {PauseSeconds:0.0}s.");
+        var loco = SelectedLocomotive?.Source;
+        if (loco == null)
+        {
+            UpdateCalibrationStatus("Vyberte lokomotívu pred spustením merania.");
+            return;
+        }
+
+        if (SelectedStartBlock == null || SelectedMiddleBlock == null || SelectedEndBlock == null)
+        {
+            UpdateCalibrationStatus("Nastavte štartovací, merací (Stred) a koncový blok.");
+            return;
+        }
+
+        if (DriveLocoAsync == null)
+        {
+            UpdateCalibrationStatus("DCC centrála nie je pripojená.");
+            return;
+        }
+
+        _calibrationCts = new CancellationTokenSource();
+        IsCalibrationRunning = true;
+        _ = RunFullProfileCalibrationAsync(loco.Address, _calibrationCts.Token);
+    }
+
+    /// <summary>
+    /// Meranie kompletného rýchlostného profilu pomocou troch detektorov obsadenia.
+    /// 15 meracích bodov, oba smery jazdy v každom cykle.
+    /// </summary>
+    private async Task RunFullProfileCalibrationAsync(int locoAddress, CancellationToken ct)
+    {
+        const int TotalPoints = 15;
+        const int FirstStep   = 11;   // TC začína od kroku 11 (Internal=83/1000 * 126 ≈ 11)
+        const int LastStep    = 127;  // TC končí na kroku 127 (max)
+        var dccSteps = Enumerable.Range(0, TotalPoints)
+            .Select(i => (int)Math.Round(FirstStep + i * (double)(LastStep - FirstStep) / (TotalPoints - 1)))
+            .Distinct()
+            .OrderBy(s => s)
+            .ToArray();
+
+        var scaleRatio = ParseScaleRatio(SelectedScale);
+        var blockM = BlockLengthCm / 100.0;
+
+        UpdateCalibrationStatus(
+            $"Meranie spustené. {TotalPoints} bodov, dĺžka bloku {BlockLengthCm} cm, mierka 1:{scaleRatio:0}.");
+        CalibrationProgress = 0;
+
+        try
+        {
+            for (var i = 0; i < dccSteps.Length; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var dccStep = dccSteps[i];
+
+                // ── Meranie dopredu ───────────────────────────────────────
+                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (krok {dccStep}) — jazda dopredu...");
+                var fwdTime = await MeasurePassthroughAsync(locoAddress, dccStep, forward: true, ct);
+
+                if (fwdTime > 0)
+                {
+                    var rawKmh = blockM / fwdTime * 3.6;
+                    var modelKmh = Math.Round(rawKmh * scaleRatio, 2);
+                    var point = CreatePoint(dccStep, "Dopredu", fwdTime, rawKmh, modelKmh, "Automatické meranie");
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        UpsertMeasurementPoint(ForwardMeasurementPoints, point);
+                        SyncSpeedProfileRowsFromMeasurements();
+                        UpdateDerivedState();
+                    });
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(PauseSeconds), ct);
+                ct.ThrowIfCancellationRequested();
+
+                // ── Meranie dozadu ────────────────────────────────────────
+                UpdateCalibrationStatus($"Bod {i + 1}/{TotalPoints} (krok {dccStep}) — jazda dozadu...");
+                var bwdTime = await MeasurePassthroughAsync(locoAddress, dccStep, forward: false, ct);
+
+                if (bwdTime > 0)
+                {
+                    var rawKmh = blockM / bwdTime * 3.6;
+                    var modelKmh = Math.Round(rawKmh * scaleRatio, 2);
+                    var point = CreatePoint(dccStep, "Dozadu", bwdTime, rawKmh, modelKmh, "Automatické meranie");
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        UpsertMeasurementPoint(BackwardMeasurementPoints, point);
+                        SyncSpeedProfileRowsFromMeasurements();
+                        UpdateDerivedState();
+                    });
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(PauseSeconds), ct);
+                CalibrationProgress = (double)(i + 1) / TotalPoints * 100.0;
+            }
+
+            CalibrationProgress = 100;
+            PersistMeasurementsToLocomotive(SelectedLocomotive?.Source);
+            UpdateCalibrationStatus($"Meranie dokončené. {TotalPoints} bodov zaznamenaných.");
+        }
+        catch (OperationCanceledException)
+        {
+            try { await SendCalibrationSpeedAsync(locoAddress, 0, true); } catch { }
+            UpdateCalibrationStatus("Meranie prerušené užívateľom.");
+            CalibrationProgress = 0;
+        }
+        catch (Exception ex)
+        {
+            try { await SendCalibrationSpeedAsync(locoAddress, 0, true); } catch { }
+            UpdateCalibrationStatus($"Chyba merania: {ex.Message}");
+            Log.Warning(ex, "RunFullProfileCalibrationAsync zlyhalo");
+        }
+        finally
+        {
+            _calibrationCts?.Dispose();
+            _calibrationCts = null;
+            IsCalibrationRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Jeden priechod: Štart→Mid (štart stopiek)→End (stop stopiek).
+    /// Podľa TC manuálu: pred štartom sa čaká kým Mid blok je voľný.
+    /// RunOut: po dosiahnutí End bloku loko pokračuje kým neopustí End blok.
+    /// Bez časového limitu — reaguje len na detektory.
+    /// </summary>
+    private async Task<double> MeasurePassthroughAsync(int address, int dccStep, bool forward, CancellationToken ct)
+    {
+        var middleBlock = SelectedMiddleBlock!;
+        var endBlock    = forward ? SelectedEndBlock! : SelectedStartBlock!;
+
+        var midKey = (middleBlock.ModuleAddress, middleBlock.PortNumber, middleBlock.DccCentralProfileId);
+        var endKey = (endBlock.ModuleAddress,    endBlock.PortNumber,    endBlock.DccCentralProfileId);
+
+        // ── 1. Čakaj kým Mid blok je voľný (TC: Centre must be turned off before start) ──
+        // Čakáme na IsActive=False feedback pre Mid blok.
+        // Ak príde do 500ms, pokračujeme. Ak nie, predpokladáme že je voľný.
+        {
+            var midFreeCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void OnMidFree(DccFeedbackStateChange change)
+            {
+                if (change.IsActive) return;
+                if ((change.ModuleAddress, change.PortNumber, change.ProfileId) != midKey) return;
+                midFreeCompletion.TrySetResult(true);
+            }
+
+            CalibrationDcc!.FeedbackStateChanged += OnMidFree;
+            try
+            {
+                // Čakaj max PauseSeconds kým Mid blok hlási voľný — potom pokračuj
+                await Task.WhenAny(midFreeCompletion.Task, Task.Delay(TimeSpan.FromSeconds(Math.Max(PauseSeconds, 1)), ct));
+            }
+            catch (OperationCanceledException) { CalibrationDcc!.FeedbackStateChanged -= OnMidFree; throw; }
+            finally { CalibrationDcc!.FeedbackStateChanged -= OnMidFree; }
+        }
+
+        ct.ThrowIfCancellationRequested();
+
+        // ── 2. Nastav stav a spusti loko ─────────────────────────────────────
+        _measurementMidKey = midKey;
+        _measurementEndKey = endKey;
+        _measurementState  = MeasurementState.WaitingForMid;
+        _measurementStart  = default;
+        _measurementAddress = address;
+        _measurementSpeed   = dccStep;
+        _measurementForward = forward;
+        _measurementCompletion = new TaskCompletionSource<double>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ct.Register(() => _measurementCompletion.TrySetCanceled(ct));
+
+        CalibrationDcc!.FeedbackStateChanged += OnFeedback;
+
+        TrackFlowDoctorService.Instance.Diagnose("Kalibrácia",
+            $"Spúšťam loko: krok={dccStep} forward={forward} " +
+            $"MidKey=({_measurementMidKey.ModuleAddress},{_measurementMidKey.PortNumber}) " +
+            $"EndKey=({_measurementEndKey.ModuleAddress},{_measurementEndKey.PortNumber})");
+
+        await SendCalibrationSpeedAsync(address, dccStep, forward);
+
+        // ── 3. Čakaj na dokončenie merania (Mid→End) — bez časového limitu ───
+        double elapsed;
+        try
+        {
+            elapsed = await _measurementCompletion.Task;
+            TrackFlowDoctorService.Instance.Diagnose("Kalibrácia", $"Meranie dokončené: elapsed={elapsed:F3}s");
+        }
+        catch
+        {
+            CalibrationDcc!.FeedbackStateChanged -= OnFeedback;
+            _measurementCompletion = null;
+            _measurementState = MeasurementState.Idle;
+            await SendCalibrationSpeedAsync(address, 0, forward);
+            throw;
+        }
+
+        // ── 4. RunOut ─────────────────────────────────────────────────────────
+        // TC spôsob: meranie skončilo vstupom do End bloku.
+        // Dobeh — loko pokračuje ešte RunoutDistanceCm pred zastavením
+        // aby mala dostatok dráhy v End bloku pred otočením.
+        if (RunoutDistanceCm > 0 && elapsed > 0)
+        {
+            var speedMs = BlockLengthCm / 100.0 / elapsed;
+            var runoutSeconds = RunoutDistanceCm / 100.0 / speedMs;
+            try { await Task.Delay(TimeSpan.FromSeconds(runoutSeconds), ct); } catch { }
+        }
+
+        // ── 5. Zastav loko ────────────────────────────────────────────────────
+        CalibrationDcc!.FeedbackStateChanged -= OnFeedback;
+        _measurementCompletion = null;
+        _measurementState = MeasurementState.Idle;
+        await SendCalibrationSpeedAsync(address, 0, forward);
+
+        return elapsed;
+    }
+
+    /// <summary>Posiela DCC príkaz — rovnaký vzor ako CV57.SendLocoSpeedAsync.</summary>
+    private async Task SendCalibrationSpeedAsync(int address, int speed, bool forward)
+    {
+        try
+        {
+            if (CalibrationDcc == null) return;
+
+            IDccCentralClient client;
+            var loco = SelectedLocomotive?.Source;
+            if (loco?.AssignedCentralProfileId.HasValue == true &&
+                CalibrationDcc.TryGetConnectedClient(loco.AssignedCentralProfileId.Value, out var assigned))
+                client = assigned;
+            else
+                client = CalibrationDcc.Client;
+
+            if (!client.IsConnected) return;
+
+            // Z21Client interne throttluje pakety kratšie ako ~80ms od seba a vtedy
+            // ich TICHO zahodí (bez výnimky). Aby sme mali istotu že DCC príkaz
+            // skutočne odišiel, pošleme ho dvakrát s malým odstupom.
+            await client.SetLocomotiveSpeedAsync(address, speed, forward);
+            await Task.Delay(120);
+            await client.SetLocomotiveSpeedAsync(address, speed, forward);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "SendCalibrationSpeedAsync zlyhalo");
+        }
+    }
+
+    private void OnFeedback(DccFeedbackStateChange change)
+    {
+        var key = (change.ModuleAddress, change.PortNumber, change.ProfileId);
+
+        TrackFlowDoctorService.Instance.Diagnose("Kalibrácia",
+            $"OnFeedback: ModAddr={change.ModuleAddress} Port={change.PortNumber} IsActive={change.IsActive} " +
+            $"State={_measurementState} MidKey=({_measurementMidKey.ModuleAddress},{_measurementMidKey.PortNumber}) " +
+            $"EndKey=({_measurementEndKey.ModuleAddress},{_measurementEndKey.PortNumber})");
+
+        // Vstup do Mid bloku → štart stopiek
+        if (change.IsActive &&
+            _measurementState == MeasurementState.WaitingForMid &&
+            key == _measurementMidKey)
+        {
+            _measurementStart = DateTime.UtcNow;
+            _measurementState = MeasurementState.Measuring;
+            TrackFlowDoctorService.Instance.Diagnose("Kalibrácia", $"✓ Mid vstup — štart stopiek t={_measurementStart:HH:mm:ss.fff}");
+            return;
+        }
+
+        // Vstup do End bloku → stop stopiek (TC spôsob)
+        if (change.IsActive &&
+            _measurementState == MeasurementState.Measuring &&
+            key == _measurementEndKey)
+        {
+            var elapsed = (DateTime.UtcNow - _measurementStart).TotalSeconds;
+            TrackFlowDoctorService.Instance.Diagnose("Kalibrácia", $"✓ End vstup — stop stopiek elapsed={elapsed:F3}s");
+            _measurementCompletion?.TrySetResult(elapsed);
+        }
+    }
+    
+  /// <summary>Extrahuje číselný pomer mierky z reťazca napr. "1:87 (H0)" → 87.0</summary>
+    private static double ParseScaleRatio(string scale)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(scale, @"1:(\d+)");
+        return m.Success && double.TryParse(m.Groups[1].Value, out var ratio) ? ratio : 87.0;
     }
 
     private void AddPointManually()
@@ -1450,7 +1879,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var persistedProjectState = PersistProfileChanges?.Invoke();
         if (persistedProjectState == false)
         {
-            UpdateCalibrationStatus($"{profileScope} lokomotívy {GetSelectedLocomotiveName()} bol uložený, ale zmeny projektu sa nepodarilo potvrdiť.");
+            UpdateCalibrationStatus(
+                $"{profileScope} lokomotívy {GetSelectedLocomotiveName()} bol uložený, ale zmeny projektu sa nepodarilo potvrdiť.");
             return;
         }
 
@@ -1477,13 +1907,16 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         SyncSpeedProfileRowsFromMeasurements();
         UpdateDerivedState();
         MarkProfileDirty?.Invoke();
-        UpdateCalibrationStatus($"Profily lokomotívy {GetSelectedLocomotiveName()} boli inicializované. Všetky namerané RAW dáta pre oba smery boli vymazané.");
+        UpdateCalibrationStatus(
+            $"Profily lokomotívy {GetSelectedLocomotiveName()} boli inicializované. Všetky namerané RAW dáta pre oba smery boli vymazané.");
     }
 
     private void SortMeasurements()
     {
-        ReplaceMeasurementCollection(ForwardMeasurementPoints, ForwardMeasurementPoints.OrderBy(point => point.Step).ToList());
-        ReplaceMeasurementCollection(BackwardMeasurementPoints, BackwardMeasurementPoints.OrderBy(point => point.Step).ToList());
+        ReplaceMeasurementCollection(ForwardMeasurementPoints,
+            ForwardMeasurementPoints.OrderBy(point => point.Step).ToList());
+        ReplaceMeasurementCollection(BackwardMeasurementPoints,
+            BackwardMeasurementPoints.OrderBy(point => point.Step).ToList());
         SyncSpeedProfileRowsFromMeasurements();
     }
 
@@ -1521,7 +1954,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private string GetSelectedLocomotiveName()
         => SelectedLocomotive?.DisplayName ?? "bez výberu";
 
-    private void UpsertMeasurementPoint(ObservableCollection<CalibrationMeasurementPointViewModel> target, CalibrationMeasurementPointViewModel point)
+    private void UpsertMeasurementPoint(ObservableCollection<CalibrationMeasurementPointViewModel> target,
+        CalibrationMeasurementPointViewModel point)
     {
         var existing = target.FirstOrDefault(item => item.Step == point.Step);
         if (existing != null)
@@ -1536,16 +1970,16 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private void LoadMeasurementsFromLocomotive(LocoRecord? record)
     {
         var forward = record?.ForwardSpeedProfilePoints?
-            .OrderBy(point => point.Step)
-            .Select(ToViewModel)
-            .ToList()
-            ?? new List<CalibrationMeasurementPointViewModel>();
+                          .OrderBy(point => point.Step)
+                          .Select(ToViewModel)
+                          .ToList()
+                      ?? new List<CalibrationMeasurementPointViewModel>();
 
         var backward = record?.BackwardSpeedProfilePoints?
-            .OrderBy(point => point.Step)
-            .Select(ToViewModel)
-            .ToList()
-            ?? new List<CalibrationMeasurementPointViewModel>();
+                           .OrderBy(point => point.Step)
+                           .Select(ToViewModel)
+                           .ToList()
+                       ?? new List<CalibrationMeasurementPointViewModel>();
 
         ReplaceMeasurementCollection(ForwardMeasurementPoints, forward);
         ReplaceMeasurementCollection(BackwardMeasurementPoints, backward);
@@ -1558,7 +1992,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         RefreshDisplayedDiagnostics(record);
     }
 
-    private void PersistMeasurementsToLocomotive(LocoRecord? record, bool persistForward = true, bool persistBackward = true)
+    private void PersistMeasurementsToLocomotive(LocoRecord? record, bool persistForward = true,
+        bool persistBackward = true)
     {
         if (record == null)
             return;
@@ -1581,7 +2016,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     }
 
     private static CalibrationMeasurementPointViewModel ToViewModel(LocoSpeedProfilePoint point)
-        => CreatePoint(point.Step, point.Direction, point.TimeSeconds, point.RawSpeedKmh, point.CalculatedSpeedKmh, point.Status, point.IsManual || IsManualStatus(point.Status));
+        => CreatePoint(point.Step, point.Direction, point.TimeSeconds,  point.CalculatedSpeedKmh, point.CalculatedSpeedKmh,
+            point.Status, point.IsManual || IsManualStatus(point.Status));
 
     private static LocoSpeedProfilePoint ToModel(CalibrationMeasurementPointViewModel point)
         => new()
@@ -1589,7 +2025,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             Step = point.Step,
             Direction = point.Direction,
             TimeSeconds = point.TimeSeconds,
-            RawSpeedKmh = point.RawSpeedKmh,
+            RawSpeedKmh = point.CalculatedSpeedKmh,
             CalculatedSpeedKmh = point.CalculatedSpeedKmh,
             Status = point.Status,
             IsManual = point.IsManual
@@ -1617,23 +2053,33 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var forwardPoints = ForwardMeasurementPoints.OrderBy(point => point.Step).ToList();
         var backwardPoints = BackwardMeasurementPoints.OrderBy(point => point.Step).ToList();
 
-        ForwardCurvePathData = BuildCurvePath(forwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
-        BackwardCurvePathData = BuildCurvePath(backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
-        ForwardAreaPathData = BuildCurveFillPath(forwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
-        BackwardAreaPathData = BuildCurveFillPath(backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
-        (ForwardGradientStart, ForwardGradientEnd) = ComputePerpendicularGradient(forwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
-        (BackwardGradientStart, BackwardGradientEnd) = ComputePerpendicularGradient(backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
+        ForwardCurvePathData = BuildCurvePath(forwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight,
+            CurrentChartMaxSpeed, CurrentChartMaxStep);
+        BackwardCurvePathData = BuildCurvePath(backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight,
+            CurrentChartMaxSpeed, CurrentChartMaxStep);
+        ForwardAreaPathData = BuildCurveFillPath(forwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight,
+            CurrentChartMaxSpeed, CurrentChartMaxStep);
+        BackwardAreaPathData = BuildCurveFillPath(backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight,
+            CurrentChartMaxSpeed, CurrentChartMaxStep);
+        (ForwardGradientStart, ForwardGradientEnd) = ComputePerpendicularGradient(forwardPoints, ChartLeft, ChartTop,
+            ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
+        (BackwardGradientStart, BackwardGradientEnd) = ComputePerpendicularGradient(backwardPoints, ChartLeft, ChartTop,
+            ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
         ForwardMarkerPathData = BuildMarkerPath(forwardPoints, radius: 6.5, CurrentChartMaxStep, CurrentChartMaxSpeed);
-        BackwardMarkerPathData = BuildMarkerPath(backwardPoints, radius: 6.0, CurrentChartMaxStep, CurrentChartMaxSpeed);
-        VarianceAreaPathData = BuildVarianceAreaPath(forwardPoints, backwardPoints, ChartLeft, ChartTop, ChartWidth, ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
+        BackwardMarkerPathData =
+            BuildMarkerPath(backwardPoints, radius: 6.0, CurrentChartMaxStep, CurrentChartMaxSpeed);
+        VarianceAreaPathData = BuildVarianceAreaPath(forwardPoints, backwardPoints, ChartLeft, ChartTop, ChartWidth,
+            ChartHeight, CurrentChartMaxSpeed, CurrentChartMaxStep);
 
         ForwardCurveMarkers.Clear();
         BackwardCurveMarkers.Clear();
         ReferenceGuides.Clear();
 
-        foreach (var marker in BuildCurveMarkers(forwardPoints, "#1976D2", isBackward: false, CurrentChartMaxStep, CurrentChartMaxSpeed))
+        foreach (var marker in BuildCurveMarkers(forwardPoints, "#1976D2", isBackward: false, CurrentChartMaxStep,
+                     CurrentChartMaxSpeed))
             ForwardCurveMarkers.Add(marker);
-        foreach (var marker in BuildCurveMarkers(backwardPoints, "#C44747", isBackward: true, CurrentChartMaxStep, CurrentChartMaxSpeed))
+        foreach (var marker in BuildCurveMarkers(backwardPoints, "#C44747", isBackward: true, CurrentChartMaxStep,
+                     CurrentChartMaxSpeed))
             BackwardCurveMarkers.Add(marker);
         foreach (var guide in BuildReferenceGuides(forwardPoints, backwardPoints, CurrentChartMaxStep))
             ReferenceGuides.Add(guide);
@@ -1679,11 +2125,13 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
 
         var forwardMax = ForwardMeasurementPoints.OrderByDescending(point => point.CalculatedSpeedKmh).FirstOrDefault();
-        var backwardMax = BackwardMeasurementPoints.OrderByDescending(point => point.CalculatedSpeedKmh).FirstOrDefault();
+        var backwardMax = BackwardMeasurementPoints.OrderByDescending(point => point.CalculatedSpeedKmh)
+            .FirstOrDefault();
         var matches = (from forward in ForwardMeasurementPoints
-                       join backward in BackwardMeasurementPoints on forward.Step equals backward.Step
-                       orderby forward.Step
-                       select new DiagnosticDifferenceSample(forward.Step, forward.CalculatedSpeedKmh, backward.CalculatedSpeedKmh))
+                join backward in BackwardMeasurementPoints on forward.Step equals backward.Step
+                orderby forward.Step
+                select new DiagnosticDifferenceSample(forward.Step, forward.CalculatedSpeedKmh,
+                    backward.CalculatedSpeedKmh))
             .ToList();
 
         var averageDifference = matches.Count > 0 ? matches.Average(pair => (double)pair.Difference) : 0;
@@ -1722,9 +2170,12 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         // pevnou stupnicou, ktorá zodpovedá farebnému semaforu (0–5 % zelená, 5–12 % oranžová,
         // 12–20 % červená).
         MechanicalChartAxisMaximum = 20.0;
-        FrictionCurvePathData = BuildMechanicalHealthPath(mechanicalHealthSamples, CurrentChartMaxStep, MechanicalChartAxisMaximum);
+        FrictionCurvePathData =
+            BuildMechanicalHealthPath(mechanicalHealthSamples, CurrentChartMaxStep, MechanicalChartAxisMaximum);
         PowerCurvePathData = string.Empty;
-        PerformanceEmptyStateText = mechanicalHealthSamples.Count == 0 ? "Na indikátor asymetrie treba body v oboch smeroch." : string.Empty;
+        PerformanceEmptyStateText = mechanicalHealthSamples.Count == 0
+            ? "Na indikátor asymetrie treba body v oboch smeroch."
+            : string.Empty;
 
         MechanicalHealthSample? peakMechanicalSample = null;
         for (var index = 0; index < mechanicalHealthSamples.Count; index++)
@@ -1786,7 +2237,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         var problemType = DetermineDiagnosticProblemType(matches, severity, CurrentChartMaxStep);
         var causeType = DetermineDiagnosticCauseType(matches, severity, problemType, CurrentChartMaxStep);
-        _pendingDiagnosticsComputation = new AiDiagnosticsComputation(severity, problemType, causeType, maxDeviationStep, maxDeviationDifference, PauseSeconds);
+        _pendingDiagnosticsComputation = new AiDiagnosticsComputation(severity, problemType, causeType,
+            maxDeviationStep, maxDeviationDifference, PauseSeconds);
 
         RefreshLiveDiagnosticsPreviewIfNeeded(SelectedLocomotive?.Source);
     }
@@ -1840,7 +2292,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         if (_pendingDiagnosticsComputation.HasValue)
         {
-            ApplyDiagnosticsSnapshot(BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value, _displayedDiagnosticsSnapshot, randomizeSelections: false));
+            ApplyDiagnosticsSnapshot(BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value,
+                _displayedDiagnosticsSnapshot, randomizeSelections: false));
             return;
         }
 
@@ -1849,10 +2302,12 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
     private void RefreshLiveDiagnosticsPreviewIfNeeded(LocoRecord? record)
     {
-        if (record == null || TryLoadSavedDiagnosticsSnapshot(record).HasValue || !_pendingDiagnosticsComputation.HasValue)
+        if (record == null || TryLoadSavedDiagnosticsSnapshot(record).HasValue ||
+            !_pendingDiagnosticsComputation.HasValue)
             return;
 
-        ApplyDiagnosticsSnapshot(BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value, _displayedDiagnosticsSnapshot, randomizeSelections: false));
+        ApplyDiagnosticsSnapshot(BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value,
+            _displayedDiagnosticsSnapshot, randomizeSelections: false));
     }
 
     private void PersistDiagnosticsSnapshotToLocomotive(LocoRecord? record, bool randomizeSelections)
@@ -1868,7 +2323,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
 
         var previousSnapshot = TryLoadSavedDiagnosticsSnapshot(record);
-        var snapshot = BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value, previousSnapshot, randomizeSelections);
+        var snapshot =
+            BuildDiagnosticsSnapshot(_pendingDiagnosticsComputation.Value, previousSnapshot, randomizeSelections);
         SaveDiagnosticsSnapshot(record, snapshot);
         ApplyDiagnosticsSnapshot(snapshot);
     }
@@ -1904,13 +2360,17 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             || string.IsNullOrWhiteSpace(record.SavedDiagnosticsRecommendedCvTweaksText))
             return null;
 
-        var severity = Enum.TryParse<AiDiagnosticSeverity>(record.SavedDiagnosticsSeverity, ignoreCase: true, out var parsedSeverity)
-            ? parsedSeverity
-            : AiDiagnosticSeverity.Ok;
-        var problemType = Enum.TryParse<AiDiagnosticProblemType>(record.SavedDiagnosticsProblemType, ignoreCase: true, out var parsedProblemType)
+        var severity =
+            Enum.TryParse<AiDiagnosticSeverity>(record.SavedDiagnosticsSeverity, ignoreCase: true,
+                out var parsedSeverity)
+                ? parsedSeverity
+                : AiDiagnosticSeverity.Ok;
+        var problemType = Enum.TryParse<AiDiagnosticProblemType>(record.SavedDiagnosticsProblemType, ignoreCase: true,
+            out var parsedProblemType)
             ? parsedProblemType
             : AiDiagnosticProblemType.Stable;
-        var causeType = Enum.TryParse<AiDiagnosticCauseType>(record.SavedDiagnosticsCauseType, ignoreCase: true, out var parsedCauseType)
+        var causeType = Enum.TryParse<AiDiagnosticCauseType>(record.SavedDiagnosticsCauseType, ignoreCase: true,
+            out var parsedCauseType)
             ? parsedCauseType
             : AiDiagnosticCauseType.Stable;
 
@@ -1954,14 +2414,14 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         bool randomizeSelections)
     {
         var shouldRefreshPrimaryTexts = !previousSnapshot.HasValue
-            || previousSnapshot.Value.Severity != computation.Severity
-            || string.IsNullOrWhiteSpace(previousSnapshot.Value.AnalysisSummaryText)
-            || string.IsNullOrWhiteSpace(previousSnapshot.Value.AiRecommendationText);
+                                        || previousSnapshot.Value.Severity != computation.Severity
+                                        || string.IsNullOrWhiteSpace(previousSnapshot.Value.AnalysisSummaryText)
+                                        || string.IsNullOrWhiteSpace(previousSnapshot.Value.AiRecommendationText);
         var shouldRefreshCvText = shouldRefreshPrimaryTexts
-            || !previousSnapshot.HasValue
-            || previousSnapshot.Value.ProblemType != computation.ProblemType
-            || previousSnapshot.Value.CauseType != computation.CauseType
-            || string.IsNullOrWhiteSpace(previousSnapshot.Value.RecommendedCvTweaksText);
+                                  || !previousSnapshot.HasValue
+                                  || previousSnapshot.Value.ProblemType != computation.ProblemType
+                                  || previousSnapshot.Value.CauseType != computation.CauseType
+                                  || string.IsNullOrWhiteSpace(previousSnapshot.Value.RecommendedCvTweaksText);
 
         return new AiDiagnosticsSnapshot(
             computation.Severity,
@@ -1969,13 +2429,16 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             computation.CauseType,
             BuildEngineStatusText(computation.Severity),
             shouldRefreshPrimaryTexts
-                ? BuildRandomAnalysisSummary(computation.Severity, computation.ProblemType, computation.CauseType, computation.MaxDeviationStep, computation.MaxDeviationDifference, randomizeSelections)
+                ? BuildRandomAnalysisSummary(computation.Severity, computation.ProblemType, computation.CauseType,
+                    computation.MaxDeviationStep, computation.MaxDeviationDifference, randomizeSelections)
                 : previousSnapshot!.Value.AnalysisSummaryText,
             shouldRefreshPrimaryTexts
-                ? BuildRandomAiRecommendation(computation.Severity, computation.ProblemType, computation.CauseType, computation.MaxDeviationStep, computation.PauseSeconds, randomizeSelections)
+                ? BuildRandomAiRecommendation(computation.Severity, computation.ProblemType, computation.CauseType,
+                    computation.MaxDeviationStep, computation.PauseSeconds, randomizeSelections)
                 : previousSnapshot!.Value.AiRecommendationText,
             shouldRefreshCvText
-                ? BuildRandomCvTweaksText(computation.Severity, computation.ProblemType, computation.CauseType, randomizeSelections)
+                ? BuildRandomCvTweaksText(computation.Severity, computation.ProblemType, computation.CauseType,
+                    randomizeSelections)
                 : previousSnapshot!.Value.RecommendedCvTweaksText);
     }
 
@@ -2034,9 +2497,11 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var highBandAverage = AverageDifference(matches.Where(match => match.Step >= highBoundary));
         var positiveDirectionCount = matches.Count(match => match.SignedDifference >= 1.0);
         var negativeDirectionCount = matches.Count(match => match.SignedDifference <= -1.0);
-        var dominantDirectionRatio = Math.Max(positiveDirectionCount, negativeDirectionCount) / (double)Math.Max(1, matches.Count);
+        var dominantDirectionRatio = Math.Max(positiveDirectionCount, negativeDirectionCount) /
+                                     (double)Math.Max(1, matches.Count);
 
-        if (dominantDirectionRatio >= 0.70 && highBandAverage >= lowBandAverage + 0.8 && problemType is AiDiagnosticProblemType.DirectionAsymmetry or AiDiagnosticProblemType.HighSpeed)
+        if (dominantDirectionRatio >= 0.70 && highBandAverage >= lowBandAverage + 0.8 &&
+            problemType is AiDiagnosticProblemType.DirectionAsymmetry or AiDiagnosticProblemType.HighSpeed)
             return AiDiagnosticCauseType.MechanicalResistance;
 
         if (dominantDirectionRatio >= 0.75)
@@ -2116,7 +2581,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
                 : $"{prefix} {body}";
     }
 
-    private static string BuildDeviationSentence(int? maxDeviationStep, double? maxDeviationDifference, bool randomizeSelections)
+    private static string BuildDeviationSentence(int? maxDeviationStep, double? maxDeviationDifference,
+        bool randomizeSelections)
     {
         if (!maxDeviationStep.HasValue || !maxDeviationDifference.HasValue)
         {
@@ -2311,7 +2777,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             }
         };
 
-    private static IReadOnlyList<string> GetRecommendationProblemVariants(AiDiagnosticProblemType problemType, string targetStepText)
+    private static IReadOnlyList<string> GetRecommendationProblemVariants(AiDiagnosticProblemType problemType,
+        string targetStepText)
         => problemType switch
         {
             AiDiagnosticProblemType.Stable => new[]
@@ -2420,7 +2887,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             }
         };
 
-    private static IReadOnlyList<string> GetRecommendationVerificationVariants(AiDiagnosticSeverity severity, string suggestedPauseText)
+    private static IReadOnlyList<string> GetRecommendationVerificationVariants(AiDiagnosticSeverity severity,
+        string suggestedPauseText)
         => severity switch
         {
             AiDiagnosticSeverity.Ok => new[]
@@ -2484,7 +2952,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             }
         };
 
-    private static IReadOnlyList<string> GetCvAdjustmentVariants(AiDiagnosticProblemType problemType, AiDiagnosticCauseType causeType)
+    private static IReadOnlyList<string> GetCvAdjustmentVariants(AiDiagnosticProblemType problemType,
+        AiDiagnosticCauseType causeType)
         => causeType switch
         {
             AiDiagnosticCauseType.Stable => new[]
@@ -2602,21 +3071,26 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static double ComputeStoppingDistance(double speedKmh, double frictionFactor)
         => Math.Round((speedKmh * speedKmh) / 32.0 * frictionFactor, 1);
 
-    private static List<AxisLabelViewModel> BuildHorizontalAxisLabels(int maxStep, double plotOffset, double plotLength, double top)
+    private static List<AxisLabelViewModel> BuildHorizontalAxisLabels(int maxStep, double plotOffset, double plotLength,
+        double top)
     {
         var items = new List<AxisLabelViewModel>();
+        var plotRight = plotOffset + plotLength;
 
         foreach (var value in BuildStepAxisValues(maxStep))
         {
             var ratio = GetChartStepRatio(value, maxStep);
             var text = value.ToString(CultureInfo.InvariantCulture);
-            items.Add(new AxisLabelViewModel(CalculateHorizontalAxisLabelLeft(plotOffset + (ratio * plotLength), text), top, text));
+            items.Add(new AxisLabelViewModel(
+                CalculateHorizontalAxisLabelLeft(plotOffset + (ratio * plotLength), text, plotRight),
+                top, text));
         }
 
         return items;
     }
 
-    private static List<ChartGridLineViewModel> BuildVerticalGridLines(int maxStep, double left, double top, double width, double height)
+    private static List<ChartGridLineViewModel> BuildVerticalGridLines(int maxStep, double left, double top,
+        double width, double height)
     {
         return BuildStepAxisValues(maxStep)
             .Where(value => value > 0 && value < maxStep)
@@ -2628,7 +3102,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             .ToList();
     }
 
-    private static List<ChartGridLineViewModel> BuildXAxisTickMarks(int maxStep, double left, double top, double width, double height)
+    private static List<ChartGridLineViewModel> BuildXAxisTickMarks(int maxStep, double left, double top, double width,
+        double height)
     {
         var baselineY = top + height;
         const double tickHeight = 8;
@@ -2648,6 +3123,19 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         if (maxStep <= 14)
             return Enumerable.Range(0, maxStep + 1).ToList();
+
+        // Pre rozsah 0-127 (DCC kroky) vyznač presne 7 rovnomerne rozložených hodnôt
+        if (maxStep > 28)
+        {
+            const int TickCount = 7;
+            var ticks = Enumerable.Range(0, TickCount)
+                .Select(i => (int)Math.Round(i * (double)maxStep / (TickCount - 1)))
+                .Distinct()
+                .ToList();
+            if (ticks[^1] != maxStep)
+                ticks.Add(maxStep);
+            return ticks;
+        }
 
         var values = new List<int>();
         var majorStep = ChooseDecoderStepAxisMajorStep(maxStep);
@@ -2673,13 +3161,16 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         {
             var ratio = value / (double)Math.Max(1, maxSpeed);
             var text = value.ToString(CultureInfo.InvariantCulture);
-            items.Add(new AxisLabelViewModel(CalculateVerticalAxisLabelLeft(text), (plotOffset + plotLength - (ratio * plotLength)) - 8, text));
+            // Vycentruj text okolo čiary (-8), ale nikdy nedovoľ aby presiahol nad vrch plochy grafu.
+            var top = Math.Max(plotOffset, (plotOffset + plotLength - (ratio * plotLength)) - 8);
+            items.Add(new AxisLabelViewModel(CalculateVerticalAxisLabelLeft(text), top, text));
         }
 
         return items;
     }
 
-    private static List<ChartGridLineViewModel> BuildHorizontalGridLines(int maxSpeed, double left, double top, double width, double height)
+    private static List<ChartGridLineViewModel> BuildHorizontalGridLines(int maxSpeed, double left, double top,
+        double width, double height)
     {
         return BuildSpeedAxisValues(maxSpeed)
             .Where(value => value > 0)
@@ -2712,12 +3203,15 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private static double CalculateVerticalAxisLabelLeft(string text)
         => -4;
 
-    private IEnumerable<CurveMarkerViewModel> BuildCurveMarkers(IEnumerable<CalibrationMeasurementPointViewModel> points, string accent, bool isBackward, int maxStep, double maxSpeed)
+    private IEnumerable<CurveMarkerViewModel> BuildCurveMarkers(
+        IEnumerable<CalibrationMeasurementPointViewModel> points, string accent, bool isBackward, int maxStep,
+        double maxSpeed)
     {
         foreach (var point in points)
         {
             var x = ChartLeft + GetChartStepRatio(point.Step, maxStep) * ChartWidth;
-            var y = ChartTop + ChartHeight - (Math.Clamp(point.CalculatedSpeedKmh, 0, maxSpeed) / Math.Max(1, maxSpeed)) * ChartHeight;
+            var y = ChartTop + ChartHeight -
+                    (Math.Clamp(point.CalculatedSpeedKmh, 0, maxSpeed) / Math.Max(1, maxSpeed)) * ChartHeight;
             var directionLabel = isBackward ? "Dozadu" : "Dopredu";
             var label = point.IsManual
                 ? $"{directionLabel} • manuálny\nKrok {point.Step} • {point.CalculatedSpeedKmh:0.0} km/h"
@@ -2743,7 +3237,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     }
 
     private CalibrationMeasurementPointViewModel CreateManualChartPoint(int step, double speed)
-        => CreatePoint(step, GetActiveDirectionDisplayName(), EstimateTimeSeconds(speed), speed, speed, "Manuálne zadané", isManual: true);
+        => CreatePoint(step, GetActiveDirectionDisplayName(), EstimateTimeSeconds(speed), speed, speed,
+            "Manuálne zadané", isManual: true);
 
     private static bool IsManualStatus(string? status)
         => !string.IsNullOrWhiteSpace(status) && status.Contains("manu", StringComparison.CurrentCultureIgnoreCase);
@@ -2756,7 +3251,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         step = 0;
         speed = 0;
 
-        if (position.X < ChartLeft || position.X > ChartLeft + ChartWidth || position.Y < ChartTop || position.Y > ChartTop + ChartHeight)
+        if (position.X < ChartLeft || position.X > ChartLeft + ChartWidth || position.Y < ChartTop ||
+            position.Y > ChartTop + ChartHeight)
             return false;
 
         var xRatio = Math.Clamp((position.X - ChartLeft) / ChartWidth, 0, 1);
@@ -2766,7 +3262,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         return true;
     }
 
-    private CalibrationMeasurementPointViewModel? FindNearestPoint(IEnumerable<CalibrationMeasurementPointViewModel> points, Point canvasPosition)
+    private CalibrationMeasurementPointViewModel? FindNearestPoint(
+        IEnumerable<CalibrationMeasurementPointViewModel> points, Point canvasPosition)
     {
         CalibrationMeasurementPointViewModel? candidate = null;
         var bestDistance = MarkerHitRadius;
@@ -2774,7 +3271,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         foreach (var point in points)
         {
             var x = ChartLeft + GetChartStepRatio(point.Step, CurrentChartMaxStep) * ChartWidth;
-            var y = ChartTop + ChartHeight - (Math.Clamp(point.CalculatedSpeedKmh, 0, CurrentChartMaxSpeed) / Math.Max(1, CurrentChartMaxSpeed)) * ChartHeight;
+            var y = ChartTop + ChartHeight -
+                    (Math.Clamp(point.CalculatedSpeedKmh, 0, CurrentChartMaxSpeed) /
+                     Math.Max(1, CurrentChartMaxSpeed)) * ChartHeight;
             var distance = Math.Sqrt(Math.Pow(canvasPosition.X - x, 2) + Math.Pow(canvasPosition.Y - y, 2));
             if (distance <= bestDistance)
             {
@@ -2786,14 +3285,15 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         return candidate;
     }
 
-    private void ApplyChartPointEdit(CalibrationMeasurementPointViewModel point, int step, double speed, bool updateStatus, bool persistChanges, bool markProjectDirty, bool sortCollection)
+    private void ApplyChartPointEdit(CalibrationMeasurementPointViewModel point, int step, double speed,
+        bool updateStatus, bool persistChanges, bool markProjectDirty, bool sortCollection)
     {
         _isUpdatingMeasurementPoint = true;
         try
         {
             point.Step = Math.Clamp(step, 0, CurrentChartMaxStep);
             point.CalculatedSpeedKmh = Math.Round(Math.Clamp(speed, 0, CurrentChartMaxSpeed), 1);
-            point.RawSpeedKmh = point.CalculatedSpeedKmh;
+            point.CalculatedSpeedKmh = point.CalculatedSpeedKmh;
             point.TimeSeconds = EstimateTimeSeconds(point.CalculatedSpeedKmh);
             point.Status = "Manuálne zadané";
             point.IsManual = true;
@@ -2818,7 +3318,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             UpdateCalibrationStatus($"Bod kroku {point.Step} bol nastavený na {point.CalculatedSpeedKmh:0.0} km/h.");
     }
 
-    private void FinalizeMeasurementEdit(CalibrationMeasurementPointViewModel point, ObservableCollection<CalibrationMeasurementPointViewModel> collection, string statusMessage)
+    private void FinalizeMeasurementEdit(CalibrationMeasurementPointViewModel point,
+        ObservableCollection<CalibrationMeasurementPointViewModel> collection, string statusMessage)
     {
         EnsureUniqueStep(point, collection);
         SortMeasurements();
@@ -2829,7 +3330,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         UpdateCalibrationStatus(statusMessage);
     }
 
-    private void EnsureUniqueStep(CalibrationMeasurementPointViewModel point, ObservableCollection<CalibrationMeasurementPointViewModel> collection)
+    private void EnsureUniqueStep(CalibrationMeasurementPointViewModel point,
+        ObservableCollection<CalibrationMeasurementPointViewModel> collection)
     {
         var duplicate = collection.FirstOrDefault(item => !ReferenceEquals(item, point) && item.Step == point.Step);
         if (duplicate == null)
@@ -2843,12 +3345,16 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     {
         if (ForwardMeasurementPoints.Contains(point))
         {
-            SelectedForwardMeasurementPoint = ForwardMeasurementPoints.FirstOrDefault(item => ReferenceEquals(item, point) || item.Step == point.Step);
+            SelectedForwardMeasurementPoint =
+                ForwardMeasurementPoints.FirstOrDefault(item =>
+                    ReferenceEquals(item, point) || item.Step == point.Step);
             return;
         }
 
         if (BackwardMeasurementPoints.Contains(point))
-            SelectedBackwardMeasurementPoint = BackwardMeasurementPoints.FirstOrDefault(item => ReferenceEquals(item, point) || item.Step == point.Step);
+            SelectedBackwardMeasurementPoint =
+                BackwardMeasurementPoints.FirstOrDefault(item =>
+                    ReferenceEquals(item, point) || item.Step == point.Step);
     }
 
     private void SubscribeToMeasurementPoint(CalibrationMeasurementPointViewModel point)
@@ -2862,7 +3368,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         point.PropertyChanged -= OnMeasurementPointPropertyChanged;
     }
 
-    private void ReplaceMeasurementCollection(ObservableCollection<CalibrationMeasurementPointViewModel> target, IEnumerable<CalibrationMeasurementPointViewModel> items)
+    private void ReplaceMeasurementCollection(ObservableCollection<CalibrationMeasurementPointViewModel> target,
+        IEnumerable<CalibrationMeasurementPointViewModel> items)
     {
         foreach (var point in target.ToList())
             UnsubscribeFromMeasurementPoint(point);
@@ -2884,8 +3391,11 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             and not nameof(CalibrationMeasurementPointViewModel.CalculatedSpeedKmh))
             return;
 
-        var collection = ForwardMeasurementPoints.Contains(point) ? ForwardMeasurementPoints : BackwardMeasurementPoints;
-        ApplyChartPointEdit(point, point.Step, point.CalculatedSpeedKmh, updateStatus: false, persistChanges: false, markProjectDirty: false, sortCollection: false);
+        var collection = ForwardMeasurementPoints.Contains(point)
+            ? ForwardMeasurementPoints
+            : BackwardMeasurementPoints;
+        ApplyChartPointEdit(point, point.Step, point.CalculatedSpeedKmh, updateStatus: false, persistChanges: false,
+            markProjectDirty: false, sortCollection: false);
         FinalizeMeasurementEdit(point, collection, $"Tabuľková hodnota pre krok {point.Step} bola aktualizovaná.");
     }
 
@@ -2896,23 +3406,24 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var selectedWasForwardRow = selectedRow != null && ForwardSpeedProfileRows.Contains(selectedRow);
         var selectedWasBackwardRow = selectedRow != null && BackwardSpeedProfileRows.Contains(selectedRow);
 
-        var rows = (from step in ForwardMeasurementPoints.Select(point => point.Step).Concat(BackwardMeasurementPoints.Select(point => point.Step)).Distinct().OrderBy(step => step)
-                    let forward = ForwardMeasurementPoints.FirstOrDefault(point => point.Step == step)
-                    let backward = BackwardMeasurementPoints.FirstOrDefault(point => point.Step == step)
-                    select new SpeedProfileTableRowViewModel(
-                        step,
-                        forward?.RawSpeedKmh ?? 0,
-                        backward?.RawSpeedKmh ?? 0,
-                        forward?.Status ?? string.Empty,
-                        backward?.Status ?? string.Empty,
-                        forward?.IsManual ?? false,
-                        backward?.IsManual ?? false)).ToList();
+        var rows = (from step in ForwardMeasurementPoints.Select(point => point.Step)
+                .Concat(BackwardMeasurementPoints.Select(point => point.Step)).Distinct().OrderBy(step => step)
+            let forward = ForwardMeasurementPoints.FirstOrDefault(point => point.Step == step)
+            let backward = BackwardMeasurementPoints.FirstOrDefault(point => point.Step == step)
+            select new SpeedProfileTableRowViewModel(
+                step,
+                forward?.CalculatedSpeedKmh ?? 0,
+                backward?.CalculatedSpeedKmh ?? 0,
+                forward?.Status ?? string.Empty,
+                backward?.Status ?? string.Empty,
+                forward?.IsManual ?? false,
+                backward?.IsManual ?? false)).ToList();
 
         var forwardRows = ForwardMeasurementPoints
             .OrderBy(point => point.Step)
             .Select(point => new SpeedProfileTableRowViewModel(
                 point.Step,
-                point.RawSpeedKmh,
+                point.CalculatedSpeedKmh,
                 0,
                 point.Status,
                 string.Empty,
@@ -2925,7 +3436,7 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             .Select(point => new SpeedProfileTableRowViewModel(
                 point.Step,
                 0,
-                point.RawSpeedKmh,
+                point.CalculatedSpeedKmh,
                 string.Empty,
                 point.Status,
                 false,
@@ -2960,7 +3471,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
     private void ReplaceSpeedProfileRows(IEnumerable<SpeedProfileTableRowViewModel> rows)
         => ReplaceSpeedProfileRows(SpeedProfileRows, rows);
 
-    private void ReplaceSpeedProfileRows(ObservableCollection<SpeedProfileTableRowViewModel> target, IEnumerable<SpeedProfileTableRowViewModel> rows)
+    private void ReplaceSpeedProfileRows(ObservableCollection<SpeedProfileTableRowViewModel> target,
+        IEnumerable<SpeedProfileTableRowViewModel> rows)
     {
         foreach (var row in target.ToList())
             UnsubscribeFromSpeedProfileRow(row);
@@ -2997,7 +3509,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         if (_isUpdatingSpeedProfileRow || sender is not SpeedProfileTableRowViewModel row)
             return;
 
-        if (e.PropertyName is nameof(SpeedProfileTableRowViewModel.FwdRawSpeed) or nameof(SpeedProfileTableRowViewModel.BwdRawSpeed))
+        if (e.PropertyName is nameof(SpeedProfileTableRowViewModel.FwdRawSpeed)
+            or nameof(SpeedProfileTableRowViewModel.BwdRawSpeed))
         {
             UpdateMeasurementPointFromRow(row, e.PropertyName == nameof(SpeedProfileTableRowViewModel.FwdRawSpeed));
         }
@@ -3014,7 +3527,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         if (point == null)
         {
-            point = CreatePoint(row.Step, direction, EstimateTimeSeconds(speed), speed, speed, string.IsNullOrWhiteSpace(status) ? "Tabuľková hodnota" : status, isManual: isManual || IsManualStatus(status));
+            point = CreatePoint(row.Step, direction, EstimateTimeSeconds(speed), speed, speed,
+                string.IsNullOrWhiteSpace(status) ? "Tabuľková hodnota" : status,
+                isManual: isManual || IsManualStatus(status));
             UpsertMeasurementPoint(collection, point);
             SubscribeToMeasurementPoint(point);
         }
@@ -3026,8 +3541,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         try
         {
             point.Step = Math.Clamp(row.Step, 0, CurrentChartMaxStep);
-            point.RawSpeedKmh = Math.Round(Math.Clamp(speed, 0, CurrentChartMaxSpeed), 1);
-            point.CalculatedSpeedKmh = point.RawSpeedKmh;
+            point.CalculatedSpeedKmh = Math.Round(Math.Clamp(speed, 0, CurrentChartMaxSpeed), 1);
+            point.CalculatedSpeedKmh = point.CalculatedSpeedKmh;
             point.TimeSeconds = EstimateTimeSeconds(point.CalculatedSpeedKmh);
         }
         finally
@@ -3038,7 +3553,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         FinalizeMeasurementEdit(point, collection, $"Tabuľková hodnota pre krok {row.Step} bola aktualizovaná.");
     }
 
-    private static IEnumerable<ReferenceGuideViewModel> BuildReferenceGuides(IReadOnlyList<CalibrationMeasurementPointViewModel> forwardPoints, IReadOnlyList<CalibrationMeasurementPointViewModel> backwardPoints, int maxStep)
+    private static IEnumerable<ReferenceGuideViewModel> BuildReferenceGuides(
+        IReadOnlyList<CalibrationMeasurementPointViewModel> forwardPoints,
+        IReadOnlyList<CalibrationMeasurementPointViewModel> backwardPoints, int maxStep)
     {
         foreach (var point in forwardPoints.Where(point => point.Step is 10 or 60 or 90))
         {
@@ -3054,7 +3571,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         }
     }
 
-    private static string BuildCurvePath(IEnumerable<CalibrationMeasurementPointViewModel> points, double left, double top, double width, double height, double maxSpeed, int maxStep)
+    private static string BuildCurvePath(IEnumerable<CalibrationMeasurementPointViewModel> points, double left,
+        double top, double width, double height, double maxSpeed, int maxStep)
     {
         var ordered = points.OrderBy(point => point.Step).ToList();
         if (ordered.Count == 0)
@@ -3073,15 +3591,17 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             var x = left + GetChartStepRatio(point.Step, maxStep) * width;
             var y = top + height - (point.Speed / maxSpeed) * height;
             sb.Append(index == 0 ? "M " : " L ")
-              .Append(Format(x))
-              .Append(' ')
-              .Append(Format(y));
+                .Append(Format(x))
+                .Append(' ')
+                .Append(Format(y));
         }
 
         return sb.ToString();
     }
 
-    private static string BuildVarianceAreaPath(IReadOnlyList<CalibrationMeasurementPointViewModel> forwardPoints, IReadOnlyList<CalibrationMeasurementPointViewModel> backwardPoints, double left, double top, double width, double height, double maxSpeed, int maxStep)
+    private static string BuildVarianceAreaPath(IReadOnlyList<CalibrationMeasurementPointViewModel> forwardPoints,
+        IReadOnlyList<CalibrationMeasurementPointViewModel> backwardPoints, double left, double top, double width,
+        double height, double maxSpeed, int maxStep)
     {
         if (forwardPoints.Count == 0 || backwardPoints.Count == 0)
             return string.Empty;
@@ -3096,9 +3616,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             var x = left + GetChartStepRatio(point.Step, maxStep) * width;
             var y = top + height - (point.CalculatedSpeedKmh / maxSpeed) * height;
             sb.Append(index == 0 ? "M " : " L ")
-              .Append(Format(x))
-              .Append(' ')
-              .Append(Format(y));
+                .Append(Format(x))
+                .Append(' ')
+                .Append(Format(y));
         }
 
         foreach (var point in backward)
@@ -3106,16 +3626,17 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             var x = left + GetChartStepRatio(point.Step, maxStep) * width;
             var y = top + height - (point.CalculatedSpeedKmh / maxSpeed) * height;
             sb.Append(" L ")
-              .Append(Format(x))
-              .Append(' ')
-              .Append(Format(y));
+                .Append(Format(x))
+                .Append(' ')
+                .Append(Format(y));
         }
 
         sb.Append(" Z");
         return sb.ToString();
     }
 
-    private static string BuildMarkerPath(IEnumerable<CalibrationMeasurementPointViewModel> points, double radius, int maxStep, double maxSpeed)
+    private static string BuildMarkerPath(IEnumerable<CalibrationMeasurementPointViewModel> points, double radius,
+        int maxStep, double maxSpeed)
     {
         var ordered = points.OrderBy(point => point.Step).ToList();
         if (ordered.Count == 0)
@@ -3125,34 +3646,36 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         foreach (var point in ordered)
         {
             var x = ChartLeft + GetChartStepRatio(point.Step, maxStep) * ChartWidth;
-            var y = ChartTop + ChartHeight - (Math.Clamp(point.CalculatedSpeedKmh, 0, maxSpeed) / Math.Max(1, maxSpeed)) * ChartHeight;
+            var y = ChartTop + ChartHeight -
+                    (Math.Clamp(point.CalculatedSpeedKmh, 0, maxSpeed) / Math.Max(1, maxSpeed)) * ChartHeight;
             sb.Append("M ")
-              .Append(Format(x - radius))
-              .Append(' ')
-              .Append(Format(y))
-              .Append(" A ")
-              .Append(Format(radius))
-              .Append(' ')
-              .Append(Format(radius))
-              .Append(" 0 1 0 ")
-              .Append(Format(x + radius))
-              .Append(' ')
-              .Append(Format(y))
-              .Append(" A ")
-              .Append(Format(radius))
-              .Append(' ')
-              .Append(Format(radius))
-              .Append(" 0 1 0 ")
-              .Append(Format(x - radius))
-              .Append(' ')
-              .Append(Format(y))
-              .Append(" Z ");
+                .Append(Format(x - radius))
+                .Append(' ')
+                .Append(Format(y))
+                .Append(" A ")
+                .Append(Format(radius))
+                .Append(' ')
+                .Append(Format(radius))
+                .Append(" 0 1 0 ")
+                .Append(Format(x + radius))
+                .Append(' ')
+                .Append(Format(y))
+                .Append(" A ")
+                .Append(Format(radius))
+                .Append(' ')
+                .Append(Format(radius))
+                .Append(" 0 1 0 ")
+                .Append(Format(x - radius))
+                .Append(' ')
+                .Append(Format(y))
+                .Append(" Z ");
         }
 
         return sb.ToString().Trim();
     }
 
-    private static string BuildCurveFillPath(IEnumerable<CalibrationMeasurementPointViewModel> points, double left, double top, double width, double height, double maxSpeed, int maxStep)
+    private static string BuildCurveFillPath(IEnumerable<CalibrationMeasurementPointViewModel> points, double left,
+        double top, double width, double height, double maxSpeed, int maxStep)
     {
         var ordered = points.OrderBy(point => point.Step).ToList();
         if (ordered.Count == 0)
@@ -3170,25 +3693,25 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
 
         var sb = new StringBuilder();
         sb.Append("M ")
-          .Append(Format(firstX))
-          .Append(' ')
-          .Append(Format(baselineY));
+            .Append(Format(firstX))
+            .Append(' ')
+            .Append(Format(baselineY));
 
         foreach (var point in pathPoints)
         {
             var x = left + GetChartStepRatio(point.Step, maxStep) * width;
             var y = top + height - (point.Speed / maxSpeed) * height;
             sb.Append(" L ")
-              .Append(Format(x))
-              .Append(' ')
-              .Append(Format(y));
+                .Append(Format(x))
+                .Append(' ')
+                .Append(Format(y));
         }
 
         sb.Append(" L ")
-          .Append(Format(lastX))
-          .Append(' ')
-          .Append(Format(baselineY))
-          .Append(" Z");
+            .Append(Format(lastX))
+            .Append(' ')
+            .Append(Format(baselineY))
+            .Append(" Z");
 
         return sb.ToString();
     }
@@ -3238,16 +3761,20 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         var endY = firstY - dx * dx * dy / lenSquared;
 
         return (new RelativePoint(firstX, firstY, RelativeUnit.Absolute),
-                new RelativePoint(endX, endY, RelativeUnit.Absolute));
+            new RelativePoint(endX, endY, RelativeUnit.Absolute));
     }
 
-    private static double CalculateHorizontalAxisLabelLeft(double axisX, string text)
-        => axisX - (text.Length switch
+    private static double CalculateHorizontalAxisLabelLeft(double axisX, string text, double plotRight = double.MaxValue)
+    {
+        var centeredLeft = axisX - (text.Length switch
         {
             1 => 4,
             2 => 10,
             _ => 16
         });
+        var labelWidth = text.Length switch { 1 => 8, 2 => 20, _ => 32 };
+        return Math.Min(centeredLeft, plotRight - labelWidth);
+    }
 
     private static int CalculateQuarterStepLabel(int maxStep)
         => (int)Math.Round(Math.Max(1, maxStep) / 4.0, MidpointRounding.AwayFromZero);
@@ -3273,7 +3800,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         return value.ToString(value >= 10 ? "0.#" : "0.0", CultureInfo.CurrentCulture);
     }
 
-    private static double CalculateDirectionAsymmetryPercent(double forwardSpeed, double backwardSpeed, double referenceMaxSpeed)
+    private static double CalculateDirectionAsymmetryPercent(double forwardSpeed, double backwardSpeed,
+        double referenceMaxSpeed)
     {
         // Percento asymetrie sa zámerne počíta voči maximálnej konštrukčnej rýchlosti lokomotívy
         // (Vmax). Pre modelára je to jediný zrozumiteľný a stabilný referenčný parameter, vďaka
@@ -3282,7 +3810,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         return Math.Clamp(Math.Abs(forwardSpeed - backwardSpeed) / reference * 100.0, 0, 100);
     }
 
-    private static IReadOnlyList<MechanicalHealthSample> BuildMechanicalHealthSamples(IReadOnlyList<DiagnosticDifferenceSample> matches, int referenceMaxSpeed)
+    private static IReadOnlyList<MechanicalHealthSample> BuildMechanicalHealthSamples(
+        IReadOnlyList<DiagnosticDifferenceSample> matches, int referenceMaxSpeed)
     {
         if (matches.Count == 0)
             return Array.Empty<MechanicalHealthSample>();
@@ -3295,7 +3824,8 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             .ToList();
     }
 
-    private static string BuildMechanicalHealthPath(IReadOnlyList<MechanicalHealthSample> samples, int maxStep, double axisMaximumPercent)
+    private static string BuildMechanicalHealthPath(IReadOnlyList<MechanicalHealthSample> samples, int maxStep,
+        double axisMaximumPercent)
     {
         if (samples.Count == 0)
             return string.Empty;
@@ -3308,9 +3838,9 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
             var x = PerformanceChartLeft + GetChartStepRatio(point.Step, maxStep) * PerformanceChartWidth;
             var y = CalculateMechanicalChartY(point.DifferencePercent, axisMaximumPercent);
             sb.Append(index == 0 ? "M " : " L ")
-              .Append(Format(x))
-              .Append(' ')
-              .Append(Format(y));
+                .Append(Format(x))
+                .Append(' ')
+                .Append(Format(y));
         }
 
         return sb.ToString();
@@ -3349,11 +3879,14 @@ public sealed class LocomotiveSpeedEditorViewModel : ReactiveObject
         if (string.IsNullOrWhiteSpace(scale))
             return "1:87 (H0)";
 
-        if (scale.Contains("1:120", StringComparison.OrdinalIgnoreCase) || scale.StartsWith("TT", StringComparison.OrdinalIgnoreCase))
+        if (scale.Contains("1:120", StringComparison.OrdinalIgnoreCase) ||
+            scale.StartsWith("TT", StringComparison.OrdinalIgnoreCase))
             return "1:120 (TT)";
-        if (scale.Contains("1:160", StringComparison.OrdinalIgnoreCase) || scale.StartsWith("N", StringComparison.OrdinalIgnoreCase))
+        if (scale.Contains("1:160", StringComparison.OrdinalIgnoreCase) ||
+            scale.StartsWith("N", StringComparison.OrdinalIgnoreCase))
             return "1:160 (N)";
-        if (scale.Contains("1:43", StringComparison.OrdinalIgnoreCase) || scale.StartsWith("0", StringComparison.OrdinalIgnoreCase))
+        if (scale.Contains("1:43", StringComparison.OrdinalIgnoreCase) ||
+            scale.StartsWith("0", StringComparison.OrdinalIgnoreCase))
             return "1:43.5 (0)";
 
         return "1:87 (H0)";
@@ -3561,7 +4094,10 @@ public sealed class CalibrationIndicatorOption : ReactiveObject
         string activeIconPath,
         string inactiveIconPath,
         bool isActive = false,
-        Guid? indicatorId = null)
+        Guid? indicatorId = null,
+        int moduleAddress = 0,
+        int portNumber = 0,
+        Guid? dccCentralProfileId = null)
     {
         DisplayName = displayName;
         IconGlyph = iconGlyph;
@@ -3569,6 +4105,9 @@ public sealed class CalibrationIndicatorOption : ReactiveObject
         _inactiveIconPath = inactiveIconPath;
         _isActive = isActive;
         IndicatorId = indicatorId;
+        ModuleAddress = moduleAddress;
+        PortNumber = portNumber;
+        DccCentralProfileId = dccCentralProfileId;
     }
 
     /// <summary>
@@ -3584,6 +4123,15 @@ public sealed class CalibrationIndicatorOption : ReactiveObject
 
     /// <summary>Voliteľné ID zdrojového BlockIndicator-a pre presné párovanie pri live aktualizácii.</summary>
     public Guid? IndicatorId { get; }
+
+    /// <summary>Adresa R-Bus/S88 modulu pre párovanie s DccFeedbackStateChange.</summary>
+    public int ModuleAddress { get; }
+
+    /// <summary>Port na module pre párovanie s DccFeedbackStateChange.</summary>
+    public int PortNumber { get; }
+
+    /// <summary>ID DCC profilu pre párovanie s DccFeedbackStateChange.</summary>
+    public Guid? DccCentralProfileId { get; }
 
     public bool IsActive
     {
@@ -3650,7 +4198,8 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
     private string _status;
     private bool _isManual;
 
-    public CalibrationMeasurementPointViewModel(int step, string direction, double timeSeconds, double rawSpeedKmh, double calculatedSpeedKmh, string status, bool isManual)
+    public CalibrationMeasurementPointViewModel(int step, string direction, double timeSeconds, double rawSpeedKmh,
+        double calculatedSpeedKmh, string status, bool isManual)
     {
         _step = step;
         Direction = direction;
@@ -3676,6 +4225,7 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
     }
 
     public string Direction { get; }
+
     public double TimeSeconds
     {
         get => _timeSeconds;
@@ -3736,7 +4286,8 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
         get => Step.ToString(CultureInfo.InvariantCulture);
         set
         {
-            if (int.TryParse(new string((value ?? string.Empty).Where(char.IsDigit).ToArray()), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            if (int.TryParse(new string((value ?? string.Empty).Where(char.IsDigit).ToArray()), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out var parsed))
                 Step = parsed;
         }
     }
@@ -3747,7 +4298,8 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
         set
         {
             var normalized = (value ?? string.Empty).Trim().Replace(',', '.');
-            if (double.TryParse(normalized, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var parsed))
+            if (double.TryParse(normalized, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture,
+                    out var parsed))
                 CalculatedSpeedKmh = parsed;
         }
     }
@@ -3760,7 +4312,8 @@ public sealed class CalibrationMeasurementPointViewModel : ReactiveObject
 
 public sealed class CurveMarkerViewModel : ReactiveObject
 {
-    public CurveMarkerViewModel(double left, double top, string label, string caption, string fill, string stroke, string captionForeground, double width, double height, double labelOffsetX, double labelOffsetY)
+    public CurveMarkerViewModel(double left, double top, string label, string caption, string fill, string stroke,
+        string captionForeground, double width, double height, double labelOffsetX, double labelOffsetY)
     {
         Left = left;
         Top = top;
@@ -3825,4 +4378,3 @@ public sealed class AxisLabelViewModel : ReactiveObject
     public double Top { get; }
     public string Text { get; }
 }
-

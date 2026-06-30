@@ -249,7 +249,7 @@
                         <ComboBox.SelectionBoxItemTemplate>
                             <DataTemplate x:DataType="vm:CalibrationIndicatorOption">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <TextBlock Text="{Binding IconGlyph}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="13" FontWeight="Bold" Foreground="{Binding IsActive, Converter={StaticResource CalibrationIndicatorGlyphBrush}}" />
+                                    <Image Source="{Binding IconImage}" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
                                     <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                 </StackPanel>
                             </DataTemplate>
@@ -313,6 +313,16 @@
 
                 <Rectangle Height="1" Fill="#E2E8F0" Margin="0,1" />
 
+                <Grid ColumnDefinitions="75,*,30" RowDefinitions="Auto" ColumnSpacing="6">
+                    <TextBlock Grid.Column="0" Classes="fieldLabel" Text="Dĺžka bloku" VerticalAlignment="Center" Margin="0" />
+                    <TextBox Grid.Column="1"
+                             Classes="speedCompactTextBox"
+                             HorizontalContentAlignment="Right"
+                             MaxLength="3"
+                             Text="{Binding BlockLengthCmText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Column="2" Classes="fieldLabel" Text="[cm]" VerticalAlignment="Center" Margin="4,0,0,0" />
+                </Grid>
+
                 <Grid ColumnDefinitions="55,25,45,25,30" RowDefinitions="Auto" ColumnSpacing="10">
                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldLabel" Text="Pauza (s)" VerticalAlignment="Center" Margin="0" />
                     <TextBox Grid.Row="0" Grid.Column="1"
@@ -326,11 +336,11 @@
                     <TextBlock Grid.Row="0" Grid.Column="2" Classes="fieldLabel" Text="Dobeh" VerticalAlignment="Center" Margin="6,0,0,0" />
                     <TextBox Grid.Row="0" Grid.Column="3"
                              Classes="speedCompactTextBox"
-                             Width="40"
+                             Width="45"
                              MinWidth="20"
                              HorizontalContentAlignment="Right"
-                             Text="{Binding RunoutDistanceMmText, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Grid.Row="0" Grid.Column="4" Classes="fieldLabel" Text="[mm]" VerticalAlignment="Center" Margin="4,0,0,0" />
+                             Text="{Binding RunoutDistanceCmText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="0" Grid.Column="4" Classes="fieldLabel" Text="[cm]" VerticalAlignment="Center" Margin="4,0,0,0" />
                     
                     
                 </Grid>
@@ -356,7 +366,7 @@
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8" />
 
-                <Border Classes="speedCard" Padding="8">
+                <Border Classes="speedCard" Padding="8" ClipToBounds="False">
                     <DockPanel LastChildFill="True">
                         <TextBlock DockPanel.Dock="Top"
                                    Text="{Binding SelectedProfileDisplayName}"
@@ -393,13 +403,13 @@
                                    Text="{Binding DecoderStepAxisTitle}"
                                    HorizontalAlignment="Center"
                                    FontWeight="Bold"
-                                   FontSize="14"
+                                   FontSize="12"
                                    Foreground="#1F2937"
                                    Margin="0,0,0,26" />
 
                         <Grid ColumnDefinitions="28,*" ColumnSpacing="2">
                         <Canvas Grid.Column="0" Width="28" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Stretch">
-                            <TextBlock Text="Model Speed (km/h)" Canvas.Left="-50" Canvas.Top="170" FontWeight="SemiBold" FontSize="14" Foreground="#1F2937">
+                            <TextBlock Text="Model Speed (km/h)" Canvas.Left="-40" Canvas.Top="170" FontWeight="SemiBold" FontSize="12" Foreground="#1F2937">
                                 <TextBlock.RenderTransform>
                                     <RotateTransform Angle="-90" />
                                 </TextBlock.RenderTransform>
@@ -513,7 +523,7 @@
                                           IsVisible="{Binding IsBackwardProfileVisible}"
                                           IsHitTestVisible="False" />
 
-                                    <ItemsControl x:Name="ForwardYAxisLabelsPresenter" Width="900" Height="620" ItemsSource="{Binding YAxisLabels}">
+                                    <ItemsControl x:Name="ForwardYAxisLabelsPresenter" Width="900" Height="620" ClipToBounds="False" ItemsSource="{Binding YAxisLabels}">
                                         <ItemsControl.Styles>
                                             <Style Selector="ContentPresenter">
                                                 <Setter Property="Canvas.Left" Value="{Binding Left}" />
@@ -527,12 +537,12 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:AxisLabelViewModel">
-                                                <TextBlock Text="{Binding Text}" Width="28" TextAlignment="Right" FontSize="20" Foreground="#334155" />
+                                                <TextBlock Text="{Binding Text}" Width="40" Margin="0,0,4,0" TextAlignment="Right" FontSize="20" Foreground="#334155" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <ItemsControl x:Name="ForwardXAxisLabelsPresenter" Width="900" Height="620" ItemsSource="{Binding XAxisLabels}">
+                                    <ItemsControl x:Name="ForwardXAxisLabelsPresenter" Width="900" Height="620" ClipToBounds="False" ItemsSource="{Binding XAxisLabels}">
                                         <ItemsControl.Styles>
                                             <Style Selector="ContentPresenter">
                                                 <Setter Property="Canvas.Left" Value="{Binding Left}" />
@@ -618,12 +628,12 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45" MinWidth="45" CanUserSort="False">
+                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="55" MinWidth="55" CanUserSort="False">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock Text="Krok" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
                                             </DataGridTextColumn.Header>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding FwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="89" MinWidth="89" CanUserSort="False">
+                                        <DataGridTextColumn Binding="{Binding FwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="79" MinWidth="79" CanUserSort="False">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock Text="Nameraná&#x0a;km/h" TextWrapping="Wrap" TextAlignment="Center" MaxLines="2" TextTrimming="None" />
                                             </DataGridTextColumn.Header>
@@ -660,12 +670,12 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45" MinWidth="45" CanUserSort="False">
+                                        <DataGridTextColumn Binding="{Binding StepText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="55" MinWidth="55" CanUserSort="False">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock Text="Krok" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="None" />
                                             </DataGridTextColumn.Header>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding BwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="89" MinWidth="89" CanUserSort="False">
+                                        <DataGridTextColumn Binding="{Binding BwdRawSpeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="79" MinWidth="79" CanUserSort="False">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock Text="Nameraná&#x0a;km/h" TextWrapping="Wrap" TextAlignment="Center" MaxLines="2" TextTrimming="None" />
                                             </DataGridTextColumn.Header>
@@ -681,7 +691,7 @@
 
 
             <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="12" HorizontalAlignment="Stretch">
-                <Button Grid.Column="0" Classes="speedAccentButton" Content="Štart automatického merania" Command="{Binding StartAutomatedSequenceCommand}" />
+                <Button Grid.Column="0" Classes="speedAccentButton" Content="{Binding StartAutomatedSequenceButtonText}" Command="{Binding StartAutomatedSequenceCommand}" />
                 <Button Grid.Column="1" Classes="speedPrimaryButton" Content="Pridať bod manuálne" Command="{Binding AddPointManuallyCommand}" IsEnabled="{Binding CanAddPointManually}" />
                 <Button Grid.Column="2" Classes="speedPrimaryButton" Content="Inicializovať profil" Click="OnInitializeProfileClick" />
                 <Button Grid.Column="3" Classes="speedPrimaryButton" Content="Verify" Command="{Binding VerifyCommand}" />

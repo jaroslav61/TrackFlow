@@ -1121,7 +1121,7 @@ public sealed class Z21Client : IDccCentralClient, IDccKeepAliveClient, IDccProg
         int value,
         bool isPom)
     {
-        var idleAfterProgrammingModeMs = isPom ? 400 : 3000;  // v prípade zlýhania zápisu do registrov CV zvýšiť hodnotu
+        var idleAfterProgrammingModeMs = isPom ? 400 : 4000;  // v prípade zlýhania zápisu do registrov CV zvýšiť hodnotu
         var hardObservationDeadline = DateTime.UtcNow.AddMilliseconds(isPom ? 1_000 : 2_000);
         var effectiveDeadline = hardObservationDeadline < deadlineUtc ? hardObservationDeadline : deadlineUtc;
         DateTime? silenceDeadlineUtc = null;

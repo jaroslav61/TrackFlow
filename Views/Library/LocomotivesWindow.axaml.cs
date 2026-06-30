@@ -650,11 +650,7 @@ public partial class LocomotivesWindow : Window
         {
             await dialog.StartReadingAsync(programmingClient, timeoutMsPerCv, interCvDelayMs, (cv, resultValue) =>
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    using var _ = _vm?.SuspendEditorDirtyTracking();
-                    HandleCvReadSuccess(cv, resultValue);
-                });
+                Dispatcher.UIThread.Post(() => HandleCvReadSuccess(cv, resultValue));
             });
         }
         catch (Exception ex)
@@ -673,7 +669,6 @@ public partial class LocomotivesWindow : Window
     private void ApplyReadCvValues(IReadOnlyDictionary<int, int> values)
     {
         _suppressCvDirty = true;
-        using var editorScope = _vm?.SuspendEditorDirtyTracking();
         try
         {
             foreach (var pair in values)
@@ -982,6 +977,22 @@ public partial class LocomotivesWindow : Window
         {
             if (_vm?.SpeedEditor == null)
                 return;
+
+            // Pripoj DriveLocoAsync delegate ak je DCC pripojené — rovnaký vzor ako ReadCvButton
+            if (Owner?.DataContext is MainWindowViewModel mainVm
+                && mainVm.Dcc.IsConnected
+                && mainVm.Dcc.Client is IDccCentralClient dccClient)
+            {
+                async Task DriveFunc(int address, int speed, bool forward, CancellationToken ct)
+                    => await dccClient.SetLocomotiveSpeedAsync(address, speed, forward, ct);
+                _vm.SpeedEditor.DriveLocoAsync = DriveFunc;
+                _vm.SpeedEditor.CalibrationDcc = mainVm.Dcc;
+            }
+            else
+            {
+                _vm.SpeedEditor.DriveLocoAsync = null;
+                _vm.SpeedEditor.CalibrationDcc = null;
+            }
 
             var window = new LocomotiveCalibrationWindow
             {
